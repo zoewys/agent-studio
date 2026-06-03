@@ -21,7 +21,7 @@ function probe(cmd: string): Promise<boolean> {
           /* noop */
         }
         done(false)
-      }, 5000)
+      }, 15000)
       t.unref?.()
     } catch {
       done(false)

@@ -278,3 +278,99 @@ button:disabled {
 .interject input {
   flex: 1;
 }
+
+/* ── Agent Manager modal ─────────────────────────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: 780px;
+  max-width: 92vw;
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.modal-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Agent list sidebar ──────────────────────────────────────────────── */
+
+.agent-list {
+  width: 240px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.agent-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.agent-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.agent-item:hover {
+  background: var(--bg-input);
+}
+
+.agent-item-active {
+  background: rgba(108, 140, 255, 0.12);
+  border-left: 2px solid var(--accent);
+}
+
+.agent-item-name {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.agent-item-meta {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+/* ── Agent editor panel ──────────────────────────────────────────────── */
+
+.agent-editor {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}

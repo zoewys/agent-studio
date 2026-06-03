@@ -1,0 +1,174 @@
+import { useState } from 'react'
+import type { AgentDefinition, AgentVendor, CliCheckResult, PermissionMode } from '@shared/types'
+import { ALL_VENDORS, PERMISSION_MODES, VENDOR_MODELS } from '@shared/types'
+import type { AgentDraft } from './useAgents'
+
+export interface AgentManagerProps {
+  agents: AgentDefinition[]
+  clis: CliCheckResult | null
+  onSave: (draft: AgentDraft) => void
+  onDelete: (id: string) => void
+  onClose: () => void
+}
+
+function emptyDraft(): AgentDraft {
+  return { name: '', role: '', vendor: 'claude' as AgentVendor, model: '', systemPrompt: '', permissionMode: 'bypassPermissions' as PermissionMode }
+}
+
+export function AgentManager({ agents, clis, onSave, onDelete, onClose }: AgentManagerProps): JSX.Element {
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [draft, setDraft] = useState<AgentDraft>(emptyDraft)
+
+  const isNew = editingId === null
+  const cliAvailable = (v: AgentVendor) => (clis ? clis[v] : true)
+
+  const select = (agent: AgentDefinition) => {
+    setEditingId(agent.id)
+    setDraft({ ...agent })
+  }
+
+  const startNew = () => {
+    setEditingId(null)
+    setDraft(emptyDraft())
+  }
+
+  const handleSave = () => {
+    if (!draft.name.trim()) return
+    onSave(isNew ? draft : { ...draft, id: editingId! })
+    setEditingId(null)
+    setDraft(emptyDraft())
+  }
+
+  const handleDelete = () => {
+    if (editingId) {
+      onDelete(editingId)
+      setEditingId(null)
+      setDraft(emptyDraft())
+    }
+  }
+
+  return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
+    <div className="modal-overlay" onClick={onClose} role="dialog">
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-body">
+          {/* ── sidebar: agent list ──────────────────────────────────── */}
+          <aside className="agent-list">
+            <div className="agent-list-header">
+              <span>Agents</span>
+              <button className="primary" onClick={startNew} type="button">+ New</button>
+            </div>
+            {agents.length === 0 && (
+              <div className="transcript-empty">No agents defined yet.</div>
+            )}
+            {agents.map((a) => (
+              <button
+                key={a.id}
+                className={`agent-item ${editingId === a.id ? 'agent-item-active' : ''}`}
+                onClick={() => select(a)}
+                type="button"
+              >
+                <div className="agent-item-name">{a.name || '(untitled)'}</div>
+                <div className="agent-item-meta">
+                  {a.role} · {a.vendor}
+                  {a.model ? ` · ${a.model}` : ''}
+                </div>
+              </button>
+            ))}
+          </aside>
+
+          {/* ── main: editor form ────────────────────────────────────── */}
+          <div className="agent-editor">
+            {editingId === null && !isNew ? (
+              <div className="transcript-empty">Select an agent or create one.</div>
+            ) : (
+              <>
+                <label className="field">
+                  <span>Name</span>
+                  <input
+                    value={draft.name}
+                    placeholder="e.g. 资深产品经理"
+                    onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+                  />
+                </label>
+
+                <label className="field">
+                  <span>Role</span>
+                  <input
+                    value={draft.role}
+                    placeholder="e.g. product, design, dev, test"
+                    onChange={(e) => setDraft((d) => ({ ...d, role: e.target.value }))}
+                  />
+                </label>
+
+                <div className="field-row">
+                  <label className="field field-grow">
+                    <span>Vendor</span>
+                    <select
+                      value={draft.vendor}
+                      onChange={(e) => setDraft((d) => ({ ...d, vendor: e.target.value as AgentVendor }))}
+                    >
+                      {ALL_VENDORS.map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                          {!cliAvailable(v) ? ' (not installed)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="field field-grow">
+                    <span>Model (optional)</span>
+                    <input
+                      value={draft.model}
+                      placeholder="e.g. sonnet"
+                      list="agent-models"
+                      onChange={(e) => setDraft((d) => ({ ...d, model: e.target.value }))}
+                    />
+                    <datalist id="agent-models">
+                      {(VENDOR_MODELS[draft.vendor] ?? []).map((m) => (
+                        <option key={m} value={m} />
+                      ))}
+                    </datalist>
+                  </label>
+                </div>
+
+                <label className="field">
+                  <span>Permission Mode</span>
+                  <select
+                    value={draft.permissionMode ?? 'bypassPermissions'}
+                    onChange={(e) => setDraft((d) => ({ ...d, permissionMode: e.target.value as PermissionMode }))}
+                  >
+                    {PERMISSION_MODES.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="field field-grow">
+                  <span>System Prompt</span>
+                  <textarea
+                    value={draft.systemPrompt}
+                    placeholder="You are a senior product manager. Your job is to…"
+                    onChange={(e) => setDraft((d) => ({ ...d, systemPrompt: e.target.value }))}
+                  />
+                </label>
+
+                <div className="actions">
+                  <button className="primary" onClick={handleSave} disabled={!draft.name.trim()} type="button">
+                    {isNew ? 'Create' : 'Save'}
+                  </button>
+                  {!isNew && (
+                    <button onClick={handleDelete} type="button" style={{ color: 'var(--red)' }}>
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

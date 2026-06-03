@@ -1,17 +1,37 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { AgentVendor, CliCheckResult, RunConfig } from '@shared/types'
-import { ALL_VENDORS } from '@shared/types'
+import { ALL_VENDORS, VENDOR_MODELS } from '@shared/types'
 import { useRun } from './useRun'
+import { useAgents } from './useAgents'
+import { AgentManager } from './AgentManager'
 import { TranscriptViewer } from './TranscriptViewer'
 
 export function App(): JSX.Element {
   const { state, start, continueSession, push, abort, reset } = useRun()
+  const { agents, save: saveAgent, remove: removeAgent } = useAgents()
   const [clis, setClis] = useState<CliCheckResult | null>(null)
   const [vendor, setVendor] = useState<AgentVendor>('claude')
   const [cwd, setCwd] = useState('')
   const [prompt, setPrompt] = useState('')
   const [model, setModel] = useState('')
   const [interjection, setInterjection] = useState('')
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
+  const [showManager, setShowManager] = useState(false)
+
+  const selectedAgent = useMemo(
+    () => agents.find((a) => a.id === selectedAgentId) ?? null,
+    [agents, selectedAgentId]
+  )
+
+  /** Apply an agent preset: override vendor + model in the left panel. */
+  const handleSelectAgent = (id: string) => {
+    setSelectedAgentId(id || null)
+    const agent = id ? agents.find((a) => a.id === id) : null
+    if (agent) {
+      setVendor(agent.vendor)
+      setModel(agent.model ?? '')
+    }
+  }
 
   useEffect(() => {
     window.api.checkClis().then(setClis)
@@ -24,7 +44,9 @@ export function App(): JSX.Element {
       vendor,
       prompt: prompt.trim(),
       cwd: cwd.trim(),
-      model: model.trim() || undefined
+      model: model.trim() || undefined,
+      appendSystemPrompt: selectedAgent?.systemPrompt,
+      permissionMode: selectedAgent?.permissionMode
     }
     await start(config)
   }
@@ -54,7 +76,9 @@ export function App(): JSX.Element {
         prompt: text,
         cwd: cwd.trim(),
         model: model.trim() || undefined,
-        resumeFrom: { sessionId: state.sessionId!, vendor }
+        resumeFrom: { sessionId: state.sessionId!, vendor },
+        appendSystemPrompt: selectedAgent?.systemPrompt,
+        permissionMode: selectedAgent?.permissionMode
       }
       await continueSession(config)
     }
@@ -63,7 +87,8 @@ export function App(): JSX.Element {
   const cliAvailable = clis ? clis[vendor] : true
 
   return (
-    <div className="app">
+    <>
+      <div className="app">
       <header className="app-header">
         <h1>Agent Studio</h1>
         <span className="app-subtitle">M1 · single agent · {vendor}</span>
@@ -71,6 +96,26 @@ export function App(): JSX.Element {
 
       <div className="app-body">
         <aside className="panel panel-config">
+          <label className="field">
+            <span>Agent</span>
+            <div className="field-row">
+              <select
+                value={selectedAgentId ?? ''}
+                onChange={(e) => handleSelectAgent(e.target.value)}
+              >
+                <option value="">(none — manual config)</option>
+                {agents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name || '(untitled)'}
+                  </option>
+                ))}
+              </select>
+              <button onClick={() => setShowManager(true)} type="button">
+                Manage…
+              </button>
+            </div>
+          </label>
+
           <label className="field">
             <span>Vendor</span>
             <select value={vendor} onChange={(e) => setVendor(e.target.value as AgentVendor)}>
@@ -88,8 +133,14 @@ export function App(): JSX.Element {
             <input
               value={model}
               placeholder="e.g. sonnet, opus"
+              list="app-models"
               onChange={(e) => setModel(e.target.value)}
             />
+            <datalist id="app-models">
+              {(VENDOR_MODELS[vendor] ?? []).map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
           </label>
 
           <label className="field">
@@ -168,5 +219,25 @@ export function App(): JSX.Element {
         </main>
       </div>
     </div>
+
+      {showManager && (
+        <AgentManager
+          agents={agents}
+          clis={clis}
+          onSave={(draft) => {
+            saveAgent(draft)
+          }}
+          onDelete={(id) => {
+            removeAgent(id)
+            if (selectedAgentId === id) {
+              setSelectedAgentId(null)
+              setVendor('claude')
+              setModel('')
+            }
+          }}
+          onClose={() => setShowManager(false)}
+        />
+      )}
+    </>
   )
 }

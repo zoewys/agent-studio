@@ -4,7 +4,8 @@ import {
   type RunConfig,
   type RunStartResult,
   type RunEventEnvelope,
-  type CliCheckResult
+  type CliCheckResult,
+  type AgentDefinition
 } from '@shared/types'
 
 /**
@@ -21,6 +22,13 @@ const api = {
   abortRun: (runId: string): Promise<void> => ipcRenderer.invoke(IPC.runAbort, runId),
 
   checkClis: (): Promise<CliCheckResult> => ipcRenderer.invoke(IPC.checkClis),
+
+  listAgents: (): Promise<AgentDefinition[]> => ipcRenderer.invoke(IPC.agentsList),
+
+  saveAgent: (input: Omit<AgentDefinition, 'id'> & { id?: string }): Promise<AgentDefinition> =>
+    ipcRenderer.invoke(IPC.agentsSave, input),
+
+  deleteAgent: (id: string): Promise<void> => ipcRenderer.invoke(IPC.agentsDelete, id),
 
   pickDir: (): Promise<string | null> => ipcRenderer.invoke(IPC.pickDir),
 

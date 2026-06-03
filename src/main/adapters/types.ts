@@ -3,6 +3,7 @@ import type {
   AgentEvent,
   AgentVendor,
   JSONSchema,
+  PermissionMode,
   ResumeHandle
 } from '@shared/types'
 
@@ -16,6 +17,7 @@ export interface RunTurnInput {
   outputSchema?: JSONSchema
   resumeFrom?: ResumeHandle
   cliPath?: string
+  permissionMode?: PermissionMode
   abortSignal: AbortSignal
 }
 

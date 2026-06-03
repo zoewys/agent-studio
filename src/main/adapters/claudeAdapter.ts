@@ -32,14 +32,13 @@ export class ClaudeAdapter implements CliAdapter {
       'stream-json',
       '--input-format',
       'stream-json',
-      '--verbose', // required by claude for stream-json output
-      '--permission-mode',
-      'bypassPermissions' // app-layer confirms at handoff points, not per-action
+      '--verbose' // required by claude for stream-json output
     ]
     if (input.model) args.push('--model', input.model)
     if (input.appendSystemPrompt) args.push('--append-system-prompt', input.appendSystemPrompt)
     for (const dir of input.addDirs ?? []) args.push('--add-dir', dir)
     if (input.resumeFrom?.sessionId) args.push('--resume', input.resumeFrom.sessionId)
+    args.push('--permission-mode', input.permissionMode ?? 'bypassPermissions')
 
     const handle = spawnProcess(
       { cmd, args, cwd: input.cwd, abortSignal: input.abortSignal },

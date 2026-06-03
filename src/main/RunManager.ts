@@ -105,6 +105,7 @@ export class RunManager {
       outputSchema: config.outputSchema,
       resumeFrom: config.resumeFrom,
       cliPath: config.cliPath,
+      permissionMode: config.permissionMode,
       abortSignal: abort.signal
     })
 

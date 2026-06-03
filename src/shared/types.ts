@@ -11,6 +11,13 @@ export type AgentVendor = 'claude' | 'gemini' | 'codex'
 
 export const ALL_VENDORS: AgentVendor[] = ['claude', 'gemini', 'codex']
 
+/** Known models per vendor. Used for datalist suggestions; free-text input still accepted. */
+export const VENDOR_MODELS: Record<AgentVendor, string[]> = {
+  claude: ['sonnet', 'opus', 'haiku', 'claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-opus-4-5', 'claude-opus-4', 'claude-haiku-4-5', 'claude-sonnet-4', 'claude-3.5-sonnet', 'claude-3.5-haiku'],
+  gemini: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro', 'gemini-1.5-flash'],
+  codex: ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini', 'o3', 'o4-mini']
+}
+
 // ── Normalized event stream ──────────────────────────────────────────────────
 // Every CLI's stdout is parsed down to this common stream so the orchestration
 // layer never branches on vendor. See IMPLEMENTATION_PLAN.md §1.1.
@@ -69,6 +76,29 @@ export interface RunConfig {
   resumeFrom?: ResumeHandle
   /** Optional absolute path to the CLI binary; falls back to PATH lookup. */
   cliPath?: string
+  /** CLI permission mode. Defaults to bypassPermissions when unset. */
+  permissionMode?: PermissionMode
+}
+
+// ── Agent definitions ───────────────────────────────────────────────────────
+
+/** Permission mode passed to the CLI. Mirrors claude's --permission-mode. */
+export type PermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan'
+
+export const PERMISSION_MODES: PermissionMode[] = ['default', 'acceptEdits', 'bypassPermissions', 'plan']
+
+export interface AgentDefinition {
+  id: string
+  /** Display name, e.g. "资深产品经理". */
+  name: string
+  /** Free-form role label, e.g. "product" / "design" / "dev" / "test". */
+  role: string
+  vendor: AgentVendor
+  model?: string
+  /** System prompt injected via --append-system-prompt at run time. */
+  systemPrompt: string
+  /** CLI permission mode for this agent. Defaults to bypassPermissions. */
+  permissionMode?: PermissionMode
 }
 
 // ── IPC channel names + payloads ─────────────────────────────────────────────
@@ -86,7 +116,13 @@ export const IPC = {
   /** renderer → main: detect which CLIs are installed. */
   checkClis: 'cli:check',
   /** renderer → main: open a native folder picker, returns chosen path or null. */
-  pickDir: 'dialog:pickDir'
+  pickDir: 'dialog:pickDir',
+  /** renderer → main: list all saved agent definitions. */
+  agentsList: 'agents:list',
+  /** renderer → main: create or update an agent definition. */
+  agentsSave: 'agents:save',
+  /** renderer → main: delete an agent definition by id. */
+  agentsDelete: 'agents:delete'
 } as const
 
 export interface RunStartResult {

@@ -4,10 +4,12 @@ import {
   type RunConfig,
   type RunStartResult,
   type RunEventEnvelope,
-  type CliCheckResult
+  type CliCheckResult,
+  type AgentDefinition
 } from '@shared/types'
 import { RunManager } from './RunManager'
 import { TranscriptStore } from './TranscriptStore'
+import { AgentStore } from './AgentStore'
 import { checkClis } from './cliCheck'
 
 /**
@@ -16,6 +18,7 @@ import { checkClis } from './cliCheck'
  */
 export function registerIpc(getWindow: () => BrowserWindow | null): RunManager {
   const transcriptStore = new TranscriptStore()
+  const agentStore = new AgentStore()
   const runManager = new RunManager(transcriptStore)
 
   const emit = (runId: string, event: RunEventEnvelope['event']): void => {
@@ -60,6 +63,14 @@ export function registerIpc(getWindow: () => BrowserWindow | null): RunManager {
     if (result.canceled || result.filePaths.length === 0) return null
     return result.filePaths[0]
   })
+
+  // ── Agent CRUD ─────────────────────────────────────────────────────────
+
+  ipcMain.handle(IPC.agentsList, (): AgentDefinition[] => agentStore.list())
+
+  ipcMain.handle(IPC.agentsSave, (_e, input): AgentDefinition => agentStore.save(input))
+
+  ipcMain.handle(IPC.agentsDelete, (_e, id: string): void => agentStore.remove(id))
 
   return runManager
 }
