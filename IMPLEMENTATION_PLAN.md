@@ -565,5 +565,11 @@ app 启动时调用,缺失 CLI 时显示安装指引。
 3. 启动 run 时可「选择一个已定义的 agent」: 选中后自动带入它的 vendor/model,并把 systemPrompt 通过现有 `RunConfig.appendSystemPrompt` 注入(adapter 已支持,见 `claudeAdapter.ts:40`)。
 4. (再往后)多个 agent 串成线性工作流 + 交接物 schema —— 即原 M2。
 
-**注意**: 第 3 步可复用现有 `appendSystemPrompt` 字段,无需改 adapter;预定义 agent 本质是「一组 RunConfig 预设」。
+**后续路线: per-agent skill / capability 配置(先不实现)**:
+- 未来每个预定义 agent 可选绑定 `skillProfile` 或 `enabledSkills`,表示这个角色启用哪些能力包。
+- 第一阶段只做 Agent Studio 自己的 capability preset 抽象,把能力说明注入 prompt,保持 agent 定义跨 vendor 可移植。
+- 当前不做 Claude/Gemini/Codex 原生 skill/plugin 的安装、启用、禁用或生命周期管理。
+- 未来映射方向: Claude 可映射到 `--plugin-dir` / `--agent` / `--agents`; Gemini 可映射到已发现或已启用的 `gemini skills`; Codex 可映射到 plugin/profile 配置。
+- 该能力应放在「预定义 agent 角色库」之后、「完整工作流编排」之前或同期评估,因为它会影响 agent 复用模型,但不阻塞 M2 的线性接力。
 
+**注意**: 第 3 步可复用现有 `appendSystemPrompt` 字段,无需改 adapter;预定义 agent 本质是「一组 RunConfig 预设」。
