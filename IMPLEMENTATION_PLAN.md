@@ -544,3 +544,26 @@ app 启动时调用,缺失 CLI 时显示安装指引。
 3. **app 层自存完整 transcript** — CLI 的 session 不可靠,必须自己落盘作为真相源
 
 实现从 M1 开始,先跑通单 agent + claude,验证整个技术栈可行,再逐步加 gemini/codex、工作流、重跑、持久化。
+
+---
+
+## 下一步优先级(用户确认 · 2026-06-03)
+
+**当前进度**: M1 已跑通(单 agent + claude),并已补做「续接同一会话」(M4 插话能力的一部分,见 `useRun.continueSession` / `RunManager` resume 回退 / `TranscriptStore`)。
+
+**用户下一步要的**: 先做「**预定义 agent 角色库**」——能预先定义一批 agent,每个 agent 绑定:
+- 角色名(如 产品经理 / 设计师 / 程序员 / 测试)
+- 厂商 vendor(claude / gemini / codex)
+- 模型 model
+- 该角色的 system prompt(定义这个角色怎么思考、产出什么)
+
+这正是原设计里的 `agents` 表(§2.1 第 211 行)+ Agent 配置界面(§3.1 第 316 行)。把它从 M3 提前,作为工作流编排的前置积木。
+
+**建议落地顺序**(待后续开工时细化):
+1. `agents` 数据落地: 先用 JSON 文件(`~/.agent-studio/agents.json`)起步,不急上 SQLite。结构 `{ id, name, role, vendor, model, systemPrompt }`。
+2. Agent 配置 UI: 一个列表 + 新增/编辑表单(name / role / vendor / model / systemPrompt)。
+3. 启动 run 时可「选择一个已定义的 agent」: 选中后自动带入它的 vendor/model,并把 systemPrompt 通过现有 `RunConfig.appendSystemPrompt` 注入(adapter 已支持,见 `claudeAdapter.ts:40`)。
+4. (再往后)多个 agent 串成线性工作流 + 交接物 schema —— 即原 M2。
+
+**注意**: 第 3 步可复用现有 `appendSystemPrompt` 字段,无需改 adapter;预定义 agent 本质是「一组 RunConfig 预设」。
+

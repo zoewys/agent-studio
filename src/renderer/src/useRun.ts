@@ -18,6 +18,7 @@ const INITIAL: RunState = { runId: null, events: [], running: false, sessionId: 
 export function useRun(): {
   state: RunState
   start: (config: RunConfig) => Promise<void>
+  continueSession: (config: RunConfig) => Promise<void>
   push: (text: string) => Promise<void>
   abort: () => Promise<void>
   reset: () => void
@@ -47,6 +48,22 @@ export function useRun(): {
     setState((prev) => ({ ...prev, runId }))
   }, [])
 
+  /**
+   * Continue the conversation in a new turn, keeping the visible transcript.
+   * The config carries `resumeFrom` so the main process reattaches to the
+   * existing claude session (full context preserved).
+   */
+  const continueSession = useCallback(async (config: RunConfig) => {
+    setState((prev) => ({
+      ...prev,
+      running: true,
+      events: [...prev.events, { kind: 'system', text: `↳ you: ${config.prompt}` }]
+    }))
+    const { runId } = await window.api.startRun(config)
+    runIdRef.current = runId
+    setState((prev) => ({ ...prev, runId }))
+  }, [])
+
   const push = useCallback(async (text: string) => {
     const id = runIdRef.current
     if (!id) return
@@ -70,5 +87,5 @@ export function useRun(): {
     setState(INITIAL)
   }, [])
 
-  return { state, start, push, abort, reset }
+  return { state, start, continueSession, push, abort, reset }
 }

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { AgentEvent, RunConfig } from '@shared/types'
 import type { CliAdapter } from './adapters/types'
 import { createAdapter } from './adapters/factory'
+import type { TranscriptStore } from './TranscriptStore'
 
 interface LiveRun {
   id: string
@@ -9,12 +10,25 @@ interface LiveRun {
   abort: AbortController
 }
 
+/** What one turn produced, used to decide whether a --resume attempt failed. */
+interface TurnSummary {
+  sawProgress: boolean
+  sawError: boolean
+}
+
 /**
  * Tracks in-flight runs so the IPC layer can route pushInput()/abort() to the
  * right adapter, and so app shutdown can kill every child process.
+ *
+ * Also owns resume-failure recovery: if a turn launched with `--resume` never
+ * makes progress and errors out (e.g. the session can't be found because cwd
+ * changed), it transparently retries once by rebuilding context from the
+ * transcript and running a fresh session.
  */
 export class RunManager {
   private runs = new Map<string, LiveRun>()
+
+  constructor(private readonly transcripts: TranscriptStore) {}
 
   /**
    * Start a run. Events are delivered via `onEvent`; the method returns the
@@ -25,6 +39,62 @@ export class RunManager {
     const adapter = createAdapter(config.vendor)
     const abort = new AbortController()
     this.runs.set(id, { id, adapter, abort })
+
+    void this.runWithResume(id, config, adapter, abort, onEvent)
+    return id
+  }
+
+  /** Run the turn; on detected resume failure, rebuild context and retry once. */
+  private async runWithResume(
+    id: string,
+    config: RunConfig,
+    adapter: CliAdapter,
+    abort: AbortController,
+    onEvent: (runId: string, event: AgentEvent) => void
+  ): Promise<void> {
+    try {
+      const summary = await this.pump(id, adapter, config, abort, onEvent)
+
+      // Heuristic (best-effort): a resume attempt failed if it was launched
+      // with resumeFrom, wasn't user-aborted, never made progress (no session
+      // start / no assistant output) and surfaced an error.
+      const resumeFailed =
+        !!config.resumeFrom &&
+        !abort.signal.aborted &&
+        !summary.sawProgress &&
+        summary.sawError
+
+      if (!resumeFailed) return
+
+      onEvent(id, { kind: 'system', text: 'resume 失败，改用转录重建上下文重试' })
+      const rebuiltPrompt = this.transcripts.buildResumePrompt(
+        config.resumeFrom!.sessionId,
+        config.prompt
+      )
+      const retryConfig: RunConfig = { ...config, prompt: rebuiltPrompt, resumeFrom: undefined }
+
+      // Swap in a fresh adapter (claude keeps per-process state) but keep the
+      // same AbortController so a user abort still targets the live process.
+      const retryAdapter = createAdapter(config.vendor)
+      const live = this.runs.get(id)
+      if (live) live.adapter = retryAdapter
+
+      await this.pump(id, retryAdapter, retryConfig, abort, onEvent)
+    } finally {
+      this.runs.delete(id)
+    }
+  }
+
+  /** Drive one adapter turn to completion, forwarding events and summarizing. */
+  private async pump(
+    id: string,
+    adapter: CliAdapter,
+    config: RunConfig,
+    abort: AbortController,
+    onEvent: (runId: string, event: AgentEvent) => void
+  ): Promise<TurnSummary> {
+    let sawProgress = false
+    let sawError = false
 
     const iterable = adapter.runTurn({
       prompt: config.prompt,
@@ -38,28 +108,29 @@ export class RunManager {
       abortSignal: abort.signal
     })
 
-    void this.pump(id, iterable, onEvent)
-    return id
-  }
-
-  private async pump(
-    id: string,
-    iterable: AsyncIterable<AgentEvent>,
-    onEvent: (runId: string, event: AgentEvent) => void
-  ): Promise<void> {
     try {
       for await (const event of iterable) {
+        if (
+          event.kind === 'session-started' ||
+          event.kind === 'message' ||
+          event.kind === 'message-delta'
+        ) {
+          sawProgress = true
+        }
+        if (event.kind === 'error') sawError = true
+        if (event.kind === 'turn-done' && event.reason === 'error') sawError = true
         onEvent(id, event)
       }
     } catch (err) {
+      sawError = true
       onEvent(id, {
         kind: 'error',
         recoverable: false,
         message: err instanceof Error ? err.message : String(err)
       })
-    } finally {
-      this.runs.delete(id)
     }
+
+    return { sawProgress, sawError }
   }
 
   async push(id: string, text: string): Promise<void> {

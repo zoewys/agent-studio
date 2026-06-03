@@ -7,6 +7,7 @@ import {
   type CliCheckResult
 } from '@shared/types'
 import { RunManager } from './RunManager'
+import { TranscriptStore } from './TranscriptStore'
 import { checkClis } from './cliCheck'
 
 /**
@@ -14,9 +15,12 @@ import { checkClis } from './cliCheck'
  * live runs on shutdown. Events flow main → renderer via webContents.send.
  */
 export function registerIpc(getWindow: () => BrowserWindow | null): RunManager {
-  const runManager = new RunManager()
+  const transcriptStore = new TranscriptStore()
+  const runManager = new RunManager(transcriptStore)
 
   const emit = (runId: string, event: RunEventEnvelope['event']): void => {
+    // Persist every event before forwarding (captures the full stream on disk).
+    transcriptStore.record(runId, event)
     const win = getWindow()
     if (win && !win.isDestroyed()) {
       win.webContents.send(IPC.runEvent, { runId, event } satisfies RunEventEnvelope)
@@ -24,11 +28,21 @@ export function registerIpc(getWindow: () => BrowserWindow | null): RunManager {
   }
 
   ipcMain.handle(IPC.runStart, (_e, config: RunConfig): RunStartResult => {
+    // The renderer can't know the on-disk transcript path; fill it here so the
+    // resume-fallback in RunManager can find prior context if --resume fails.
+    if (config.resumeFrom && !config.resumeFrom.transcriptPath) {
+      config.resumeFrom.transcriptPath = transcriptStore.getTranscriptPath(
+        config.resumeFrom.sessionId
+      )
+    }
     const runId = runManager.start(config, emit)
+    // The first user turn never appears in the event stream — record it.
+    transcriptStore.recordUserInput(runId, config.prompt)
     return { runId }
   })
 
   ipcMain.handle(IPC.runPush, async (_e, runId: string, text: string): Promise<void> => {
+    transcriptStore.recordUserInput(runId, text)
     await runManager.push(runId, text)
   })
 

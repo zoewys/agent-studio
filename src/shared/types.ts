@@ -51,8 +51,10 @@ export type JSONSchema = Record<string, unknown>
 export interface ResumeHandle {
   sessionId: string
   vendor: AgentVendor
-  /** Path to the app-owned transcript, used to rebuild a prompt if resume fails. */
-  transcriptPath: string
+  /** Path to the app-owned transcript, used to rebuild a prompt if resume
+   *  fails. Filled in by the main process (TranscriptStore); the renderer
+   *  neither knows nor needs the on-disk path. */
+  transcriptPath?: string
 }
 
 /** Everything the UI must collect to launch one turn of one agent. */

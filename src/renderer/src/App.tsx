@@ -5,7 +5,7 @@ import { useRun } from './useRun'
 import { TranscriptViewer } from './TranscriptViewer'
 
 export function App(): JSX.Element {
-  const { state, start, push, abort, reset } = useRun()
+  const { state, start, continueSession, push, abort, reset } = useRun()
   const [clis, setClis] = useState<CliCheckResult | null>(null)
   const [vendor, setVendor] = useState<AgentVendor>('claude')
   const [cwd, setCwd] = useState('')
@@ -34,11 +34,30 @@ export function App(): JSX.Element {
     if (dir) setCwd(dir)
   }
 
-  const handleInterject = async (): Promise<void> => {
+  // Whether the bottom composer can resume a finished claude session.
+  const canResume = !state.running && state.sessionId !== null && vendor === 'claude'
+  // Live claude run accepts mid-run interjections.
+  const canInterject = state.running && vendor === 'claude'
+  const composerEnabled = canResume || canInterject
+
+  const handleComposerSend = async (): Promise<void> => {
     const text = interjection.trim()
     if (!text) return
     setInterjection('')
-    await push(text)
+    if (state.running) {
+      // Live run → mid-run interjection.
+      await push(text)
+    } else if (canResume) {
+      // Finished run → continue the same session with full context.
+      const config: RunConfig = {
+        vendor,
+        prompt: text,
+        cwd: cwd.trim(),
+        model: model.trim() || undefined,
+        resumeFrom: { sessionId: state.sessionId!, vendor }
+      }
+      await continueSession(config)
+    }
   }
 
   const cliAvailable = clis ? clis[vendor] : true
@@ -122,17 +141,26 @@ export function App(): JSX.Element {
         <main className="panel panel-transcript">
           <TranscriptViewer events={state.events} />
 
-          {state.running && vendor === 'claude' && (
+          {state.events.length > 0 && (
             <div className="interject">
               <input
                 value={interjection}
-                placeholder="Interject (only affects the current agent)…"
+                disabled={!composerEnabled}
+                placeholder={
+                  canInterject
+                    ? 'Interject (only affects the current agent)…'
+                    : canResume
+                      ? 'Continue this session…'
+                      : vendor === 'claude'
+                        ? 'Start a run to begin a session…'
+                        : 'Continuing a session is only supported for claude'
+                }
                 onChange={(e) => setInterjection(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') void handleInterject()
+                  if (e.key === 'Enter') void handleComposerSend()
                 }}
               />
-              <button onClick={handleInterject} type="button">
+              <button onClick={handleComposerSend} disabled={!composerEnabled} type="button">
                 Send
               </button>
             </div>
