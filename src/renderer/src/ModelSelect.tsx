@@ -1,0 +1,66 @@
+import { useState } from 'react'
+import type { ModelOption, VendorModelCatalog } from '@shared/types'
+
+const CUSTOM_VALUE = '__custom_model__'
+
+export interface ModelSelectProps {
+  value: string
+  loading?: boolean
+  modelInfo: VendorModelCatalog | null
+  onChange: (value: string) => void
+}
+
+export function ModelSelect({
+  value,
+  loading = false,
+  modelInfo,
+  onChange
+}: ModelSelectProps): JSX.Element {
+  const [customMode, setCustomMode] = useState(false)
+  const options = modelInfo?.models ?? []
+  const hasMatchingOption = options.some((option) => option.id === value)
+  const showCustomInput = customMode || (value.trim() !== '' && !hasMatchingOption)
+  const selectValue = showCustomInput ? CUSTOM_VALUE : value
+
+  const handleSelect = (next: string): void => {
+    if (next === CUSTOM_VALUE) {
+      setCustomMode(true)
+      return
+    }
+    setCustomMode(false)
+    onChange(next)
+  }
+
+  return (
+    <>
+      <select
+        value={selectValue}
+        disabled={loading}
+        onChange={(e) => handleSelect(e.target.value)}
+      >
+        <option value="">{loading ? 'Loading CLI models...' : 'CLI default'}</option>
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {formatModelLabel(option)}
+          </option>
+        ))}
+        <option value={CUSTOM_VALUE}>Custom model id...</option>
+      </select>
+
+      {showCustomInput && (
+        <input
+          className="model-custom-input"
+          value={value}
+          placeholder="Custom model id"
+          onChange={(e) => onChange(e.target.value)}
+        />
+      )}
+
+      {modelInfo?.message && <div className="field-hint">{modelInfo.message}</div>}
+    </>
+  )
+}
+
+function formatModelLabel(option: ModelOption): string {
+  return option.label === option.id ? option.id : `${option.label} (${option.id})`
+}

@@ -5,12 +5,14 @@ import {
   type RunStartResult,
   type RunEventEnvelope,
   type CliCheckResult,
-  type AgentDefinition
+  type AgentDefinition,
+  type ModelCatalog
 } from '@shared/types'
 import { RunManager } from './RunManager'
 import { TranscriptStore } from './TranscriptStore'
 import { AgentStore } from './AgentStore'
 import { checkClis } from './cliCheck'
+import { listCliModels } from './cliModels'
 
 /**
  * Registers all IPC handlers and returns the RunManager so the app can kill
@@ -54,6 +56,8 @@ export function registerIpc(getWindow: () => BrowserWindow | null): RunManager {
   })
 
   ipcMain.handle(IPC.checkClis, (): Promise<CliCheckResult> => checkClis())
+
+  ipcMain.handle(IPC.listModels, (): Promise<ModelCatalog> => listCliModels())
 
   ipcMain.handle(IPC.pickDir, async (): Promise<string | null> => {
     const win = getWindow()

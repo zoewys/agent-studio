@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import type { CliCheckResult } from '@shared/types'
+import { withCliPath } from './cliEnv'
 
 /** Resolve true if `cmd --version` exits 0 within a short timeout. */
 function probe(cmd: string): Promise<boolean> {
@@ -11,7 +12,7 @@ function probe(cmd: string): Promise<boolean> {
       resolve(ok)
     }
     try {
-      const child = spawn(cmd, ['--version'], { stdio: 'ignore' })
+      const child = spawn(cmd, ['--version'], { stdio: 'ignore', env: withCliPath() })
       child.on('error', () => done(false))
       child.on('close', (code) => done(code === 0))
       const t = setTimeout(() => {

@@ -1,4 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
+import { withCliPath } from '../cliEnv'
 
 export interface SpawnOptions {
   cmd: string
@@ -40,7 +41,7 @@ export interface ProcessCallbacks {
 export function spawnProcess(opts: SpawnOptions, cb: ProcessCallbacks): ProcessHandle {
   const child = spawn(opts.cmd, opts.args, {
     cwd: opts.cwd,
-    env: opts.env ?? process.env,
+    env: withCliPath(opts.env ?? process.env),
     stdio: ['pipe', 'pipe', 'pipe']
   }) as ChildProcessWithoutNullStreams
 

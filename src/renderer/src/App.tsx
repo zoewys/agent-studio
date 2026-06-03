@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { AgentVendor, CliCheckResult, RunConfig } from '@shared/types'
-import { ALL_VENDORS, VENDOR_MODELS } from '@shared/types'
+import { ALL_VENDORS } from '@shared/types'
 import { useRun } from './useRun'
 import { useAgents } from './useAgents'
+import { useCliModels } from './useCliModels'
 import { AgentManager } from './AgentManager'
+import { ModelSelect } from './ModelSelect'
 import { TranscriptViewer } from './TranscriptViewer'
 
 export function App(): JSX.Element {
   const { state, start, continueSession, push, abort, reset } = useRun()
   const { agents, save: saveAgent, remove: removeAgent } = useAgents()
+  const { models: modelCatalog, loading: modelsLoading } = useCliModels()
   const [clis, setClis] = useState<CliCheckResult | null>(null)
   const [vendor, setVendor] = useState<AgentVendor>('claude')
   const [cwd, setCwd] = useState('')
@@ -61,6 +64,7 @@ export function App(): JSX.Element {
   // Live claude run accepts mid-run interjections.
   const canInterject = state.running && vendor === 'claude'
   const composerEnabled = canResume || canInterject
+  const modelInfo = modelCatalog?.[vendor] ?? null
 
   const handleComposerSend = async (): Promise<void> => {
     const text = interjection.trim()
@@ -130,17 +134,12 @@ export function App(): JSX.Element {
 
           <label className="field">
             <span>Model (optional)</span>
-            <input
+            <ModelSelect
               value={model}
-              placeholder="e.g. sonnet, opus"
-              list="app-models"
-              onChange={(e) => setModel(e.target.value)}
+              loading={modelsLoading}
+              modelInfo={modelInfo}
+              onChange={setModel}
             />
-            <datalist id="app-models">
-              {(VENDOR_MODELS[vendor] ?? []).map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
           </label>
 
           <label className="field">
@@ -224,6 +223,7 @@ export function App(): JSX.Element {
         <AgentManager
           agents={agents}
           clis={clis}
+          modelCatalog={modelCatalog}
           onSave={(draft) => {
             saveAgent(draft)
           }}

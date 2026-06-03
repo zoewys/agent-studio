@@ -1,11 +1,19 @@
 import { useState } from 'react'
-import type { AgentDefinition, AgentVendor, CliCheckResult, PermissionMode } from '@shared/types'
-import { ALL_VENDORS, PERMISSION_MODES, VENDOR_MODELS } from '@shared/types'
+import type {
+  AgentDefinition,
+  AgentVendor,
+  CliCheckResult,
+  ModelCatalog,
+  PermissionMode
+} from '@shared/types'
+import { ALL_VENDORS, PERMISSION_MODES } from '@shared/types'
 import type { AgentDraft } from './useAgents'
+import { ModelSelect } from './ModelSelect'
 
 export interface AgentManagerProps {
   agents: AgentDefinition[]
   clis: CliCheckResult | null
+  modelCatalog: ModelCatalog | null
   onSave: (draft: AgentDraft) => void
   onDelete: (id: string) => void
   onClose: () => void
@@ -15,12 +23,13 @@ function emptyDraft(): AgentDraft {
   return { name: '', role: '', vendor: 'claude' as AgentVendor, model: '', systemPrompt: '', permissionMode: 'bypassPermissions' as PermissionMode }
 }
 
-export function AgentManager({ agents, clis, onSave, onDelete, onClose }: AgentManagerProps): JSX.Element {
+export function AgentManager({ agents, clis, modelCatalog, onSave, onDelete, onClose }: AgentManagerProps): JSX.Element {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<AgentDraft>(emptyDraft)
 
   const isNew = editingId === null
   const cliAvailable = (v: AgentVendor) => (clis ? clis[v] : true)
+  const modelInfo = modelCatalog?.[draft.vendor] ?? null
 
   const select = (agent: AgentDefinition) => {
     setEditingId(agent.id)
@@ -119,17 +128,11 @@ export function AgentManager({ agents, clis, onSave, onDelete, onClose }: AgentM
 
                   <label className="field field-grow">
                     <span>Model (optional)</span>
-                    <input
-                      value={draft.model}
-                      placeholder="e.g. sonnet"
-                      list="agent-models"
-                      onChange={(e) => setDraft((d) => ({ ...d, model: e.target.value }))}
+                    <ModelSelect
+                      value={draft.model ?? ''}
+                      modelInfo={modelInfo}
+                      onChange={(model) => setDraft((d) => ({ ...d, model }))}
                     />
-                    <datalist id="agent-models">
-                      {(VENDOR_MODELS[draft.vendor] ?? []).map((m) => (
-                        <option key={m} value={m} />
-                      ))}
-                    </datalist>
                   </label>
                 </div>
 

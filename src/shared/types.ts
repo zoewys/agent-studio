@@ -11,12 +11,24 @@ export type AgentVendor = 'claude' | 'gemini' | 'codex'
 
 export const ALL_VENDORS: AgentVendor[] = ['claude', 'gemini', 'codex']
 
-/** Known models per vendor. Used for datalist suggestions; free-text input still accepted. */
-export const VENDOR_MODELS: Record<AgentVendor, string[]> = {
-  claude: ['sonnet', 'opus', 'haiku', 'claude-sonnet-4-6', 'claude-sonnet-4-5', 'claude-opus-4-5', 'claude-opus-4', 'claude-haiku-4-5', 'claude-sonnet-4', 'claude-3.5-sonnet', 'claude-3.5-haiku'],
-  gemini: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro', 'gemini-1.5-flash'],
-  codex: ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini', 'o3', 'o4-mini']
+// ── CLI model catalogs ──────────────────────────────────────────────────────
+
+export interface ModelOption {
+  /** Exact string passed to the CLI --model flag. */
+  id: string
+  /** Human-readable label from the CLI when available. */
+  label: string
 }
+
+export type ModelCatalogSource = 'cli' | 'cli-help' | 'unavailable'
+
+export interface VendorModelCatalog {
+  models: ModelOption[]
+  source: ModelCatalogSource
+  message?: string
+}
+
+export type ModelCatalog = Record<AgentVendor, VendorModelCatalog>
 
 // ── Normalized event stream ──────────────────────────────────────────────────
 // Every CLI's stdout is parsed down to this common stream so the orchestration
@@ -115,6 +127,8 @@ export const IPC = {
   runEvent: 'run:event',
   /** renderer → main: detect which CLIs are installed. */
   checkClis: 'cli:check',
+  /** renderer → main: ask installed CLIs for their current model choices. */
+  listModels: 'cli:models',
   /** renderer → main: open a native folder picker, returns chosen path or null. */
   pickDir: 'dialog:pickDir',
   /** renderer → main: list all saved agent definitions. */

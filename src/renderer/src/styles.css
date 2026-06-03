@@ -92,6 +92,16 @@ body {
   letter-spacing: 0.04em;
 }
 
+.field-hint {
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.model-custom-input {
+  margin-top: 3px;
+}
+
 .field-row {
   display: flex;
   gap: 6px;

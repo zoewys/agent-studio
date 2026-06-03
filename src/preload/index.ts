@@ -5,7 +5,8 @@ import {
   type RunStartResult,
   type RunEventEnvelope,
   type CliCheckResult,
-  type AgentDefinition
+  type AgentDefinition,
+  type ModelCatalog
 } from '@shared/types'
 
 /**
@@ -22,6 +23,8 @@ const api = {
   abortRun: (runId: string): Promise<void> => ipcRenderer.invoke(IPC.runAbort, runId),
 
   checkClis: (): Promise<CliCheckResult> => ipcRenderer.invoke(IPC.checkClis),
+
+  listModels: (): Promise<ModelCatalog> => ipcRenderer.invoke(IPC.listModels),
 
   listAgents: (): Promise<AgentDefinition[]> => ipcRenderer.invoke(IPC.agentsList),
 
