@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { AgentEvent } from '@shared/types'
+import { isNearTranscriptBottom, shouldAutoFollowTranscriptEvent } from './transcriptScroll'
 
 // ── markdown → HTML ──────────────────────────────────────────────────────
 
@@ -458,20 +459,34 @@ function turnReason(reason: string): string {
 // ── public component ─────────────────────────────────────────────────────
 
 export function TranscriptViewer({ events }: { events: AgentEvent[] }): JSX.Element {
+  const scrollerRef = useRef<HTMLDivElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
+  const shouldFollowOutputRef = useRef(true)
   const blocks = useMemo(() => groupEvents(events), [events])
   const activity = useMemo(() => detectActivity(events), [events])
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [blocks.length])
+    shouldFollowOutputRef.current = shouldAutoFollowTranscriptEvent(
+      shouldFollowOutputRef.current,
+      events.at(-1),
+      events.length
+    )
+    if (!shouldFollowOutputRef.current) return
+    endRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' })
+  }, [events.length])
+
+  const updateAutoFollow = (): void => {
+    const scroller = scrollerRef.current
+    if (!scroller) return
+    shouldFollowOutputRef.current = isNearTranscriptBottom(scroller)
+  }
 
   if (blocks.length === 0) {
     return <div className="transcript-empty">No output yet. Start a run to see the agent process here.</div>
   }
 
   return (
-    <div className="transcript">
+    <div className="transcript" ref={scrollerRef} onScroll={updateAutoFollow}>
       <StatusBar activity={activity} />
       {blocks.map((block, i) => (
         <BlockView key={i} block={block} />

@@ -12,6 +12,7 @@
     "preview": "electron-vite preview",
     "start": "electron-vite preview",
     "test:codex-options": "node scripts/codexOptions.test.mjs",
+    "test:transcript-scroll": "node tests/transcript-scroll.test.mjs",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
