@@ -6,7 +6,7 @@ function renderEvent(event: AgentEvent, i: number): JSX.Element | null {
     case 'session-started':
       return (
         <div key={i} className="ev ev-system">
-          session started · {event.sessionId.slice(0, 8)}
+          会话已开始 · {event.sessionId.slice(0, 8)}
         </div>
       )
     case 'message':
@@ -30,40 +30,40 @@ function renderEvent(event: AgentEvent, i: number): JSX.Element | null {
     case 'tool-call':
       return (
         <div key={i} className="ev ev-tool">
-          <span className="ev-tag">tool</span> {event.name}
+          <span className="ev-tag">工具</span> {event.name}
           <pre>{safeStringify(event.input)}</pre>
         </div>
       )
     case 'tool-result':
       return (
         <div key={i} className={`ev ev-tool-result ${event.ok ? '' : 'ev-error'}`}>
-          <span className="ev-tag">{event.ok ? 'result' : 'result ✗'}</span>
+          <span className="ev-tag">{event.ok ? '结果' : '结果失败'}</span>
           <pre>{truncate(safeStringify(event.output), 800)}</pre>
         </div>
       )
     case 'file-changed':
       return (
         <div key={i} className="ev ev-file">
-          {event.op}: {event.path}
+          {fileOpLabel(event.op)}：{event.path}
         </div>
       )
     case 'usage':
       return (
         <div key={i} className="ev ev-usage">
-          tokens in/out: {event.inputTokens}/{event.outputTokens}
+          Token 输入/输出：{event.inputTokens}/{event.outputTokens}
           {event.costUsd != null ? ` · $${event.costUsd.toFixed(4)}` : ''}
         </div>
       )
     case 'turn-done':
       return (
         <div key={i} className="ev ev-done">
-          ── turn {event.reason} ──
+          ── 回合{turnReasonLabel(event.reason)} ──
         </div>
       )
     case 'error':
       return (
         <div key={i} className="ev ev-error">
-          error: {event.message}
+          错误：{event.message}
         </div>
       )
     case 'stderr':
@@ -92,7 +92,7 @@ export function TranscriptViewer({ events }: { events: AgentEvent[] }): JSX.Elem
   }, [events.length])
 
   if (events.length === 0) {
-    return <div className="transcript-empty">No output yet. Start a run to see the agent work.</div>
+    return <div className="transcript-empty">暂无输出。启动运行后可在这里查看智能体过程。</div>
   }
 
   return (
@@ -113,5 +113,27 @@ function safeStringify(v: unknown): string {
 }
 
 function truncate(s: string, max: number): string {
-  return s.length > max ? s.slice(0, max) + `\n… (${s.length - max} more chars)` : s
+  return s.length > max ? s.slice(0, max) + `\n...（还有 ${s.length - max} 个字符）` : s
+}
+
+function fileOpLabel(op: Extract<AgentEvent, { kind: 'file-changed' }>['op']): string {
+  switch (op) {
+    case 'create':
+      return '创建文件'
+    case 'modify':
+      return '修改文件'
+    case 'delete':
+      return '删除文件'
+  }
+}
+
+function turnReasonLabel(reason: Extract<AgentEvent, { kind: 'turn-done' }>['reason']): string {
+  switch (reason) {
+    case 'complete':
+      return '完成'
+    case 'error':
+      return '出错'
+    case 'aborted':
+      return '已中止'
+  }
 }

@@ -64,20 +64,20 @@ export function AgentManager({ agents, clis, modelCatalog, onSave, onDelete, onC
           {/* ── sidebar: agent list ──────────────────────────────────── */}
           <aside className="agent-list">
             <div className="agent-list-header">
-              <span>Agents</span>
-              <button className="primary" onClick={startNew} type="button">+ New</button>
+              <span>智能体</span>
+              <button className="primary" onClick={startNew} type="button">+ 新建</button>
             </div>
             {agents.length === 0 && (
-              <div className="transcript-empty">No agents defined yet.</div>
+              <div className="transcript-empty">还没有定义智能体。</div>
             )}
             {agents.map((a) => (
               <button
                 key={a.id}
                 className={`agent-item ${editingId === a.id ? 'agent-item-active' : ''}`}
                 onClick={() => select(a)}
-                type="button"
-              >
-                <div className="agent-item-name">{a.name || '(untitled)'}</div>
+              type="button"
+            >
+                <div className="agent-item-name">{a.name || '未命名'}</div>
                 <div className="agent-item-meta">
                   {a.role} · {a.vendor}
                   {a.model ? ` · ${a.model}` : ''}
@@ -89,30 +89,30 @@ export function AgentManager({ agents, clis, modelCatalog, onSave, onDelete, onC
           {/* ── main: editor form ────────────────────────────────────── */}
           <div className="agent-editor">
             {editingId === null && !isNew ? (
-              <div className="transcript-empty">Select an agent or create one.</div>
+              <div className="transcript-empty">选择一个智能体，或新建一个。</div>
             ) : (
               <>
                 <label className="field">
-                  <span>Name</span>
+                  <span>名称</span>
                   <input
                     value={draft.name}
-                    placeholder="e.g. 资深产品经理"
+                    placeholder="例如：资深产品经理"
                     onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
                   />
                 </label>
 
                 <label className="field">
-                  <span>Role</span>
+                  <span>角色</span>
                   <input
                     value={draft.role}
-                    placeholder="e.g. product, design, dev, test"
+                    placeholder="例如：产品、设计、开发、测试"
                     onChange={(e) => setDraft((d) => ({ ...d, role: e.target.value }))}
                   />
                 </label>
 
                 <div className="field-row">
                   <label className="field field-grow">
-                    <span>Vendor</span>
+                    <span>CLI 类型</span>
                     <select
                       value={draft.vendor}
                       onChange={(e) => setDraft((d) => ({ ...d, vendor: e.target.value as AgentVendor }))}
@@ -120,14 +120,14 @@ export function AgentManager({ agents, clis, modelCatalog, onSave, onDelete, onC
                       {ALL_VENDORS.map((v) => (
                         <option key={v} value={v}>
                           {v}
-                          {!cliAvailable(v) ? ' (not installed)' : ''}
+                          {!cliAvailable(v) ? '（未安装）' : ''}
                         </option>
                       ))}
                     </select>
                   </label>
 
                   <label className="field field-grow">
-                    <span>Model (optional)</span>
+                    <span>模型（可选）</span>
                     <ModelSelect
                       value={draft.model ?? ''}
                       modelInfo={modelInfo}
@@ -137,33 +137,33 @@ export function AgentManager({ agents, clis, modelCatalog, onSave, onDelete, onC
                 </div>
 
                 <label className="field">
-                  <span>Permission Mode</span>
+                  <span>权限模式</span>
                   <select
                     value={draft.permissionMode ?? 'bypassPermissions'}
                     onChange={(e) => setDraft((d) => ({ ...d, permissionMode: e.target.value as PermissionMode }))}
                   >
                     {PERMISSION_MODES.map((m) => (
-                      <option key={m} value={m}>{m}</option>
+                      <option key={m} value={m}>{permissionModeLabel(m)}</option>
                     ))}
                   </select>
                 </label>
 
                 <label className="field field-grow">
-                  <span>System Prompt</span>
+                  <span>系统提示词</span>
                   <textarea
                     value={draft.systemPrompt}
-                    placeholder="You are a senior product manager. Your job is to…"
+                    placeholder="你是一名资深产品经理。你的职责是..."
                     onChange={(e) => setDraft((d) => ({ ...d, systemPrompt: e.target.value }))}
                   />
                 </label>
 
                 <div className="actions">
                   <button className="primary" onClick={handleSave} disabled={!draft.name.trim()} type="button">
-                    {isNew ? 'Create' : 'Save'}
+                    {isNew ? '创建' : '保存'}
                   </button>
                   {!isNew && (
                     <button onClick={handleDelete} type="button" style={{ color: 'var(--red)' }}>
-                      Delete
+                      删除
                     </button>
                   )}
                 </div>
@@ -174,4 +174,17 @@ export function AgentManager({ agents, clis, modelCatalog, onSave, onDelete, onC
       </div>
     </div>
   )
+}
+
+function permissionModeLabel(mode: PermissionMode): string {
+  switch (mode) {
+    case 'default':
+      return '默认'
+    case 'acceptEdits':
+      return '自动接受编辑'
+    case 'bypassPermissions':
+      return '跳过权限确认'
+    case 'plan':
+      return '计划模式'
+  }
 }

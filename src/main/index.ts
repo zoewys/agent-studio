@@ -1,10 +1,10 @@
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'node:path'
 import { registerIpc } from './ipc'
-import type { RunManager } from './RunManager'
+import type { AppManagers } from './ipc'
 
 let mainWindow: BrowserWindow | null = null
-let runManager: RunManager | null = null
+let appManagers: AppManagers | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -13,7 +13,7 @@ function createWindow(): void {
     minWidth: 800,
     minHeight: 600,
     show: false,
-    title: 'Agent Studio',
+    title: 'Agent Studio 智能体工作台',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
@@ -40,7 +40,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-  runManager = registerIpc(() => mainWindow)
+  appManagers = registerIpc(() => mainWindow)
   createWindow()
 
   app.on('activate', () => {
@@ -54,5 +54,5 @@ app.on('window-all-closed', () => {
 
 // Kill every live CLI child process before exiting to avoid orphans.
 app.on('before-quit', () => {
-  runManager?.abortAll()
+  appManagers?.abortAll()
 })

@@ -54,7 +54,7 @@ async function listClaudeModels(): Promise<VendorModelCatalog> {
     return {
       models: toOptions(probeModels),
       source: 'cli',
-      message: 'Loaded from claude model validation'
+      message: '已从 Claude 模型校验结果读取'
     }
   }
 
@@ -64,11 +64,11 @@ async function listClaudeModels(): Promise<VendorModelCatalog> {
     return {
       models: toOptions(helpModels),
       source: 'cli-help',
-      message: 'Claude CLI exposes aliases in help only'
+      message: 'Claude CLI 只在帮助信息中暴露模型别名'
     }
   }
 
-  return unavailable('Claude CLI did not expose model choices')
+  return unavailable('Claude CLI 未暴露可选模型')
 }
 
 async function listGeminiModels(): Promise<VendorModelCatalog> {
@@ -78,10 +78,10 @@ async function listGeminiModels(): Promise<VendorModelCatalog> {
     return {
       models: toOptions(choices),
       source: 'cli-help',
-      message: 'Loaded from gemini --help'
+      message: '已从 gemini --help 读取'
     }
   }
-  return unavailable('Gemini CLI does not expose model choices; type a model id')
+  return unavailable('Gemini CLI 未暴露可选模型；可以手动输入模型 ID')
 }
 
 async function listCodexModels(): Promise<VendorModelCatalog> {
@@ -101,10 +101,10 @@ async function listCodexModels(): Promise<VendorModelCatalog> {
     return {
       models,
       source: 'cli',
-      message: 'Loaded from codex debug models'
+      message: '已从 codex debug models 读取'
     }
   }
-  return unavailable('Codex CLI did not return a model catalog')
+  return unavailable('Codex CLI 未返回模型目录')
 }
 
 function runCommand(cmd: string, args: string[], timeoutMs: number): Promise<CommandResult> {

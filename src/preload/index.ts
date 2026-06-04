@@ -6,7 +6,11 @@ import {
   type RunEventEnvelope,
   type CliCheckResult,
   type AgentDefinition,
-  type ModelCatalog
+  type ModelCatalog,
+  type WorkflowEventEnvelope,
+  type WorkflowStartInput,
+  type WorkflowStartResult,
+  type WorkflowTemplate
 } from '@shared/types'
 
 /**
@@ -33,6 +37,26 @@ const api = {
 
   deleteAgent: (id: string): Promise<void> => ipcRenderer.invoke(IPC.agentsDelete, id),
 
+  listWorkflows: (): Promise<WorkflowTemplate[]> => ipcRenderer.invoke(IPC.workflowsList),
+
+  saveWorkflow: (input: Omit<WorkflowTemplate, 'id'> & { id?: string }): Promise<WorkflowTemplate> =>
+    ipcRenderer.invoke(IPC.workflowsSave, input),
+
+  deleteWorkflow: (id: string): Promise<void> => ipcRenderer.invoke(IPC.workflowsDelete, id),
+
+  startWorkflow: (input: WorkflowStartInput): Promise<WorkflowStartResult> =>
+    ipcRenderer.invoke(IPC.workflowStart, input),
+
+  confirmWorkflowStep: (runId: string) => ipcRenderer.invoke(IPC.workflowConfirmStep, runId),
+
+  rerunWorkflowStep: (runId: string, stepIndex: number) =>
+    ipcRenderer.invoke(IPC.workflowRerunStep, runId, stepIndex),
+
+  abortWorkflow: (runId: string) => ipcRenderer.invoke(IPC.workflowAbort, runId),
+
+  pushWorkflowInput: (runId: string, stepIndex: number, text: string) =>
+    ipcRenderer.invoke(IPC.workflowPush, runId, stepIndex, text),
+
   pickDir: (): Promise<string | null> => ipcRenderer.invoke(IPC.pickDir),
 
   /** Subscribe to run events. Returns an unsubscribe function. */
@@ -40,6 +64,12 @@ const api = {
     const listener = (_e: unknown, envelope: RunEventEnvelope): void => cb(envelope)
     ipcRenderer.on(IPC.runEvent, listener)
     return () => ipcRenderer.removeListener(IPC.runEvent, listener)
+  },
+
+  onWorkflowEvent: (cb: (envelope: WorkflowEventEnvelope) => void): (() => void) => {
+    const listener = (_e: unknown, envelope: WorkflowEventEnvelope): void => cb(envelope)
+    ipcRenderer.on(IPC.workflowEvent, listener)
+    return () => ipcRenderer.removeListener(IPC.workflowEvent, listener)
   }
 }
 

@@ -38,20 +38,20 @@ export function ModelSelect({
         disabled={loading}
         onChange={(e) => handleSelect(e.target.value)}
       >
-        <option value="">{loading ? 'Loading CLI models...' : 'CLI default'}</option>
+        <option value="">{loading ? '正在读取 CLI 模型...' : '使用 CLI 默认模型'}</option>
         {options.map((option) => (
           <option key={option.id} value={option.id}>
             {formatModelLabel(option)}
           </option>
         ))}
-        <option value={CUSTOM_VALUE}>Custom model id...</option>
+        <option value={CUSTOM_VALUE}>自定义模型 ID...</option>
       </select>
 
       {showCustomInput && (
         <input
           className="model-custom-input"
           value={value}
-          placeholder="Custom model id"
+          placeholder="自定义模型 ID"
           onChange={(e) => onChange(e.target.value)}
         />
       )}

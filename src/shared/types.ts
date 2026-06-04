@@ -113,6 +113,91 @@ export interface AgentDefinition {
   permissionMode?: PermissionMode
 }
 
+// ── Workflow orchestration ─────────────────────────────────────────────────
+
+export interface WorkflowTemplateStep {
+  agentId: string
+}
+
+export interface WorkflowTemplate {
+  id: string
+  name: string
+  description?: string
+  steps: WorkflowTemplateStep[]
+}
+
+export type StepStatus =
+  | 'pending'
+  | 'running'
+  | 'awaiting-confirm'
+  | 'done'
+  | 'stale'
+  | 'error'
+
+export interface HandoffArtifactItem {
+  path: string
+  description: string
+  type?: 'requirement' | 'design' | 'code' | 'test' | 'other'
+}
+
+export interface HandoffArtifact {
+  summary: string
+  artifacts: HandoffArtifactItem[]
+  nextStepGuidance?: string
+}
+
+export interface WorkflowStepExecution {
+  id: string
+  stepIndex: number
+  agentId: string
+  status: StepStatus
+  sessionId?: string
+  runId?: string
+  startedAt?: number
+  finishedAt?: number
+  handoff?: HandoffArtifact
+  events: AgentEvent[]
+  error?: string
+}
+
+export interface WorkflowRunStep {
+  agentId: string
+  status: StepStatus
+  executions: WorkflowStepExecution[]
+}
+
+export interface WorkflowRun {
+  id: string
+  templateId: string
+  templateName: string
+  projectPath: string
+  initialPrompt: string
+  status: 'running' | 'awaiting-confirm' | 'completed' | 'error' | 'aborted'
+  currentStepIndex: number
+  steps: WorkflowRunStep[]
+  startedAt: number
+  finishedAt?: number
+}
+
+export interface WorkflowStartInput {
+  templateId: string
+  projectPath: string
+  initialPrompt: string
+}
+
+export interface WorkflowStartResult {
+  run: WorkflowRun
+}
+
+export type WorkflowEvent =
+  | { kind: 'run-updated'; run: WorkflowRun }
+  | { kind: 'agent-event'; runId: string; stepIndex: number; executionId: string; event: AgentEvent }
+
+export interface WorkflowEventEnvelope {
+  runId: string
+  event: WorkflowEvent
+}
+
 // ── IPC channel names + payloads ─────────────────────────────────────────────
 // Single source of truth so main/preload/renderer never drift on strings.
 
@@ -136,7 +221,25 @@ export const IPC = {
   /** renderer → main: create or update an agent definition. */
   agentsSave: 'agents:save',
   /** renderer → main: delete an agent definition by id. */
-  agentsDelete: 'agents:delete'
+  agentsDelete: 'agents:delete',
+  /** renderer → main: list saved workflow templates. */
+  workflowsList: 'workflows:list',
+  /** renderer → main: create or update a workflow template. */
+  workflowsSave: 'workflows:save',
+  /** renderer → main: delete a workflow template. */
+  workflowsDelete: 'workflows:delete',
+  /** renderer → main: start a workflow run. */
+  workflowStart: 'workflow:start',
+  /** renderer → main: confirm the current awaiting handoff and advance. */
+  workflowConfirmStep: 'workflow:confirm-step',
+  /** renderer → main: rerun one step and stale downstream steps. */
+  workflowRerunStep: 'workflow:rerun-step',
+  /** renderer → main: abort a running workflow. */
+  workflowAbort: 'workflow:abort',
+  /** renderer → main: send input to the active workflow step. */
+  workflowPush: 'workflow:push',
+  /** main → renderer: workflow run updates and nested agent events. */
+  workflowEvent: 'workflow:event'
 } as const
 
 export interface RunStartResult {

@@ -6,21 +6,32 @@ import {
   type RunEventEnvelope,
   type CliCheckResult,
   type AgentDefinition,
-  type ModelCatalog
+  type ModelCatalog,
+  type WorkflowEventEnvelope,
+  type WorkflowStartInput,
+  type WorkflowStartResult,
+  type WorkflowTemplate
 } from '@shared/types'
 import { RunManager } from './RunManager'
 import { TranscriptStore } from './TranscriptStore'
 import { AgentStore } from './AgentStore'
+import { WorkflowStore } from './WorkflowStore'
+import { WorkflowManager } from './WorkflowManager'
 import { checkClis } from './cliCheck'
 import { listCliModels } from './cliModels'
+
+export interface AppManagers {
+  abortAll(): void
+}
 
 /**
  * Registers all IPC handlers and returns the RunManager so the app can kill
  * live runs on shutdown. Events flow main → renderer via webContents.send.
  */
-export function registerIpc(getWindow: () => BrowserWindow | null): RunManager {
+export function registerIpc(getWindow: () => BrowserWindow | null): AppManagers {
   const transcriptStore = new TranscriptStore()
   const agentStore = new AgentStore()
+  const workflowStore = new WorkflowStore()
   const runManager = new RunManager(transcriptStore)
 
   const emit = (runId: string, event: RunEventEnvelope['event']): void => {
@@ -31,6 +42,21 @@ export function registerIpc(getWindow: () => BrowserWindow | null): RunManager {
       win.webContents.send(IPC.runEvent, { runId, event } satisfies RunEventEnvelope)
     }
   }
+
+  const emitWorkflow = (envelope: WorkflowEventEnvelope): void => {
+    const win = getWindow()
+    if (win && !win.isDestroyed()) {
+      win.webContents.send(IPC.workflowEvent, envelope)
+    }
+  }
+
+  const workflowManager = new WorkflowManager(
+    agentStore,
+    workflowStore,
+    runManager,
+    transcriptStore,
+    emitWorkflow
+  )
 
   ipcMain.handle(IPC.runStart, (_e, config: RunConfig): RunStartResult => {
     // The renderer can't know the on-disk transcript path; fill it here so the
@@ -76,5 +102,40 @@ export function registerIpc(getWindow: () => BrowserWindow | null): RunManager {
 
   ipcMain.handle(IPC.agentsDelete, (_e, id: string): void => agentStore.remove(id))
 
-  return runManager
+  // ── Workflow orchestration ─────────────────────────────────────────────
+
+  ipcMain.handle(IPC.workflowsList, (): WorkflowTemplate[] => workflowStore.listTemplates())
+
+  ipcMain.handle(IPC.workflowsSave, (_e, input): WorkflowTemplate =>
+    workflowStore.saveTemplate(input)
+  )
+
+  ipcMain.handle(IPC.workflowsDelete, (_e, id: string): void =>
+    workflowStore.deleteTemplate(id)
+  )
+
+  ipcMain.handle(IPC.workflowStart, (_e, input: WorkflowStartInput): WorkflowStartResult =>
+    workflowManager.start(input)
+  )
+
+  ipcMain.handle(IPC.workflowConfirmStep, (_e, runId: string) =>
+    workflowManager.confirmStep(runId)
+  )
+
+  ipcMain.handle(IPC.workflowRerunStep, (_e, runId: string, stepIndex: number) =>
+    workflowManager.rerunStep(runId, stepIndex)
+  )
+
+  ipcMain.handle(IPC.workflowAbort, (_e, runId: string) => workflowManager.abort(runId))
+
+  ipcMain.handle(IPC.workflowPush, (_e, runId: string, stepIndex: number, text: string) =>
+    workflowManager.pushInput(runId, stepIndex, text)
+  )
+
+  return {
+    abortAll() {
+      workflowManager.abortAll()
+      runManager.abortAll()
+    }
+  }
 }
