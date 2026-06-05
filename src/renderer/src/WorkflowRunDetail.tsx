@@ -1,7 +1,7 @@
 import type { AgentDefinition, WorkflowRun } from '@shared/types'
 import { TranscriptViewer } from './TranscriptViewer'
 import { HandoffPanel } from './HandoffPanel'
-import { RotateCcw, Send } from './Icons'
+import { CheckCircle, RotateCcw, Send } from './Icons'
 
 export interface WorkflowRunDetailProps {
   run: WorkflowRun | null
@@ -25,6 +25,7 @@ export function WorkflowRunDetail({
   selectedStepIndex,
   selectedExecution,
   handoff,
+  onConfirm,
   onRerun,
   onAbort,
   composerValue,
@@ -64,7 +65,14 @@ export function WorkflowRunDetail({
       </div>
       <TranscriptViewer events={selectedExecution?.events ?? []} />
       {handoff && run.status === 'awaiting-confirm' && (
-        <HandoffPanel handoff={handoff} />
+        <>
+          <HandoffPanel handoff={handoff} />
+          <div className="workflow-run-actions">
+            <button type="button" className="primary" onClick={onConfirm}>
+              <CheckCircle size={14} /> 确认并继续
+            </button>
+          </div>
+        </>
       )}
       <div className="workflow-cli-composer">
         <div className="workflow-cli-prompt">›</div>

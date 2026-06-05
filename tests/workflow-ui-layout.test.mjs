@@ -30,12 +30,13 @@ test('steps panel lives on the right and supports long workflows', () => {
   assert.match(steps, /workflow-steps-list/)
 })
 
-test('run detail owns transcript, handoff, and composer', () => {
+test('run detail owns transcript, handoff, composer, and confirm button', () => {
   const detail = readFileSync(join(root, 'src/renderer/src/WorkflowRunDetail.tsx'), 'utf8')
   const handoff = readFileSync(join(root, 'src/renderer/src/HandoffPanel.tsx'), 'utf8')
   assert.match(detail, /TranscriptViewer/)
   assert.match(detail, /HandoffPanel/)
   assert.match(detail, /workflow-cli-composer/)
+  assert.match(detail, /确认并继续/)
   assert.match(handoff, /formatHandoffDisplay/)
 })
 
