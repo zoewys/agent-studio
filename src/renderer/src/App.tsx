@@ -874,6 +874,8 @@ function workflowRunStatusLabel(status: WorkflowRun['status']): string {
       return '错误'
     case 'aborted':
       return '已停止'
+    case 'interrupted':
+      return '已中断'
   }
 }
 
