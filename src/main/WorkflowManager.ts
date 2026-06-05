@@ -296,10 +296,6 @@ export class WorkflowManager {
 
     execution.events.push(event)
     if (event.kind === 'session-started') execution.sessionId = event.sessionId
-    this.emit({
-      runId,
-      event: { kind: 'agent-event', runId, stepIndex, executionId, event }
-    })
 
     if (event.kind === 'error' && !event.recoverable) {
       this.finishStepWithError(run, stepIndex, execution, event.message)
@@ -314,7 +310,7 @@ export class WorkflowManager {
         this.finishStepWithError(run, stepIndex, execution, `Step ${event.reason}`)
       }
     } else {
-      this.workflowStore.saveRun(run)
+      this.persistAndEmit(run)
     }
   }
 

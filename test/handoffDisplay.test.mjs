@@ -20,9 +20,9 @@ test('formats summary, artifact rows, and next-step guidance from parsed handoff
     nextStepGuidance: 'Design the structured handoff panel next.'
   })
 
-  assert.equal(display.summary.label, 'Summary')
+  assert.equal(display.summary.label, '摘要')
   assert.equal(display.summary.text, 'Requirements are ready for design.')
-  assert.deepEqual(display.artifacts.headers, ['Type', 'Path', 'Description'])
+  assert.deepEqual(display.artifacts.headers, ['类型', '路径', '说明'])
   assert.deepEqual(display.artifacts.rows, [
     {
       type: 'design',
@@ -36,7 +36,7 @@ test('formats summary, artifact rows, and next-step guidance from parsed handoff
     }
   ])
   assert.deepEqual(display.guidance, {
-    label: 'Next Step Guidance',
+    label: '下一步建议',
     text: 'Design the structured handoff panel next.'
   })
 })
@@ -48,6 +48,6 @@ test('formats an empty artifact list without guidance', () => {
   })
 
   assert.deepEqual(display.artifacts.rows, [])
-  assert.equal(display.artifacts.emptyText, 'No artifacts reported.')
+  assert.equal(display.artifacts.emptyText, '未报告产物。')
   assert.equal(display.guidance, null)
 })

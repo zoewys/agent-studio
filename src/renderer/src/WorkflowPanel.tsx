@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { AgentDefinition, WorkflowTemplate } from '@shared/types'
 import type { WorkflowDraft } from './useWorkflows'
 import { GitBranch, Plus, Save, Trash2, Play, FolderOpen, X } from './Icons'
+import { readLastProjectPath, rememberProjectPath } from './projectPathMemory'
 
 export interface WorkflowPanelProps {
   agents: AgentDefinition[]
@@ -22,7 +23,7 @@ export function WorkflowPanel({
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [stepAgentIds, setStepAgentIds] = useState<string[]>([])
-  const [projectPath, setProjectPath] = useState('')
+  const [projectPath, setProjectPath] = useState(readLastProjectPath)
   const [initialPrompt, setInitialPrompt] = useState('')
 
   const selectedTemplate = useMemo(
@@ -44,6 +45,10 @@ export function WorkflowPanel({
   const canSave = name.trim() !== '' && stepAgentIds.length > 0
   const canStart = !!selectedTemplate && projectPath.trim() !== '' && initialPrompt.trim() !== ''
 
+  useEffect(() => {
+    rememberProjectPath(projectPath)
+  }, [projectPath])
+
   const addStep = (): void => {
     const firstAgent = agents[0]
     if (firstAgent) setStepAgentIds((prev) => [...prev, firstAgent.id])
@@ -62,6 +67,7 @@ export function WorkflowPanel({
 
   const startRun = async (): Promise<void> => {
     if (!selectedTemplate || !canStart) return
+    rememberProjectPath(projectPath)
     await onStart(selectedTemplate.id, projectPath.trim(), initialPrompt.trim())
   }
 

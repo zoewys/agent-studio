@@ -104,6 +104,7 @@ body {
   gap: 6px;
   font-size: 11px;
   line-height: 1.1;
+  min-height: 0;
 }
 
 .mode-item:hover:not(:disabled) {
@@ -251,6 +252,12 @@ button {
   font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1.2;
 }
 
 button:hover:not(:disabled) {
@@ -267,6 +274,13 @@ button.primary {
 button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+button.icon-only {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  flex: 0 0 auto;
 }
 
 .actions {
@@ -303,7 +317,7 @@ button:disabled {
 
 .workflow-step-edit {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-columns: 28px minmax(0, 1fr) 34px;
   gap: 6px;
   align-items: center;
 }
@@ -314,10 +328,8 @@ button:disabled {
 }
 
 .workflow-step-edit button.icon-only {
-  padding: 6px 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  width: 34px;
+  height: 34px;
 }
 
 .workflow-run {
@@ -462,7 +474,7 @@ button:disabled {
 }
 
 .handoff-toggle-collapsed {
-  width: 32px;
+  width: 34px;
   min-height: 72px;
   padding: 8px 0;
   display: flex;
@@ -471,6 +483,14 @@ button:disabled {
   justify-content: center;
   gap: 8px;
   color: var(--green);
+}
+
+.handoff-collapsed-label {
+  writing-mode: vertical-rl;
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0;
+  line-height: 1;
 }
 
 .handoff-panel-header {

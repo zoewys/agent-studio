@@ -8,17 +8,17 @@ export interface HandoffDisplayArtifactRow {
 
 export interface HandoffDisplayModel {
   summary: {
-    label: 'Summary'
+    label: '摘要'
     text: string
   }
   artifacts: {
-    label: 'Artifacts'
-    headers: ['Type', 'Path', 'Description']
+    label: '产物'
+    headers: ['类型', '路径', '说明']
     rows: HandoffDisplayArtifactRow[]
-    emptyText: 'No artifacts reported.'
+    emptyText: '未报告产物。'
   }
   guidance: {
-    label: 'Next Step Guidance'
+    label: '下一步建议'
     text: string
   } | null
 }
@@ -26,22 +26,22 @@ export interface HandoffDisplayModel {
 export function formatHandoffDisplay(handoff: HandoffArtifact): HandoffDisplayModel {
   return {
     summary: {
-      label: 'Summary',
+      label: '摘要',
       text: handoff.summary
     },
     artifacts: {
-      label: 'Artifacts',
-      headers: ['Type', 'Path', 'Description'],
+      label: '产物',
+      headers: ['类型', '路径', '说明'],
       rows: handoff.artifacts.map((artifact) => ({
         type: artifact.type ?? 'other',
         path: artifact.path,
         description: artifact.description
       })),
-      emptyText: 'No artifacts reported.'
+      emptyText: '未报告产物。'
     },
     guidance: handoff.nextStepGuidance
       ? {
-          label: 'Next Step Guidance',
+          label: '下一步建议',
           text: handoff.nextStepGuidance
         }
       : null

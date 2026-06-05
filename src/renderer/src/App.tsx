@@ -18,13 +18,13 @@ import { ModelSelect } from './ModelSelect'
 import { TranscriptViewer } from './TranscriptViewer'
 import { WorkflowPanel } from './WorkflowPanel'
 import { formatHandoffDisplay } from './handoffDisplay'
+import { readLastProjectPath, rememberProjectPath } from './projectPathMemory'
 import {
   GitBranch,
   Play,
   Bot,
   FolderOpen,
   Send,
-  Plus,
   RotateCcw,
   CheckCircle,
   ChevronLeft,
@@ -41,7 +41,7 @@ export function App(): JSX.Element {
   const [clis, setClis] = useState<CliCheckResult | null>(null)
   const [mode, setMode] = useState<WorkspaceMode>('workflow')
   const [vendor, setVendor] = useState<AgentVendor>('claude')
-  const [cwd, setCwd] = useState('')
+  const [cwd, setCwd] = useState(readLastProjectPath)
   const [prompt, setPrompt] = useState('')
   const [model, setModel] = useState('')
   const [codexReasoningEffort, setCodexReasoningEffort] = useState<RunConfig['codexReasoningEffort']>()
@@ -71,6 +71,10 @@ export function App(): JSX.Element {
   useEffect(() => {
     window.api.checkClis().then(setClis)
   }, [])
+
+  useEffect(() => {
+    rememberProjectPath(cwd)
+  }, [cwd])
 
   useEffect(() => {
     if (workflows.currentRun) {
@@ -147,12 +151,13 @@ export function App(): JSX.Element {
     workflowStepStatus !== 'running'
   const workflowComposerEnabled =
     !!workflows.currentRun && (workflowCanInterject || workflowCanContinue)
+  const workflowComposerEditable = !!workflows.currentRun && !!selectedWorkflowStepState
   const workflowComposerPlaceholder = !workflows.currentRun
     ? '请先启动一个工作流...'
     : !selectedWorkflowAgent
         ? '当前步骤没有可用 agent'
         : selectedWorkflowStepState?.status === 'running' && selectedWorkflowAgent.vendor !== 'claude'
-          ? `${selectedWorkflowAgent.vendor} 运行中暂不支持实时输入`
+          ? `${selectedWorkflowAgent.vendor} 运行中不支持实时插话，可先输入草稿，步骤完成后发送`
         : !selectedWorkflowExecution?.sessionId
           ? '当前步骤暂无可继续的会话'
           : selectedWorkflowStepState?.status === 'running'
@@ -171,6 +176,7 @@ export function App(): JSX.Element {
     projectPath: string,
     initialPrompt: string
   ) => {
+    rememberProjectPath(projectPath)
     const run = await workflows.start({ templateId, projectPath, initialPrompt })
     setMode('workflow')
     setSelectedWorkflowStep(0)
@@ -408,6 +414,7 @@ export function App(): JSX.Element {
                   onAbort={workflows.abort}
                   onClearRun={workflows.clearRun}
                   composerValue={workflowInput}
+                  composerEditable={workflowComposerEditable}
                   composerEnabled={workflowComposerEnabled}
                   composerPlaceholder={workflowComposerPlaceholder}
                   composerError={workflowInputError}
@@ -506,6 +513,7 @@ interface WorkflowRuntimeProps {
   onAbort: () => Promise<void>
   onClearRun: () => void
   composerValue: string
+  composerEditable: boolean
   composerEnabled: boolean
   composerPlaceholder: string
   composerError: string | null
@@ -525,6 +533,7 @@ function WorkflowRuntime({
   onAbort,
   onClearRun,
   composerValue,
+  composerEditable,
   composerEnabled,
   composerPlaceholder,
   composerError,
@@ -537,8 +546,8 @@ function WorkflowRuntime({
   if (!currentRun) {
     return (
       <div className="runtime-empty">
-        <strong>No workflow run in progress</strong>
-        <span>Create or select a workflow on the left, then start a run.</span>
+        <strong>暂无工作流运行</strong>
+        <span>在左侧选择或创建工作流，然后启动运行。</span>
       </div>
     )
   }
@@ -608,7 +617,7 @@ function WorkflowRuntime({
       <section className="workflow-detail">
         <div className="workflow-detail-header">
           <strong>
-            Step {selectedStepIndex + 1} · {selectedStep ? stepStatusLabel(selectedStep.status) : 'Unknown'}
+            步骤 {selectedStepIndex + 1} · {selectedStep ? stepStatusLabel(selectedStep.status) : '未知'}
           </strong>
           {selectedExecution?.error && (
             <span className="workflow-error">{selectedExecution.error}</span>
@@ -619,7 +628,7 @@ function WorkflowRuntime({
           <div className="workflow-cli-prompt">›</div>
           <textarea
             value={composerValue}
-            disabled={!composerEnabled}
+            disabled={!composerEditable}
             placeholder={composerPlaceholder}
             onChange={(e) => onComposerChange(e.target.value)}
             onKeyDown={(e) => {
@@ -629,7 +638,11 @@ function WorkflowRuntime({
               }
             }}
           />
-          <button onClick={() => void onComposerSend()} disabled={!composerEnabled} type="button">
+          <button
+            onClick={() => void onComposerSend()}
+            disabled={!composerEnabled || composerValue.trim() === ''}
+            type="button"
+          >
             <Send size={14} /> 发送
           </button>
         </div>
@@ -637,22 +650,22 @@ function WorkflowRuntime({
       </section>
 
       {handoff && handoffOpen && (
-        <aside className="handoff-dock" aria-label="Parsed handoff JSON">
+        <aside className="handoff-dock" aria-label="结构化交接物">
           <HandoffPanel handoff={handoff} onCollapse={() => setHandoffOpen(false)} />
         </aside>
       )}
 
       {handoff && !handoffOpen && (
-        <aside className="handoff-dock-collapsed" aria-label="Collapsed handoff panel">
+        <aside className="handoff-dock-collapsed" aria-label="已收起的交接物面板">
           <button
             type="button"
             className="handoff-toggle-collapsed"
-            title="展开 handoff"
-            aria-label="展开 Parsed Handoff JSON"
+            title="展开交接物"
+            aria-label="展开交接物"
             onClick={() => setHandoffOpen(true)}
           >
             <ChevronLeft size={16} />
-            <CheckCircle size={15} />
+            <span className="handoff-collapsed-label">交接物</span>
           </button>
         </aside>
       )}
@@ -672,14 +685,14 @@ function HandoffPanel({
   return (
     <div className="handoff-panel">
       <div className="handoff-panel-header">
-        <div className="section-title"><CheckCircle size={14} /> Parsed Handoff JSON</div>
+        <div className="section-title"><CheckCircle size={14} /> 结构化交接物</div>
         <div className="handoff-panel-header-actions">
-          <span className="handoff-panel-status">Ready to confirm</span>
+          <span className="handoff-panel-status">等待确认</span>
           <button
             type="button"
             className="icon-only handoff-toggle"
-            title="收起 handoff"
-            aria-label="收起 Parsed Handoff JSON"
+            title="收起交接物"
+            aria-label="收起交接物"
             onClick={onCollapse}
           >
             <ChevronRight size={15} />
@@ -727,31 +740,31 @@ function HandoffPanel({
 function workflowRunStatusLabel(status: WorkflowRun['status']): string {
   switch (status) {
     case 'running':
-      return 'Running'
+      return '运行中'
     case 'awaiting-confirm':
-      return 'Awaiting Confirmation'
+      return '等待确认'
     case 'completed':
-      return 'Completed'
+      return '已完成'
     case 'error':
-      return 'Error'
+      return '错误'
     case 'aborted':
-      return 'Aborted'
+      return '已停止'
   }
 }
 
 function stepStatusLabel(status: WorkflowRun['steps'][number]['status']): string {
   switch (status) {
     case 'pending':
-      return 'Pending'
+      return '待运行'
     case 'running':
-      return 'Running'
+      return '运行中'
     case 'awaiting-confirm':
-      return 'Awaiting Confirm'
+      return '等待确认'
     case 'done':
-      return 'Done'
+      return '完成'
     case 'stale':
-      return 'Stale'
+      return '已过期'
     case 'error':
-      return 'Error'
+      return '错误'
   }
 }
