@@ -29,3 +29,17 @@ test('workflow manager marks restored running runs as interrupted', () => {
   assert.match(manager, /status === 'running'/)
   assert.match(manager, /status: 'interrupted'/)
 })
+
+const ipc = readFileSync(join(root, 'src/main/ipc.ts'), 'utf8')
+const preload = readFileSync(join(root, 'src/preload/index.ts'), 'utf8')
+
+test('ipc and preload expose workflow run list, delete, and git safety', () => {
+  assert.match(ipc, /IPC\.workflowRunsList/)
+  assert.match(ipc, /workflowManager\.listRuns/)
+  assert.match(ipc, /IPC\.workflowDeleteRun/)
+  assert.match(ipc, /workflowManager\.deleteRun/)
+  assert.match(ipc, /IPC\.workflowGitSafety/)
+  assert.match(preload, /listWorkflowRuns/)
+  assert.match(preload, /deleteWorkflowRun/)
+  assert.match(preload, /inspectWorkflowGitSafety/)
+})

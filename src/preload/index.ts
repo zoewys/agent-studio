@@ -10,7 +10,9 @@ import {
   type WorkflowEventEnvelope,
   type WorkflowStartInput,
   type WorkflowStartResult,
-  type WorkflowTemplate
+  type WorkflowTemplate,
+  type WorkflowRun,
+  type WorkflowRunGitSafety
 } from '@shared/types'
 
 /**
@@ -56,6 +58,14 @@ const api = {
 
   pushWorkflowInput: (runId: string, stepIndex: number, text: string) =>
     ipcRenderer.invoke(IPC.workflowPush, runId, stepIndex, text),
+
+  listWorkflowRuns: (): Promise<WorkflowRun[]> => ipcRenderer.invoke(IPC.workflowRunsList),
+
+  deleteWorkflowRun: (runId: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.workflowDeleteRun, runId),
+
+  inspectWorkflowGitSafety: (projectPath: string): Promise<WorkflowRunGitSafety> =>
+    ipcRenderer.invoke(IPC.workflowGitSafety, projectPath),
 
   pickDir: (): Promise<string | null> => ipcRenderer.invoke(IPC.pickDir),
 

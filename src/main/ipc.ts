@@ -10,7 +10,9 @@ import {
   type WorkflowEventEnvelope,
   type WorkflowStartInput,
   type WorkflowStartResult,
-  type WorkflowTemplate
+  type WorkflowTemplate,
+  type WorkflowRun,
+  type WorkflowRunGitSafety
 } from '@shared/types'
 import { RunManager } from './RunManager'
 import { TranscriptStore } from './TranscriptStore'
@@ -19,6 +21,7 @@ import { WorkflowStore } from './WorkflowStore'
 import { WorkflowManager } from './WorkflowManager'
 import { checkClis } from './cliCheck'
 import { listCliModels } from './cliModels'
+import { inspectWorkflowGitSafety } from './gitSafety'
 
 export interface AppManagers {
   abortAll(): void
@@ -130,6 +133,16 @@ export function registerIpc(getWindow: () => BrowserWindow | null): AppManagers 
 
   ipcMain.handle(IPC.workflowPush, (_e, runId: string, stepIndex: number, text: string) =>
     workflowManager.pushInput(runId, stepIndex, text)
+  )
+
+  ipcMain.handle(IPC.workflowRunsList, (): WorkflowRun[] => workflowManager.listRuns())
+
+  ipcMain.handle(IPC.workflowDeleteRun, (_e, runId: string): void => {
+    workflowManager.deleteRun(runId)
+  })
+
+  ipcMain.handle(IPC.workflowGitSafety, (_e, projectPath: string): WorkflowRunGitSafety =>
+    inspectWorkflowGitSafety(projectPath, workflowManager.listRuns())
   )
 
   return {
