@@ -10,6 +10,7 @@ export interface WorkflowPanelProps {
   onSave: (draft: WorkflowDraft) => Promise<WorkflowTemplate>
   onDelete: (id: string) => Promise<void>
   onStart: (templateId: string, projectPath: string, initialPrompt: string) => Promise<unknown>
+  hideRunControls?: boolean
 }
 
 export function WorkflowPanel({
@@ -17,7 +18,8 @@ export function WorkflowPanel({
   templates,
   onSave,
   onDelete,
-  onStart
+  onStart,
+  hideRunControls
 }: WorkflowPanelProps): JSX.Element {
   const [templateId, setTemplateId] = useState('')
   const [name, setName] = useState('')
@@ -150,31 +152,35 @@ export function WorkflowPanel({
         )}
       </div>
 
-      <label className="field">
-        <span>Project Directory</span>
-        <div className="field-row">
-          <input value={projectPath} placeholder="/path/to/project" onChange={(e) => setProjectPath(e.target.value)} />
-          <button type="button" onClick={pickDir}>
-            <FolderOpen size={14} /> Browse
-          </button>
-        </div>
-      </label>
+      {!hideRunControls && (
+        <>
+          <label className="field">
+            <span>Project Directory</span>
+            <div className="field-row">
+              <input value={projectPath} placeholder="/path/to/project" onChange={(e) => setProjectPath(e.target.value)} />
+              <button type="button" onClick={pickDir}>
+                <FolderOpen size={14} /> Browse
+              </button>
+            </div>
+          </label>
 
-      <label className="field">
-        <span>Initial Prompt</span>
-        <textarea
-          className="workflow-prompt"
-          value={initialPrompt}
-          placeholder="Describe the task for this workflow..."
-          onChange={(e) => setInitialPrompt(e.target.value)}
-        />
-      </label>
+          <label className="field">
+            <span>Initial Prompt</span>
+            <textarea
+              className="workflow-prompt"
+              value={initialPrompt}
+              placeholder="Describe the task for this workflow..."
+              onChange={(e) => setInitialPrompt(e.target.value)}
+            />
+          </label>
 
-      <div className="actions">
-        <button type="button" className="primary" disabled={!canStart} onClick={startRun}>
-          <Play size={14} /> Start Workflow
-        </button>
-      </div>
+          <div className="actions">
+            <button type="button" className="primary" disabled={!canStart} onClick={startRun}>
+              <Play size={14} /> Start Workflow
+            </button>
+          </div>
+        </>
+      )}
     </section>
   )
 }

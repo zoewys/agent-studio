@@ -11,6 +11,8 @@ export interface WorkflowDraft extends Omit<WorkflowTemplate, 'id'> {
   id?: string
 }
 
+export type UseWorkflowsResult = ReturnType<typeof useWorkflows>
+
 export function useWorkflows() {
   const [templates, setTemplates] = useState<WorkflowTemplate[]>([])
   const [runs, setRuns] = useState<WorkflowRun[]>([])

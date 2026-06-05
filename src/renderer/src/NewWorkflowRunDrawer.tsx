@@ -1,0 +1,167 @@
+import { useEffect, useMemo, useState } from 'react'
+import type {
+  AgentDefinition,
+  WorkflowRunGitSafety,
+  WorkflowStartInput,
+  WorkflowTemplate
+} from '@shared/types'
+import { FolderOpen, Play, X } from './Icons'
+import { readLastProjectPath, rememberProjectPath } from './projectPathMemory'
+
+interface NewWorkflowRunDrawerProps {
+  agents: AgentDefinition[]
+  templates: WorkflowTemplate[]
+  onStart: (input: WorkflowStartInput) => Promise<unknown>
+  onInspectGitSafety: (projectPath: string) => Promise<WorkflowRunGitSafety>
+  runningRunCount: number
+  onClose: () => void
+}
+
+export function NewWorkflowRunDrawer({
+  templates,
+  onStart,
+  onInspectGitSafety,
+  runningRunCount,
+  onClose
+}: NewWorkflowRunDrawerProps): JSX.Element {
+  const [templateId, setTemplateId] = useState(templates[0]?.id ?? '')
+  const [runName, setRunName] = useState('')
+  const [projectPath, setProjectPath] = useState(readLastProjectPath)
+  const [initialPrompt, setInitialPrompt] = useState('')
+  const [safety, setSafety] = useState<WorkflowRunGitSafety | null>(null)
+  const [allowUnsafeSameGitRoot, setAllowUnsafeSameGitRoot] = useState(false)
+  const [allowHighConcurrency, setAllowHighConcurrency] = useState(false)
+
+  const selectedTemplate = useMemo(
+    () => templates.find((template) => template.id === templateId) ?? null,
+    [templateId, templates]
+  )
+
+  useEffect(() => {
+    if (!projectPath.trim()) {
+      setSafety(null)
+      return
+    }
+    let cancelled = false
+    onInspectGitSafety(projectPath.trim()).then((next) => {
+      if (!cancelled) setSafety(next)
+    }).catch(() => {
+      if (!cancelled) setSafety(null)
+    })
+    return () => { cancelled = true }
+  }, [onInspectGitSafety, projectPath])
+
+  const canStart =
+    !!selectedTemplate &&
+    projectPath.trim() !== '' &&
+    initialPrompt.trim() !== '' &&
+    (safety?.level !== 'requires-confirmation' || allowUnsafeSameGitRoot) &&
+    (runningRunCount < 5 || allowHighConcurrency)
+
+  const start = async (): Promise<void> => {
+    if (!selectedTemplate || !canStart) return
+    rememberProjectPath(projectPath)
+    await onStart({
+      templateId: selectedTemplate.id,
+      runName: runName.trim() || selectedTemplate.name,
+      projectPath: projectPath.trim(),
+      initialPrompt: initialPrompt.trim(),
+      allowUnsafeSameGitRoot
+    })
+    onClose()
+  }
+
+  const pickDir = async (): Promise<void> => {
+    const dir = await window.api.pickDir()
+    if (dir) setProjectPath(dir)
+  }
+
+  return (
+    <aside className="workflow-new-run-drawer" aria-label="New Workflow Run">
+      <div className="workflow-new-run-header">
+        <div>
+          <strong>New Workflow Run</strong>
+          <span>从模板启动一个新的任务实例</span>
+        </div>
+        <button type="button" className="icon-only" onClick={onClose} aria-label="Close">
+          <X size={14} />
+        </button>
+      </div>
+
+      <div className="workflow-new-run-body">
+        <label className="field">
+          <span>Template</span>
+          <select value={templateId} onChange={(event) => setTemplateId(event.target.value)}>
+            {templates.map((template) => (
+              <option key={template.id} value={template.id}>{template.name}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="field">
+          <span>Run Name</span>
+          <input value={runName} placeholder={selectedTemplate?.name ?? 'Run name'} onChange={(event) => setRunName(event.target.value)} />
+        </label>
+
+        <label className="field">
+          <span>Project Directory</span>
+          <div className="field-row">
+            <input value={projectPath} onChange={(event) => setProjectPath(event.target.value)} />
+            <button type="button" onClick={pickDir}><FolderOpen size={14} /> Browse</button>
+          </div>
+        </label>
+
+        {safety?.message && (
+          <div className={`workflow-git-safety workflow-git-safety-${safety.level}`}>
+            {safety.message}
+          </div>
+        )}
+
+        {safety?.level === 'requires-confirmation' && (
+          <label className="workflow-confirm-unsafe">
+            <input
+              type="checkbox"
+              checked={allowUnsafeSameGitRoot}
+              onChange={(event) => setAllowUnsafeSameGitRoot(event.target.checked)}
+            />
+            <span>仍然启动</span>
+          </label>
+        )}
+
+        {runningRunCount >= 3 && (
+          <div className="workflow-git-safety workflow-git-safety-warning">
+            当前已有 {runningRunCount} 个 workflow 正在运行，继续启动可能增加 CPU、内存和 CLI 限流压力。
+          </div>
+        )}
+
+        {runningRunCount >= 5 && (
+          <label className="workflow-confirm-unsafe">
+            <input
+              type="checkbox"
+              checked={allowHighConcurrency}
+              onChange={(event) => setAllowHighConcurrency(event.target.checked)}
+            />
+            <span>确认超过 5 个 workflow 同时运行</span>
+          </label>
+        )}
+
+        <label className="field">
+          <span>Task Prompt</span>
+          <textarea value={initialPrompt} onChange={(event) => setInitialPrompt(event.target.value)} />
+        </label>
+
+        <div className="workflow-template-preview">
+          <strong>Template Preview</strong>
+          <span>{selectedTemplate?.steps.length ?? 0} steps</span>
+        </div>
+      </div>
+
+      <div className="workflow-new-run-actions">
+        <button type="button" onClick={onClose}>Cancel</button>
+        <button type="button" className="primary" disabled={!canStart} onClick={start}>
+          <Play size={14} /> Start Run
+        </button>
+      </div>
+    </aside>
+  )
+}
