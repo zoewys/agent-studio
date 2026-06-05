@@ -3,6 +3,7 @@ import type { AgentDefinition, WorkflowRun } from '@shared/types'
 import { WorkflowRunsList } from './WorkflowRunsList'
 import { WorkflowRunDetail } from './WorkflowRunDetail'
 import { WorkflowStepsPanel } from './WorkflowStepsPanel'
+import { NewWorkflowRunDrawer } from './NewWorkflowRunDrawer'
 import type { UseWorkflowsResult } from './useWorkflows'
 
 interface WorkflowWorkspaceProps {
@@ -11,6 +12,7 @@ interface WorkflowWorkspaceProps {
 }
 
 export function WorkflowWorkspace({ agents, workflows }: WorkflowWorkspaceProps): JSX.Element {
+  const [newRunDrawerOpen, setNewRunDrawerOpen] = useState(false)
   const [selectedStepByRunId, setSelectedStepByRunId] = useState<Record<string, number>>({})
   const [workflowInput, setWorkflowInput] = useState('')
   const [workflowInputError, setWorkflowInputError] = useState<string | null>(null)
@@ -66,7 +68,7 @@ export function WorkflowWorkspace({ agents, workflows }: WorkflowWorkspaceProps)
         runs={workflows.runs}
         selectedRunId={workflows.selectedRunId}
         onSelectRun={workflows.selectRun}
-        onNewRun={() => undefined}
+        onNewRun={() => setNewRunDrawerOpen(true)}
       />
       <WorkflowRunDetail
         run={selectedRun}
@@ -93,6 +95,16 @@ export function WorkflowWorkspace({ agents, workflows }: WorkflowWorkspaceProps)
         selectedStepIndex={selectedStepIndex}
         onSelectStep={setSelectedStepIndex}
       />
+      {newRunDrawerOpen && (
+        <NewWorkflowRunDrawer
+          agents={agents}
+          templates={workflows.templates}
+          onStart={workflows.start}
+          onInspectGitSafety={workflows.inspectGitSafety}
+          runningRunCount={workflows.runs.filter((run) => run.status === 'running').length}
+          onClose={() => setNewRunDrawerOpen(false)}
+        />
+      )}
     </section>
   )
 }
