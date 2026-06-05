@@ -42,6 +42,20 @@ export const Play = (p: IconProps) => (
   </Icon>
 )
 
+export const SlidersHorizontal = (p: IconProps) => (
+  <Icon {...p}>
+    <line x1="21" y1="4" x2="14" y2="4" />
+    <line x1="10" y1="4" x2="3" y2="4" />
+    <line x1="21" y1="12" x2="12" y2="12" />
+    <line x1="8" y1="12" x2="3" y2="12" />
+    <line x1="21" y1="20" x2="16" y2="20" />
+    <line x1="12" y1="20" x2="3" y2="20" />
+    <line x1="14" y1="2" x2="14" y2="6" />
+    <line x1="8" y1="10" x2="8" y2="14" />
+    <line x1="16" y1="18" x2="16" y2="22" />
+  </Icon>
+)
+
 export const Bot = (p: IconProps) => (
   <Icon {...p}>
     <path d="M12 8V4H8" />
@@ -120,7 +134,15 @@ export const ChevronRight = (p: IconProps) => (
 
 export const CheckCircle = (p: IconProps) => (
   <Icon {...p}>
-    <path d="M22 11.08V12a10 10 0 1 1-5.93-14.14" />
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
     <polyline points="22 4 12 14.01 9 11.01" />
+  </Icon>
+)
+
+export const ClipboardCheck = (p: IconProps) => (
+  <Icon {...p}>
+    <rect width="16" height="18" x="4" y="4" rx="2" />
+    <path d="M9 2h6a2 2 0 0 1 2 2v2H7V4a2 2 0 0 1 2-2Z" />
+    <path d="m9 14 2 2 4-5" />
   </Icon>
 )

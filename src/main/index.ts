@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, nativeImage } from 'electron'
 import { join } from 'node:path'
 import { registerIpc } from './ipc'
 import type { AppManagers } from './ipc'
@@ -6,12 +6,15 @@ import type { AppManagers } from './ipc'
 let mainWindow: BrowserWindow | null = null
 let appManagers: AppManagers | null = null
 
+const appIconPath = join(__dirname, '../../resources/icon.png')
+
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    icon: appIconPath,
     show: false,
     title: 'Agent Studio',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
@@ -40,6 +43,11 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'darwin') {
+    const dockIcon = nativeImage.createFromPath(appIconPath)
+    if (!dockIcon.isEmpty()) app.dock.setIcon(dockIcon)
+  }
+
   appManagers = registerIpc(() => mainWindow)
   createWindow()
 

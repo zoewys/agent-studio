@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const css = readFileSync(join(root, 'src/renderer/src/styles.css'), 'utf8')
+const app = readFileSync(join(root, 'src/renderer/src/App.tsx'), 'utf8')
 
 function block(selector) {
   const match = css.match(new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`))
@@ -38,4 +39,20 @@ test('assistant messages are the primary transcript reading surface', () => {
   assert.match(message, /line-height:\s*1\.72;/)
   assert.match(message, /white-space:\s*normal;/)
   assert.match(marker, /background:\s*var\(--text-strong\);/)
+})
+
+test('collapsible workspace columns use stable narrow rails', () => {
+  const appCollapsed = block('.app-body-config-collapsed')
+  const runCollapsed = block('.workflow-runtime-run-collapsed')
+  const iconButton = block('button.icon-only')
+  const verticalToggle = block('.panel-vertical-toggle')
+  const handoffToggle = block('.handoff-toggle-collapsed')
+
+  assert.match(appCollapsed, /grid-template-columns:\s*84px 44px minmax\(0,\s*1fr\);/)
+  assert.match(runCollapsed, /grid-template-columns:\s*44px minmax\(0,\s*1fr\);/)
+  assert.match(iconButton, /width:\s*34px;/)
+  assert.match(iconButton, /height:\s*34px;/)
+  assert.match(verticalToggle, /height:\s*64px;/)
+  assert.match(handoffToggle, /height:\s*64px;/)
+  assert.doesNotMatch(app, /<span>配置<\/span>|<span>运行<\/span>|handoff-collapsed-label|交接物<\/span>/)
 })
