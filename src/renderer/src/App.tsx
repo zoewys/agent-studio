@@ -24,9 +24,7 @@ import { readLastProjectPath, rememberProjectPath } from './projectPathMemory'
 import { useUiReviewFixture } from './uiReviewFixture'
 import { prepareWorkflowNotificationSound } from './workflowNotificationSound'
 import {
-  GitBranch,
   Play,
-  Bot,
   FolderOpen,
   Send,
   RotateCcw,
@@ -291,7 +289,7 @@ export function App(): JSX.Element {
             onClick={() => setMode('workflow')}
           >
             <span className="mode-icon">
-              {uiReview.enabled ? reviewModeIcon('workflow') : <GitBranch />}
+              {reviewModeIcon('workflow')}
             </span>
             <span>Workflow</span>
           </button>
@@ -301,7 +299,7 @@ export function App(): JSX.Element {
             onClick={() => setMode('templates')}
           >
             <span className="mode-icon">
-              {uiReview.enabled ? reviewModeIcon('templates') : <ClipboardCheck />}
+              {reviewModeIcon('templates')}
             </span>
             <span>Templates</span>
           </button>
@@ -311,7 +309,7 @@ export function App(): JSX.Element {
             onClick={() => setMode(isAgents ? 'workflow' : 'agents')}
           >
             <span className="mode-icon">
-              {uiReview.enabled ? reviewModeIcon('agents') : <Bot />}
+              {reviewModeIcon('agents')}
             </span>
             <span>Agents</span>
           </button>
@@ -321,7 +319,7 @@ export function App(): JSX.Element {
             onClick={() => setMode('single')}
           >
             <span className="mode-icon">
-              {uiReview.enabled ? reviewModeIcon('single') : <Play />}
+              {reviewModeIcon('single')}
             </span>
             <span>Single</span>
           </button>
@@ -365,7 +363,7 @@ export function App(): JSX.Element {
                   <div className="workspace-panel-header">
                     <div className="panel-heading-line">
                       <span className="section-title">
-                        Single Run Config
+                        Single Run
                       </span>
                       <button
                         type="button"
@@ -377,8 +375,8 @@ export function App(): JSX.Element {
                         <ChevronLeft size={15} />
                       </button>
                     </div>
-                    <h2>Run a single agent</h2>
-                    <p>Pick a preset agent or configure a one-shot CLI run.</p>
+                    <h2>Single Run</h2>
+                    <p>保留独立入口；不参与 workflow 多运行队列。</p>
                   </div>
 
                   <>
@@ -397,7 +395,7 @@ export function App(): JSX.Element {
                             ))}
                           </select>
                           <button onClick={() => setMode('agents')} type="button">
-                            Manage
+                            Agent
                           </button>
                         </div>
                       </label>
@@ -474,7 +472,7 @@ export function App(): JSX.Element {
                           onClick={handleStart}
                           type="button"
                         >
-                          <Play size={14} /> {state.running ? 'Running...' : 'Start Run'}
+                          {state.running ? 'Running...' : 'Start Run'}
                         </button>
                         {state.running && (
                           <button onClick={abort} type="button">
@@ -483,7 +481,7 @@ export function App(): JSX.Element {
                         )}
                         {!state.running && state.events.length > 0 && (
                           <button onClick={reset} type="button">
-                            <RotateCcw size={14} /> Clear
+                            Clear
                           </button>
                         )}
                       </div>
@@ -505,40 +503,40 @@ export function App(): JSX.Element {
 
             <main className="panel panel-runtime">
               <>
-                  <TranscriptViewer events={state.events} />
+                <TranscriptViewer events={state.events} />
 
-                  {state.events.length > 0 && (
-                    <div className="interject">
-                      <input
-                        value={interjection}
-                        disabled={!composerEnabled}
-                        placeholder={
-                          canInterject
-                            ? '向运行中的 agent 发送消息...'
-                            : canResume
-                              ? '继续此会话...'
-                              : canFollowUp
-                                ? '继续对话（将基于当前 transcript 重建上下文）...'
-                                : vendor === 'claude'
-                                  ? '先启动一次运行以创建会话...'
-                                  : state.running
-                                    ? `${vendor} 运行中暂不支持实时输入`
-                                    : '先启动一次运行以创建对话...'
-                        }
-                        onChange={(e) => setInterjection(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') void handleComposerSend()
-                        }}
-                      />
-                      <button
-                        onClick={handleComposerSend}
-                        disabled={!composerEnabled}
-                        type="button"
-                      >
-                        <Send size={14} /> 发送
-                      </button>
-                    </div>
-                  )}
+                {state.events.length > 0 && (
+                  <div className="interject">
+                    <input
+                      value={interjection}
+                      disabled={!composerEnabled}
+                      placeholder={
+                        canInterject
+                          ? '向运行中的 agent 发送消息...'
+                          : canResume
+                            ? '继续此会话...'
+                            : canFollowUp
+                              ? '继续对话（将基于当前 transcript 重建上下文）...'
+                              : vendor === 'claude'
+                                ? '先启动一次运行以创建会话...'
+                                : state.running
+                                  ? `${vendor} 运行中暂不支持实时输入`
+                                  : '先启动一次运行以创建对话...'
+                      }
+                      onChange={(e) => setInterjection(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') void handleComposerSend()
+                      }}
+                    />
+                    <button
+                      onClick={handleComposerSend}
+                      disabled={!composerEnabled}
+                      type="button"
+                    >
+                      发送
+                    </button>
+                  </div>
+                )}
               </>
             </main>
           </>

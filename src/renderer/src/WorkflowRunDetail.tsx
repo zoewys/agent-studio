@@ -1,5 +1,5 @@
 import type { AgentDefinition, WorkflowRun } from '@shared/types'
-import { CheckCircle, RotateCcw, Send } from './Icons'
+import { CheckCircle } from './Icons'
 import { HandoffPanel } from './HandoffPanel'
 import { TranscriptViewer } from './TranscriptViewer'
 
@@ -33,7 +33,6 @@ export function WorkflowRunDetail({
   selectedStepIndex,
   selectedExecution,
   handoff,
-  uiReviewEnabled = false,
   onConfirm,
   onRerun,
   onAbort,
@@ -77,11 +76,7 @@ export function WorkflowRunDetail({
             </button>
           )}
           <button type="button" onClick={() => onRerun(selectedStepIndex)}>
-            {uiReviewEnabled ? 'Rerun Step' : (
-              <>
-                <RotateCcw size={14} /> Rerun Step
-              </>
-            )}
+            Rerun Step
           </button>
           {(run.status === 'running' || run.status === 'awaiting-confirm') && (
             <button type="button" className="danger" onClick={onAbort}>Stop</button>
@@ -124,43 +119,24 @@ export function WorkflowRunDetail({
 
       <div className="workflow-cli-composer">
         <div className="workflow-cli-prompt">›</div>
-        {uiReviewEnabled ? (
-          <input
-            value={composerValue}
-            disabled={!composerEditable}
-            placeholder={composerPlaceholder}
-            onChange={(e) => onComposerChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                void onComposerSend()
-              }
-            }}
-          />
-        ) : (
-          <textarea
-            value={composerValue}
-            disabled={!composerEditable}
-            placeholder={composerPlaceholder}
-            onChange={(e) => onComposerChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                void onComposerSend()
-              }
-            }}
-          />
-        )}
+        <input
+          value={composerValue}
+          disabled={!composerEditable}
+          placeholder={composerPlaceholder}
+          onChange={(e) => onComposerChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              void onComposerSend()
+            }
+          }}
+        />
         <button
           onClick={() => void onComposerSend()}
           disabled={!composerEnabled || composerValue.trim() === ''}
           type="button"
         >
-          {uiReviewEnabled ? '发送' : (
-            <>
-              <Send size={14} /> 发送
-            </>
-          )}
+          发送
         </button>
       </div>
       {composerError && <div className="workflow-input-error">{composerError}</div>}

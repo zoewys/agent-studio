@@ -368,21 +368,23 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.app-ui-review .workflow-runs-actions button,
-.app-ui-review .workflow-run-detail-actions button,
-.app-ui-review .workflow-cli-composer button,
-.app-ui-review .workflow-new-run-header button,
-.app-ui-review .workflow-new-run-actions button,
-.app-ui-review .templates-view-header button,
-.app-ui-review .templates-main-actions button {
+.workflow-runs-actions button,
+.workflow-run-detail-actions button,
+.workflow-cli-composer button,
+.workflow-new-run-header button,
+.workflow-new-run-actions button,
+.templates-view-header button,
+.templates-main-actions button,
+.agent-list-header button,
+.agent-editor .actions button {
   font-size: 16px;
   font-weight: 750;
   padding: 0 11px;
 }
 
-.app-ui-review .workflow-new-run-drawer input,
-.app-ui-review .workflow-new-run-drawer select,
-.app-ui-review .workflow-new-run-drawer textarea {
+.workflow-new-run-drawer input,
+.workflow-new-run-drawer select,
+.workflow-new-run-drawer textarea {
   font-size: 16px;
 }
 
@@ -1016,7 +1018,7 @@ button.icon-only {
   display: none;
 }
 
-.app-ui-review .workflow-run-detail .transcript {
+.workflow-run-detail .transcript {
   flex: 1;
   padding: 14px 16px 0;
   gap: 0;
@@ -1027,9 +1029,9 @@ button.icon-only {
   display: none;
 }
 
-.app-ui-review .workflow-run-detail .cli-msg,
-.app-ui-review .workflow-run-detail .cli-tool,
-.app-ui-review .workflow-run-detail .cli-meta-line {
+.workflow-run-detail .cli-msg,
+.workflow-run-detail .cli-tool,
+.workflow-run-detail .cli-meta-line {
   margin: 0;
   padding: 0;
   background: transparent;
@@ -1040,25 +1042,25 @@ button.icon-only {
   line-height: 2.2;
 }
 
-.app-ui-review .workflow-run-detail .cli-msg::before,
-.app-ui-review .workflow-run-detail .cli-tool::before,
-.app-ui-review .workflow-run-detail .cli-tool-icon,
-.app-ui-review .workflow-run-detail .cli-tool-detail {
+.workflow-run-detail .cli-msg::before,
+.workflow-run-detail .cli-tool::before,
+.workflow-run-detail .cli-tool-icon,
+.workflow-run-detail .cli-tool-detail {
   display: none;
 }
 
-.app-ui-review .workflow-run-detail .cli-msg p::before {
+.workflow-run-detail .cli-msg p::before {
   content: 'assistant: ';
   color: var(--text-strong);
   font-weight: 750;
 }
 
-.app-ui-review .workflow-run-detail .cli-tool-name::before {
+.workflow-run-detail .cli-tool-name::before {
   content: 'tool: ';
   color: #9fb0ff;
 }
 
-.app-ui-review .workflow-run-detail .cli-tool-name {
+.workflow-run-detail .cli-tool-name {
   color: #9fb0ff;
 }
 
@@ -1196,8 +1198,8 @@ button.icon-only {
   line-height: 1.2;
 }
 
-.app-ui-review .workflow-steps-title strong,
-.app-ui-review .workflow-template-preview .field-row-between > span {
+.workflow-steps-title strong,
+.workflow-template-preview .field-row-between > span {
   border: 1px solid var(--border);
   border-radius: 999px;
   background: #1d2028;
@@ -1713,12 +1715,12 @@ button.icon-only {
 .workflow-cli-composer {
   flex-shrink: 0;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: 24px minmax(0, 1fr) 76px;
   gap: 8px;
-  align-items: end;
-  padding: 12px 16px;
+  align-items: center;
+  padding: 10px 12px;
   border-top: 1px solid var(--border);
-  background: var(--bg-panel);
+  background: #1d2028;
 }
 
 .workflow-cli-prompt {
@@ -1736,13 +1738,7 @@ button.icon-only {
   line-height: 1.45;
 }
 
-.app-ui-review .workflow-cli-composer {
-  grid-template-columns: 24px minmax(0, 1fr) 76px;
-  align-items: center;
-  padding: 10px 12px;
-}
-
-.app-ui-review .workflow-cli-composer input {
+.workflow-cli-composer input {
   min-height: 34px;
   font-family: inherit;
 }
@@ -2289,8 +2285,11 @@ button.icon-only {
 /* ── Agent list sidebar ──────────────────────────────────────────────── */
 
 .agent-list {
-  width: 240px;
+  width: 360px;
+  min-width: 0;
+  min-height: 0;
   border-right: 1px solid var(--border);
+  background: var(--bg-panel);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -2300,26 +2299,34 @@ button.icon-only {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
+  gap: 8px;
+  padding: 14px;
   border-bottom: 1px solid var(--border);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-dim);
+}
+
+.agent-list-header span {
+  min-width: 0;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.2;
 }
 
 .agent-item {
-  display: block;
-  width: 100%;
+  width: calc(100% - 16px);
+  display: grid;
+  gap: 8px;
   text-align: left;
-  border: none;
-  border-bottom: 1px solid var(--border);
-  border-radius: 0;
-  background: transparent;
-  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #20242d;
+  padding: 10px;
+  margin: 8px 8px 0;
   cursor: pointer;
   color: var(--text);
   font-size: 13px;
+  min-height: 0;
+  justify-content: stretch;
 }
 
 .agent-item:hover {
@@ -2327,27 +2334,37 @@ button.icon-only {
 }
 
 .agent-item-active {
+  border-color: var(--accent);
   background: rgba(108, 140, 255, 0.12);
-  border-left: 2px solid var(--accent);
 }
 
 .agent-item-name {
-  font-weight: 600;
-  margin-bottom: 2px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 750;
 }
 
 .agent-item-meta {
+  min-width: 0;
   color: var(--text-dim);
-  font-size: 12px;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Agent editor panel ──────────────────────────────────────────────── */
 
 .agent-editor {
   flex: 1;
-  padding: 16px;
+  background: #191c23;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   overflow-y: auto;
 }

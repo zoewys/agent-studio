@@ -5,7 +5,7 @@ import type {
   WorkflowStartInput,
   WorkflowTemplate
 } from '@shared/types'
-import { FolderOpen, Play } from './Icons'
+import { FolderOpen } from './Icons'
 import { readLastProjectPath, rememberProjectPath } from './projectPathMemory'
 
 const stepPreviewLabels = ['需求', 'IA', 'UI', '技术方案', '开发']
@@ -222,11 +222,7 @@ export function NewWorkflowRunDrawer({
       <div className="workflow-new-run-actions">
         <button type="button" onClick={saveDraft}>Save Draft</button>
         <button type="button" className="primary" disabled={!canStart} onClick={start}>
-          {uiReviewEnabled ? 'Start Run' : (
-            <>
-              <Play size={14} /> Start Run
-            </>
-          )}
+          Start Run
         </button>
       </div>
     </aside>
