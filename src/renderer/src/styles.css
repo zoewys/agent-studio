@@ -2871,18 +2871,12 @@ button.icon-only {
 .agent-editor {
   flex: 1;
   background: #191c23;
-  padding: 14px;
+  padding: 14px 14px 126px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
-  scroll-padding-bottom: 112px;
-}
-
-.agent-editor::after {
-  content: '';
-  display: block;
-  flex: 0 0 112px;
+  scroll-padding-bottom: 126px;
 }
 
 .reflection-settings-panel {
