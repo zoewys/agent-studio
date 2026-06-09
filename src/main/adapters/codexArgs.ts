@@ -1,9 +1,8 @@
-import type { CodexReasoningEffort, ResumeHandle } from '@shared/types'
+import type { CodexReasoningEffort } from '@shared/types'
 
 export interface CodexExecArgsInput {
   model?: string
   addDirs?: string[]
-  resumeFrom?: ResumeHandle
   codexReasoningEffort?: CodexReasoningEffort
   codexServiceTier?: string
   outputSchemaPath?: string
@@ -17,7 +16,6 @@ export function buildCodexExecArgs(input: CodexExecArgsInput, prompt: string): s
   appendConfig(args, 'service_tier', input.codexServiceTier)
   if (input.outputSchemaPath) args.push('--output-schema', input.outputSchemaPath)
   args.push('--json')
-  if (input.resumeFrom?.sessionId) args.push('--resume', input.resumeFrom.sessionId)
   args.push('--dangerously-bypass-approvals-and-sandbox')
   args.push('--skip-git-repo-check')
   args.push(prompt)

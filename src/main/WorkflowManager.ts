@@ -32,17 +32,7 @@ interface LiveStep {
   executionId: string
 }
 
-const HANDOFF_SCHEMA_TEXT = `
-When this step is complete, respond with only JSON matching this shape:
-{
-  "summary": "what this step completed and what downstream agents need to know",
-  "artifacts": [
-    { "path": "relative/or/absolute/path", "description": "what this artifact contains", "type": "other" }
-  ],
-  "nextStepGuidance": "optional advice for the next step"
-}
-Do not wrap the JSON in markdown fences.
-`.trim()
+const HANDOFF_HINT = 'When this step is complete, output a handoff JSON with your summary, artifacts, and optional nextStepGuidance. The output format is enforced automatically.'
 
 const HANDOFF_OUTPUT_SCHEMA: JSONSchema = {
   type: 'object',
@@ -251,7 +241,7 @@ export class WorkflowManager {
       clean,
       '',
       '# Handoff requirement',
-      HANDOFF_SCHEMA_TEXT
+      HANDOFF_HINT
     ].join('\n')
     const { prompt, injectedMemoryIds } = this.withMemoryContext(agent, run.projectPath, mainPrompt)
     const execution: WorkflowStepExecution = {
@@ -465,7 +455,7 @@ export class WorkflowManager {
         run.initialPrompt,
         '',
         '# Handoff requirement',
-        HANDOFF_SCHEMA_TEXT
+        HANDOFF_HINT
       ].join('\n')
       return this.withMemoryContext(agent, run.projectPath, mainPrompt)
     }
@@ -480,7 +470,7 @@ export class WorkflowManager {
         'The previous step did not provide a valid handoff. Explain the issue and output a handoff JSON.',
         '',
         '# Handoff requirement',
-        HANDOFF_SCHEMA_TEXT
+        HANDOFF_HINT
       ].join('\n')
       return this.withMemoryContext(agent, run.projectPath, mainPrompt)
     }
@@ -494,7 +484,7 @@ export class WorkflowManager {
       previous.nextStepGuidance ? `\n# Next-step guidance\n${previous.nextStepGuidance}` : '',
       '',
       '# Handoff requirement',
-      HANDOFF_SCHEMA_TEXT
+      HANDOFF_HINT
     ].join('\n')
     return this.withMemoryContext(agent, run.projectPath, mainPrompt)
   }

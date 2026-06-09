@@ -82,6 +82,7 @@ export class RunManager {
       await this.pump(id, retryAdapter, retryConfig, abort, onEvent)
     } finally {
       this.runs.delete(id)
+      if (!abort.signal.aborted) abort.abort()
     }
   }
 

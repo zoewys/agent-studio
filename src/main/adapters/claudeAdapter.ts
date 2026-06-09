@@ -45,7 +45,10 @@ export class ClaudeAdapter implements CliAdapter {
       { cmd, args, cwd: input.cwd, abortSignal: input.abortSignal },
       {
         onStdoutLine: (line) => {
-          for (const ev of parseClaudeLine(line)) queue.push(ev)
+          for (const ev of parseClaudeLine(line)) {
+            if (ev.kind === 'turn-done') handle.endStdin()
+            queue.push(ev)
+          }
         },
         onStderr: (text) => queue.push({ kind: 'stderr', text }),
         onSpawnError: (err) => {

@@ -20,7 +20,6 @@ const args = buildCodexExecArgs(
   {
     model: 'gpt-5.5',
     addDirs: ['/tmp/agent-studio-extra'],
-    resumeFrom: { sessionId: 'thread-123', vendor: 'codex' },
     codexReasoningEffort: 'high',
     codexServiceTier: 'priority',
     outputSchemaPath: '/tmp/agent-studio-schema.json'
@@ -41,8 +40,6 @@ assert.deepEqual(args, [
   '--output-schema',
   '/tmp/agent-studio-schema.json',
   '--json',
-  '--resume',
-  'thread-123',
   '--dangerously-bypass-approvals-and-sandbox',
   '--skip-git-repo-check',
   'hello codex'
