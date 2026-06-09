@@ -1844,16 +1844,24 @@ button.icon-only {
 .workflow-detail-body {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.workflow-detail-body-with-handoff {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+}
+
+.workflow-detail-body-handoff-collapsed {
+  grid-template-columns: minmax(0, 1fr) 44px;
 }
 
 .workflow-detail-body .transcript {
   flex: 1;
-  height: 100%;
   padding: 0 16px 0;
   gap: 0;
   font-family: 'SF Mono', Menlo, monospace;
-  overflow-y: auto;
 }
 
 .workflow-run-step-summary {
@@ -1910,25 +1918,21 @@ button.icon-only {
 .handoff-dock {
   min-width: 0;
   min-height: 0;
-  height: 100%;
-  overflow-y: auto;
   border-left: 1px solid var(--border);
   background: var(--bg-panel);
 }
 
-.handoff-expand-bar {
-  display: flex;
-  justify-content: flex-end;
-  padding: 4px 12px;
-  border-top: 1px solid var(--border);
+.handoff-resize-handle {
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s;
+  flex-shrink: 0;
 }
 
-.handoff-expand-bar button {
-  font-size: 12px;
-  padding: 4px 10px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.handoff-resize-handle:hover {
+  background: var(--accent);
+  opacity: 0.5;
 }
 
 .handoff-dock-collapsed {
@@ -2968,29 +2972,4 @@ button.icon-only {
   height: 20px;
   color: var(--text-dim);
   cursor: default;
-}
-
-/* ── Vaul Drawer Overlay ───────────────────────────────────────────────────── */
-
-.drawer-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 4;
-}
-
-/* ── react-resizable-panels ────────────────────────────────────────────────── */
-
-.panel-resize-handle {
-  width: 6px;
-  cursor: col-resize;
-  background: transparent;
-  transition: background 0.15s;
-  flex-shrink: 0;
-}
-
-.panel-resize-handle:hover,
-.panel-resize-handle[data-resize-handle-active] {
-  background: var(--accent);
-  opacity: 0.5;
 }

@@ -21,9 +21,7 @@
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.3.0",
-    "electron-updater": "^6.1.7",
-    "react-resizable-panels": "^4.11.2",
-    "vaul": "^1.1.2"
+    "electron-updater": "^6.1.7"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

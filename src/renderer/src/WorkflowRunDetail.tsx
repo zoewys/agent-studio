@@ -9,9 +9,8 @@
  *  - 底部 Composer（向运行中的 step 插话，或对已完成的 step 继续对话）
  */
 
-import { useState, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AgentDefinition, WorkflowRun } from '@shared/types'
-import { Panel, Group as PanelGroup, Separator as PanelResizeHandle, type PanelImperativeHandle } from 'react-resizable-panels'
 import { CheckCircle, ChevronLeft } from './Icons'
 import { HandoffPanel } from './HandoffPanel'
 import { TranscriptViewer } from './TranscriptViewer'
@@ -61,16 +60,37 @@ export function WorkflowRunDetail({
   onComposerSend
 }: WorkflowRunDetailProps): JSX.Element {
   const [handoffOpen, setHandoffOpen] = useState(true)
-  const handoffPanelRef = useRef<PanelImperativeHandle>(null)
+  const [handoffWidth, setHandoffWidth] = useState(340)
+  const resizing = useRef(false)
+  const bodyRef = useRef<HTMLDivElement>(null)
 
-  const collapseHandoff = () => {
-    handoffPanelRef.current?.collapse()
-    setHandoffOpen(false)
-  }
-  const expandHandoff = () => {
-    handoffPanelRef.current?.expand()
-    setHandoffOpen(true)
-  }
+  const onResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    resizing.current = true
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }, [])
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!resizing.current || !bodyRef.current) return
+      const rect = bodyRef.current.getBoundingClientRect()
+      const w = rect.right - e.clientX
+      setHandoffWidth(Math.max(240, Math.min(600, w)))
+    }
+    const onUp = () => {
+      if (!resizing.current) return
+      resizing.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [])
 
   if (!run) {
     return (
@@ -142,37 +162,40 @@ export function WorkflowRunDetail({
       )}
 
       {/* ── body: transcript | resize handle | handoff ── */}
-      <PanelGroup orientation="horizontal" className="workflow-detail-body">
-        <Panel minSize={30}>
-          <TranscriptViewer events={selectedExecution?.events ?? []} />
-        </Panel>
+      <div
+        ref={bodyRef}
+        className={[
+          'workflow-detail-body',
+          handoff ? 'workflow-detail-body-with-handoff' : '',
+          handoff && !handoffOpen ? 'workflow-detail-body-handoff-collapsed' : ''
+        ].filter(Boolean).join(' ')}
+        style={handoff && handoffOpen ? { gridTemplateColumns: `minmax(0, 1fr) 6px ${handoffWidth}px` } : undefined}
+      >
+        <TranscriptViewer events={selectedExecution?.events ?? []} />
 
-        {handoff && (
+        {handoff && handoffOpen && (
           <>
-            <PanelResizeHandle className="panel-resize-handle" />
-            <Panel
-              panelRef={handoffPanelRef}
-              defaultSize={35}
-              minSize={15}
-              maxSize={50}
-              collapsible
-              collapsedSize={0}
-            >
-              <aside className="handoff-dock" aria-label="结构化交接物">
-                <HandoffPanel handoff={handoff} onCollapse={collapseHandoff} />
-              </aside>
-            </Panel>
+            <div className="handoff-resize-handle" onMouseDown={onResizeStart} />
+            <aside className="handoff-dock" aria-label="结构化交接物">
+              <HandoffPanel handoff={handoff} onCollapse={() => setHandoffOpen(false)} />
+            </aside>
           </>
         )}
-      </PanelGroup>
 
-      {handoff && !handoffOpen && (
-        <div className="handoff-expand-bar">
-          <button type="button" onClick={expandHandoff}>
-            <ChevronLeft size={14} /> 展开交接物
-          </button>
-        </div>
-      )}
+        {handoff && !handoffOpen && (
+          <aside className="handoff-dock-collapsed" aria-label="已收起的交接物面板">
+            <button
+              type="button"
+              className="handoff-toggle-collapsed"
+              title="展开交接物"
+              aria-label="展开交接物"
+              onClick={() => setHandoffOpen(true)}
+            >
+              <span className="handoff-toggle-label">交接物</span>
+            </button>
+          </aside>
+        )}
+      </div>
 
       <div className="workflow-cli-composer">
         <div className="workflow-cli-prompt">›</div>

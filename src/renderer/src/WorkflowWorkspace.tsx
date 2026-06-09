@@ -11,7 +11,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { AgentDefinition, WorkflowRun } from '@shared/types'
-import { Drawer } from 'vaul'
 import { WorkflowRunsList } from './WorkflowRunsList'
 import { WorkflowRunDetail } from './WorkflowRunDetail'
 
@@ -145,23 +144,18 @@ export function WorkflowWorkspace({
         }}
         onComposerSend={sendWorkflowInput}
       />
-      <Drawer.Root direction="right" open={newRunDrawerOpen} onOpenChange={setNewRunDrawerOpen}>
-        <Drawer.Portal>
-          <Drawer.Overlay className="drawer-overlay" />
-          <Drawer.Content className="workflow-new-run-drawer" aria-describedby={undefined}>
-            <NewWorkflowRunDrawer
-              agents={agents}
-              templates={workflows.templates}
-              onStart={workflows.start}
-              onInspectGitSafety={workflows.inspectGitSafety}
-              runningRunCount={workflows.runs.filter((run) => run.status === 'running').length}
-              newRunDefaults={newRunDefaults}
-              uiReviewEnabled={uiReviewEnabled}
-              onClose={() => setNewRunDrawerOpen(false)}
-            />
-          </Drawer.Content>
-        </Drawer.Portal>
-      </Drawer.Root>
+      {newRunDrawerOpen && (
+        <NewWorkflowRunDrawer
+          agents={agents}
+          templates={workflows.templates}
+          onStart={workflows.start}
+          onInspectGitSafety={workflows.inspectGitSafety}
+          runningRunCount={workflows.runs.filter((run) => run.status === 'running').length}
+          newRunDefaults={newRunDefaults}
+          uiReviewEnabled={uiReviewEnabled}
+          onClose={() => setNewRunDrawerOpen(false)}
+        />
+      )}
       {uiReviewEnabled && (
         <UiReviewMockNav active={newRunDrawerOpen ? 'new-run' : 'workflow'} />
       )}
