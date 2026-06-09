@@ -258,6 +258,75 @@ export interface WorkflowRunGitSafety {
   message?: string
 }
 
+// ── Agent memory ───────────────────────────────────────────────────────────
+
+export type MemoryScope = 'global' | 'project'
+
+export type MemoryCategory = 'method' | 'knowledge' | 'preference' | 'avoidance'
+
+export const MEMORY_CATEGORIES: MemoryCategory[] = [
+  'method',
+  'knowledge',
+  'preference',
+  'avoidance'
+]
+
+export interface MemoryEntry {
+  id: string
+  agentId: string
+  scope: MemoryScope
+  projectHash?: string
+  projectPath?: string
+  category: MemoryCategory
+  content: string
+  evidence: string
+  strength: number
+  createdAt: number
+  lastReinforcedAt: number
+  reinforceCount: number
+}
+
+export interface MemorySignal {
+  type: 'positive' | 'negative' | 'format-error' | 'completion'
+  source: 'user-confirmed' | 'user-rerun' | 'handoff-failed' | 'workflow-done'
+  runId: string
+  workflowRunId: string
+  stepIndex: number
+  agentId: string
+  projectPath: string
+  timestamp: number
+  transcript: string
+  handoff?: HandoffArtifact
+  error?: string
+  userAction?: string
+}
+
+export interface ReflectionResult {
+  category: MemoryCategory
+  scope: MemoryScope
+  content: string
+  confidence: number
+}
+
+export interface AgentMemoryMeta {
+  agentId: string
+  totalRuns: number
+  totalMemories: number
+  lastReflectionAt?: number
+}
+
+export interface ReflectionEngineConfig {
+  vendor: AgentVendor
+  model: string
+  enabled: boolean
+}
+
+export const DEFAULT_REFLECTION_CONFIG: ReflectionEngineConfig = {
+  vendor: 'claude',
+  model: 'claude-haiku-4-5-20251001',
+  enabled: true
+}
+
 // ── IPC channel names + payloads ─────────────────────────────────────────────
 // Single source of truth so main/preload/renderer never drift on strings.
 
@@ -309,7 +378,17 @@ export const IPC = {
   /** renderer → main: send input to the active workflow step. */
   workflowPush: 'workflow:push',
   /** main → renderer: workflow run updates and nested agent events. */
-  workflowEvent: 'workflow:event'
+  workflowEvent: 'workflow:event',
+  /** renderer → main: list memories for one agent. */
+  memoryList: 'memory:list',
+  /** renderer → main: delete one memory. */
+  memoryDelete: 'memory:delete',
+  /** renderer → main: get memory stats for one agent. */
+  memoryMeta: 'memory:meta',
+  /** renderer → main: get reflection engine config. */
+  reflectionConfigGet: 'reflection:config:get',
+  /** renderer → main: save reflection engine config. */
+  reflectionConfigSave: 'reflection:config:save'
 } as const
 
 export interface RunStartResult {
