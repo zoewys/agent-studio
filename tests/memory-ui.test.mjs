@@ -36,6 +36,9 @@ test('agent memory panel supports global and project tabs, strength, and deletio
 })
 
 test('agent memory styles keep the panel compact inside the editor', () => {
+  assert.match(styles, /\.agent-editor::after/)
+  assert.match(styles, /scroll-padding-bottom: 112px/)
+  assert.match(styles, /flex: 0 0 112px/)
   assert.match(styles, /\.agent-memory-panel/)
   assert.match(styles, /\.agent-memory-tabs/)
   assert.match(styles, /\.agent-memory-tab-active/)

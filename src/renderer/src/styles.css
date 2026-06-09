@@ -2876,6 +2876,13 @@ button.icon-only {
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
+  scroll-padding-bottom: 112px;
+}
+
+.agent-editor::after {
+  content: '';
+  display: block;
+  flex: 0 0 112px;
 }
 
 .reflection-settings-panel {
