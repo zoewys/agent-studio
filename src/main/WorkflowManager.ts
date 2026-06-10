@@ -270,7 +270,8 @@ export class WorkflowManager {
       '# Handoff requirement',
       HANDOFF_HINT
     ].join('\n')
-    const { prompt, injectedMemoryIds } = this.withMemoryContext(agent, run.projectPath, mainPrompt)
+    const prompt = mainPrompt
+    const injectedMemoryIds: string[] = []
     const execution: WorkflowStepExecution = {
       id: randomUUID(),
       stepIndex,
@@ -534,31 +535,39 @@ export class WorkflowManager {
     }
 
     const previous = latestCompletedHandoff(run, stepIndex - 1)
-    if (!previous) {
-      mainPrompt = [
-        '# User request',
-        run.initialPrompt,
-        '',
-        '# Missing upstream handoff',
-        'The previous step did not provide a valid handoff. Explain the issue and output a handoff JSON.',
-        '',
-        '# Handoff requirement',
-        HANDOFF_HINT
-      ].join('\n')
-      return this.withMemoryContext(agent, run.projectPath, mainPrompt)
+    const sections: string[] = [
+      '# User request',
+      run.initialPrompt
+    ]
+
+    const progress = buildWorkflowProgress(run, stepIndex)
+    if (progress) {
+      sections.push('', progress)
     }
 
-    mainPrompt = [
-      '# Upstream handoff',
-      previous.summary,
-      '',
-      '# Artifacts',
-      previous.artifacts.map((artifact) => `- ${artifact.path}: ${artifact.description}`).join('\n') || '(none)',
-      previous.nextStepGuidance ? `\n# Next-step guidance\n${previous.nextStepGuidance}` : '',
-      '',
-      '# Handoff requirement',
-      HANDOFF_HINT
-    ].join('\n')
+    if (!previous) {
+      sections.push(
+        '',
+        '# Missing upstream handoff',
+        'The previous step did not provide a valid handoff. Explain the issue and output a handoff JSON.'
+      )
+    } else {
+      const upstreamLabel = run.steps[stepIndex - 1]?.displayName ?? `Step ${stepIndex}`
+      sections.push(
+        '',
+        `# Upstream handoff (from ${upstreamLabel})`,
+        previous.summary,
+        '',
+        '# Artifacts',
+        previous.artifacts.map((artifact) => `- ${artifact.path}: ${artifact.description}`).join('\n') || '(none)'
+      )
+      if (previous.nextStepGuidance) {
+        sections.push('', '# Next-step guidance', previous.nextStepGuidance)
+      }
+    }
+
+    sections.push('', '# Handoff requirement', HANDOFF_HINT)
+    mainPrompt = sections.join('\n')
     return this.withMemoryContext(agent, run.projectPath, mainPrompt)
   }
 
@@ -688,13 +697,39 @@ function markDownstreamStale(run: WorkflowRun, stepIndex: number): void {
   }
 }
 
-function parseHandoff(events: AgentEvent[]): HandoffArtifact | null {
-  const text = [...events]
-    .reverse()
-    .find((event): event is Extract<AgentEvent, { kind: 'message' }> => event.kind === 'message')
-    ?.text
-  if (!text) return null
+function buildWorkflowProgress(run: WorkflowRun, currentStepIndex: number): string | null {
+  if (currentStepIndex <= 1) return null
+  const lines: string[] = []
+  for (let i = 0; i < currentStepIndex - 1; i++) {
+    const step = run.steps[i]
+    const label = step.displayName ?? `Step ${i + 1}`
+    const handoff = latestCompletedHandoff(run, i)
+    if (handoff) {
+      const summary = handoff.summary.length > 150
+        ? handoff.summary.slice(0, 150) + '...'
+        : handoff.summary
+      lines.push(`- Step ${i + 1} (${label}): ${summary}`)
+    } else {
+      lines.push(`- Step ${i + 1} (${label}): (no handoff available)`)
+    }
+  }
+  if (lines.length === 0) return null
+  return ['# Workflow progress', ...lines].join('\n')
+}
 
+function parseHandoff(events: AgentEvent[]): HandoffArtifact | null {
+  const messages = events
+    .filter((e): e is Extract<AgentEvent, { kind: 'message' }> => e.kind === 'message')
+    .reverse()
+
+  for (const msg of messages) {
+    const result = tryParseHandoffFromText(msg.text)
+    if (result) return result
+  }
+  return null
+}
+
+function tryParseHandoffFromText(text: string): HandoffArtifact | null {
   const candidates = [text, ...Array.from(text.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi), (match) => match[1])]
   for (const candidate of candidates) {
     const json = extractJson(candidate)
