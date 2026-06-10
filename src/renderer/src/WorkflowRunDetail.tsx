@@ -11,6 +11,7 @@ import type { AgentDefinition, HandoffArtifactItem, WorkflowRun } from '@shared/
 import { CheckCircle } from './Icons'
 import { TranscriptViewer } from './TranscriptViewer'
 import { MarkdownPreview } from './MarkdownPreview'
+import { MemoryReferences } from './MemoryReferences'
 import { workflowRunStatusLabel } from './workflowLabels'
 
 type WorkflowRunUiMeta = WorkflowRun & {
@@ -263,6 +264,12 @@ export function WorkflowRunDetail({
               ))}
             </div>
           )}
+
+          <MemoryReferences
+            agentId={selectedExecution?.agentId}
+            projectPath={run.projectPath}
+            memoryIds={selectedExecution?.injectedMemoryIds}
+          />
         </div>
 
         {/* composer */}
@@ -384,4 +391,3 @@ function formatTokens(n: number): string {
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k`
   return String(n)
 }
-

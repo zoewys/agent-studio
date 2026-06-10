@@ -104,6 +104,8 @@ export interface RunConfig {
   vendor: AgentVendor
   prompt: string
   cwd: string
+  /** Optional saved agent id. Enables app-owned memory injection for single runs. */
+  agentId?: string
   model?: string
   /** Codex-only: passed as `-c model_reasoning_effort="<value>"`. */
   codexReasoningEffort?: CodexReasoningEffort
@@ -413,6 +415,7 @@ export const IPC = {
 
 export interface RunStartResult {
   runId: string
+  injectedMemoryIds?: string[]
 }
 
 /** Wire envelope for an event delivered to the renderer. */

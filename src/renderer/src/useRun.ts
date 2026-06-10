@@ -14,9 +14,20 @@ export interface RunState {
   events: AgentEvent[]
   running: boolean
   sessionId: string | null
+  agentId: string | null
+  projectPath: string | null
+  injectedMemoryIds: string[]
 }
 
-const INITIAL: RunState = { runId: null, events: [], running: false, sessionId: null }
+const INITIAL: RunState = {
+  runId: null,
+  events: [],
+  running: false,
+  sessionId: null,
+  agentId: null,
+  projectPath: null,
+  injectedMemoryIds: []
+}
 
 /**
  * Owns the lifecycle of a single agent run: subscribes to main-process events,
@@ -50,10 +61,19 @@ export function useRun(): {
   }, [])
 
   const start = useCallback(async (config: RunConfig) => {
-    setState({ ...INITIAL, running: true })
-    const { runId } = await window.api.startRun(config)
+    setState({
+      ...INITIAL,
+      running: true,
+      agentId: config.agentId ?? null,
+      projectPath: config.cwd
+    })
+    const { runId, injectedMemoryIds } = await window.api.startRun(config)
     runIdRef.current = runId
-    setState((prev) => ({ ...prev, runId }))
+    setState((prev) => ({
+      ...prev,
+      runId,
+      injectedMemoryIds: mergeMemoryIds(prev.injectedMemoryIds, injectedMemoryIds)
+    }))
   }, [])
 
   /**
@@ -67,9 +87,15 @@ export function useRun(): {
       running: true,
       events: [...prev.events, { kind: 'system', text: `↳ ${displayText ?? config.prompt}` }]
     }))
-    const { runId } = await window.api.startRun(config)
+    const { runId, injectedMemoryIds } = await window.api.startRun(config)
     runIdRef.current = runId
-    setState((prev) => ({ ...prev, runId }))
+    setState((prev) => ({
+      ...prev,
+      runId,
+      agentId: config.agentId ?? prev.agentId,
+      projectPath: config.cwd || prev.projectPath,
+      injectedMemoryIds: mergeMemoryIds(prev.injectedMemoryIds, injectedMemoryIds)
+    }))
   }, [])
 
   const push = useCallback(async (text: string) => {
@@ -96,4 +122,15 @@ export function useRun(): {
   }, [])
 
   return { state, start, continueSession, push, abort, reset }
+}
+
+function mergeMemoryIds(existing: string[], next: string[] = []): string[] {
+  const seen = new Set(existing)
+  const merged = [...existing]
+  for (const id of next) {
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    merged.push(id)
+  }
+  return merged
 }

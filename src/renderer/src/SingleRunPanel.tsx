@@ -24,6 +24,7 @@ import { Select } from './Select'
 import { CodexOptions } from './CodexOptions'
 import { ModelSelect } from './ModelSelect'
 import { TranscriptViewer } from './TranscriptViewer'
+import { MemoryReferences } from './MemoryReferences'
 import { readLastProjectPath, rememberProjectPath } from './projectPathMemory'
 import {
   FolderOpen,
@@ -102,6 +103,7 @@ export function SingleRunPanel({
       vendor,
       prompt: prompt.trim(),
       cwd: cwd.trim(),
+      agentId: selectedAgent?.id,
       model: model.trim() || undefined,
       codexReasoningEffort: vendor === 'codex' ? codexReasoningEffort : undefined,
       codexServiceTier: vendor === 'codex' ? codexServiceTier : undefined,
@@ -133,6 +135,7 @@ export function SingleRunPanel({
         vendor,
         prompt: resumeFrom ? text : buildSingleRunFollowUpPrompt(prompt, state.events, text),
         cwd: cwd.trim(),
+        agentId: selectedAgent?.id,
         model: model.trim() || undefined,
         resumeFrom,
         appendSystemPrompt: selectedAgent?.systemPrompt,
@@ -289,6 +292,11 @@ export function SingleRunPanel({
 
       <main className="panel panel-runtime">
         <TranscriptViewer events={state.events} />
+        <MemoryReferences
+          agentId={state.agentId}
+          projectPath={state.projectPath}
+          memoryIds={state.injectedMemoryIds}
+        />
 
         {state.events.length > 0 && (
           <div className="interject">

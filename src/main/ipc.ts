@@ -128,17 +128,18 @@ export function registerIpc(getWindow: () => BrowserWindow | null): AppManagers 
   void signalCollector.drainRawSignals()
 
   ipcMain.handle(IPC.runStart, (_e, config: RunConfig): RunStartResult => {
+    const { launchConfig, injectedMemoryIds } = withSingleRunMemoryContext(config, memoryInjector)
     // The renderer can't know the on-disk transcript path; fill it here so the
     // resume-fallback in RunManager can find prior context if --resume fails.
-    if (config.resumeFrom && !config.resumeFrom.transcriptPath) {
-      config.resumeFrom.transcriptPath = transcriptStore.getTranscriptPath(
-        config.resumeFrom.sessionId
+    if (launchConfig.resumeFrom && !launchConfig.resumeFrom.transcriptPath) {
+      launchConfig.resumeFrom.transcriptPath = transcriptStore.getTranscriptPath(
+        launchConfig.resumeFrom.sessionId
       )
     }
-    const runId = runManager.start(config, emit)
+    const runId = runManager.start(launchConfig, emit)
     // The first user turn never appears in the event stream — record it.
-    transcriptStore.recordUserInput(runId, config.prompt)
-    return { runId }
+    transcriptStore.recordUserInput(runId, launchConfig.prompt)
+    return { runId, injectedMemoryIds }
   })
 
   ipcMain.handle(IPC.runPush, async (_e, runId: string, text: string): Promise<void> => {
@@ -256,5 +257,23 @@ export function registerIpc(getWindow: () => BrowserWindow | null): AppManagers 
       workflowManager.abortAll()
       runManager.abortAll()
     }
+  }
+}
+
+function withSingleRunMemoryContext(
+  config: RunConfig,
+  memoryInjector: MemoryInjector
+): { launchConfig: RunConfig; injectedMemoryIds: string[] } {
+  if (!config.agentId) return { launchConfig: config, injectedMemoryIds: [] }
+
+  const { text, injectedMemoryIds } = memoryInjector.build(config.agentId, config.cwd)
+  if (!text) return { launchConfig: config, injectedMemoryIds }
+
+  return {
+    launchConfig: {
+      ...config,
+      prompt: `${text}\n${config.prompt}`
+    },
+    injectedMemoryIds
   }
 }
