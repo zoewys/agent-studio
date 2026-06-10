@@ -34,3 +34,6 @@ pnpm-debug.log*
 # Local analysis artifacts
 .analysis-shots/
 .playwright-mcp/
+
+# Local git worktrees
+.worktrees/
