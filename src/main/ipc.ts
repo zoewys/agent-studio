@@ -268,6 +268,10 @@ export function registerIpc(
     workflowManager.confirmStep(runId, stepIndex)
   )
 
+  ipcMain.handle(IPC.workflowFinishInteractive, (_e, runId: string, stepIndex: number) =>
+    workflowManager.finishInteractiveStep(runId, stepIndex)
+  )
+
   ipcMain.handle(IPC.workflowRerunStep, (_e, runId: string, stepIndex: number) =>
     workflowManager.rerunStep(runId, stepIndex)
   )

@@ -79,6 +79,13 @@ export function useWorkflows() {
     setSelectedRunId(run.id)
   }, [selectedRun])
 
+  const finishInteractiveStep = useCallback(async (stepIndex: number) => {
+    if (!selectedRun) return
+    const run = await window.api.finishInteractiveStep(selectedRun.id, stepIndex)
+    setRuns((prev) => applyRunUpdate(prev, run))
+    setSelectedRunId(run.id)
+  }, [selectedRun])
+
   const rerunStep = useCallback(
     async (stepIndex: number) => {
       if (!selectedRun) return
@@ -170,6 +177,7 @@ export function useWorkflows() {
     remove,
     start,
     confirmStep,
+    finishInteractiveStep,
     rerunStep,
     abort,
     skipStep,

@@ -64,6 +64,16 @@ const HANDOFF_HINT = [
   'The routeSuggestion field is optional — only include it if you believe the workflow should deviate from the default next step.'
 ].join('\n')
 
+const INTERACTIVE_HINT = [
+  'This step runs in interactive mode — you are communicating directly with the user.',
+  '',
+  'Behavior rules:',
+  '- Ask the user questions to clarify requirements. Output natural language only (do NOT output the handoff JSON yet).',
+  '- Keep each round focused: ask 2-3 key questions, not a long list.',
+  '- When you are confident that the requirements are fully clear, output the handoff JSON to conclude this step.',
+  '- The handoff JSON signals "conversation over" — do not output it until you are ready to hand off.'
+].join('\n')
+
 const HANDOFF_OUTPUT_SCHEMA: JSONSchema = {
   type: 'object',
   additionalProperties: false,
@@ -165,7 +175,7 @@ export class WorkflowManager {
 
   deleteRun(runId: string): void {
     const run = this.getRun(runId)
-    if (run.status === 'running') {
+    if (run.status === 'running' || run.status === 'awaiting-input') {
       throw new Error('Stop a running workflow before deleting it')
     }
     const liveSteps = this.liveByRunId.get(runId) ?? []
@@ -284,7 +294,7 @@ export class WorkflowManager {
     run.finishedAt = Date.now()
     for (const step of run.steps) {
       const execution = latestExecution(step)
-      if (execution?.status === 'running') {
+      if (execution?.status === 'running' || execution?.status === 'awaiting-input') {
         execution.status = 'error'
         execution.finishedAt = Date.now()
         execution.error = 'Workflow aborted'
@@ -309,13 +319,19 @@ export class WorkflowManager {
     const liveSteps = this.liveByRunId.get(run.id) ?? []
     const live = liveSteps.find((ls) => ls.stepIndex === stepIndex)
     if (live) {
-      const execution = run.steps[live.stepIndex]?.executions.find(
+      const step = run.steps[live.stepIndex]
+      const execution = step?.executions.find(
         (item) => item.id === live.executionId
       )
       if (!execution) throw new Error('Live workflow execution not found')
+      if (step.status === 'awaiting-input') {
+        execution.status = 'running'
+        step.status = 'running'
+        run.status = 'running'
+        run.finishedAt = undefined
+      }
       execution.events.push({ kind: 'system', text: `↳ ${clean}` })
-      this.workflowStore.saveRun(run)
-      this.emitUpdate(run)
+      this.persistAndEmit(run)
       this.transcripts.recordUserInput(live.childRunId, clean)
       await this.runManager.push(live.childRunId, clean)
       return run
@@ -401,6 +417,80 @@ export class WorkflowManager {
     return run
   }
 
+  finishInteractiveStep(runId: string, stepIndex: number): WorkflowRun {
+    const run = this.getRun(runId)
+    if (stepIndex < 0 || stepIndex >= run.steps.length) throw new Error('Invalid step index')
+    const step = run.steps[stepIndex]
+    const execution = latestExecution(step)
+    if (!execution || step.status !== 'awaiting-input') {
+      throw new Error('Selected workflow step is not awaiting input')
+    }
+
+    const fallbackHandoff: HandoffArtifact = {
+      summary: this.extractConversationSummary(execution.events),
+      artifacts: [],
+      nextStepGuidance: ''
+    }
+
+    execution.handoff = fallbackHandoff
+    execution.status = 'done'
+    execution.finishedAt = Date.now()
+    step.status = 'done'
+    this.completeLiveStep(run.id, execution.id, true)
+    this.aggregateStepCost(run, execution)
+    this.collectMemorySignal('positive', 'user-confirmed', run, stepIndex, execution)
+
+    if (step.parallelGroupId) {
+      if (step.worktreePath) {
+        try { removeWorktree(run.projectPath, step.worktreePath) } catch { /* best-effort */ }
+        step.worktreePath = undefined
+      }
+      if (step.parallelGroupJoin && !this.isParallelGroupComplete(run, step.parallelGroupId)) {
+        run.status = this.hasLiveSteps(run.id) ? 'running' : 'awaiting-confirm'
+        this.persistAndEmit(run)
+        return run
+      }
+      if (step.parallelGroupJoin) {
+        this.cleanupGroupWorktrees(run, step.parallelGroupId)
+        const nextIndex = this.getNextNodeAfterGroup(run, step.parallelGroupId)
+        if (nextIndex === null) {
+          run.status = 'completed'
+          run.finishedAt = Date.now()
+          this.persistAndEmit(run)
+          return run
+        }
+        run.currentStepIndex = nextIndex
+        run.status = 'running'
+        this.persistAndEmit(run)
+        this.startNextNode(run.id, nextIndex)
+        return run
+      }
+      if (run.steps.every((s) => s.status === 'done' || s.status === 'error' || s.status === 'stale')) {
+        run.status = run.steps.some((s) => s.status === 'error') ? 'error' : 'completed'
+        run.finishedAt = Date.now()
+      } else {
+        run.status = this.hasLiveSteps(run.id) ? 'running' : 'awaiting-confirm'
+      }
+      this.persistAndEmit(run)
+      return run
+    }
+
+    const nextIndex = stepIndex + 1
+    if (nextIndex >= run.steps.length) {
+      run.status = 'completed'
+      run.finishedAt = Date.now()
+      this.collectMemorySignal('completion', 'workflow-done', run, stepIndex, execution, { handoff: fallbackHandoff })
+      this.persistAndEmit(run)
+      return run
+    }
+
+    run.currentStepIndex = nextIndex
+    run.status = 'running'
+    this.persistAndEmit(run)
+    this.startNextNode(run.id, nextIndex)
+    return run
+  }
+
   abortAll(): void {
     for (const liveSteps of this.liveByRunId.values()) {
       for (const live of liveSteps) this.runManager.abort(live.childRunId)
@@ -411,6 +501,7 @@ export class WorkflowManager {
   private startStep(runId: string, stepIndex: number): void {
     const run = this.getRun(runId)
     const step = run.steps[stepIndex]
+    const templateStep = this.getTemplateStepForRunStep(run, stepIndex)
     const agent = this.agentStore.list().find((candidate) => candidate.id === step.agentId)
     if (!agent) {
       this.failStep(run, stepIndex, `Agent not found: ${step.agentId}`)
@@ -457,6 +548,7 @@ export class WorkflowManager {
       codexServiceTier: agent.codexServiceTier?.trim() || undefined,
       appendSystemPrompt: agent.systemPrompt,
       outputSchema: HANDOFF_OUTPUT_SCHEMA,
+      keepStdinOpenAfterTurnDone: templateStep?.interactive === true,
       permissionMode: agent.permissionMode
     }
 
@@ -484,6 +576,13 @@ export class WorkflowManager {
     if (!run) return
     const execution = run.steps[stepIndex]?.executions.find((item) => item.id === executionId)
     if (!execution) return
+    if (
+      event.kind === 'turn-done' &&
+      execution.status !== 'running' &&
+      execution.status !== 'awaiting-input'
+    ) {
+      return
+    }
 
     execution.events.push(event)
     if (event.kind === 'session-started') execution.sessionId = event.sessionId
@@ -499,7 +598,6 @@ export class WorkflowManager {
     }
 
     if (event.kind === 'turn-done') {
-      this.removeLiveStep(run.id, executionId)
       if (event.reason === 'complete') {
         this.finishStepWithHandoff(run, stepIndex, execution)
       } else {
@@ -516,10 +614,14 @@ export class WorkflowManager {
     stepIndex: number,
     execution: WorkflowStepExecution
   ): void {
+    const templateStep = this.getTemplateStepForRunStep(run, stepIndex)
     const handoff = parseHandoff(execution.events)
-    this.aggregateStepCost(run, execution)
 
     if (!handoff) {
+      if (templateStep?.interactive === true) {
+        this.enterAwaitingInput(run, stepIndex)
+        return
+      }
       this.collectMemorySignal(
         'format-error',
         'handoff-failed',
@@ -531,8 +633,11 @@ export class WorkflowManager {
       this.finishStepWithError(run, stepIndex, execution, 'Could not parse handoff JSON')
       return
     }
+    this.completeLiveStep(run.id, execution.id, templateStep?.interactive === true)
+    this.aggregateStepCost(run, execution)
     execution.handoff = handoff
-    execution.status = run.autoConfirm ? 'done' : 'awaiting-confirm'
+    const shouldAutoAdvance = run.autoConfirm || templateStep?.interactive === true
+    execution.status = shouldAutoAdvance ? 'done' : 'awaiting-confirm'
     execution.finishedAt = Date.now()
     run.steps[stepIndex].status = execution.status
 
@@ -548,7 +653,7 @@ export class WorkflowManager {
 
     // Parallel group handling
     if (step.parallelGroupId) {
-      if (run.autoConfirm) {
+      if (shouldAutoAdvance) {
         this.collectMemorySignal('positive', 'user-confirmed', run, stepIndex, execution)
         step.status = 'done'
         execution.status = 'done'
@@ -567,7 +672,7 @@ export class WorkflowManager {
           this.persistAndEmit(run)
           return
         }
-        if (run.autoConfirm) {
+        if (shouldAutoAdvance) {
           run.currentStepIndex = nextIndex
           run.status = 'running'
           this.persistAndEmit(run)
@@ -593,7 +698,7 @@ export class WorkflowManager {
     }
 
     // Sequential step handling
-    if (run.autoConfirm) {
+    if (shouldAutoAdvance) {
       this.collectMemorySignal('positive', 'user-confirmed', run, stepIndex, execution)
       const nextIndex = run.currentStepIndex + 1
       if (nextIndex >= run.steps.length) {
@@ -619,23 +724,62 @@ export class WorkflowManager {
     this.persistAndEmit(run)
   }
 
+  private enterAwaitingInput(run: WorkflowRun, stepIndex: number): void {
+    const step = run.steps[stepIndex]
+    const execution = step.executions.at(-1)
+    if (!execution) return
+    execution.status = 'awaiting-input'
+    step.status = 'awaiting-input'
+    run.currentStepIndex = stepIndex
+    run.status = 'awaiting-input'
+    this.persistAndEmit(run)
+  }
+
   private finishStepWithError(
     run: WorkflowRun,
     stepIndex: number,
     execution: WorkflowStepExecution,
     message: string
   ): void {
+    const templateStep = this.getTemplateStepForRunStep(run, stepIndex)
     this.aggregateStepCost(run, execution)
     execution.status = 'error'
     execution.error = message
     execution.finishedAt = Date.now()
     run.steps[stepIndex].status = 'error'
+    this.completeLiveStep(run.id, execution.id, templateStep?.interactive === true)
 
     const trigger = message === 'Could not parse handoff JSON' ? 'handoff-failed' as const : 'error' as const
     const rule = this.evaluateRules(run, stepIndex, trigger)
     if (rule && this.canApplyRule(run, rule)) {
       this.applyRule(run, stepIndex, rule)
       return
+    }
+
+    const strategy = templateStep?.failureStrategy
+    if (strategy && strategy.type !== 'stop') {
+      const retryCount = run.steps[stepIndex].executions.length - 1
+      if (retryCount < (strategy.maxRetries ?? 3)) {
+        run.status = 'running'
+        run.finishedAt = undefined
+        this.persistAndEmit(run)
+        this.startStep(run.id, stepIndex)
+        return
+      }
+      if (
+        strategy.type === 'retry-then-goto' &&
+        strategy.gotoTarget !== undefined &&
+        strategy.gotoTarget >= 0 &&
+        strategy.gotoTarget < run.steps.length
+      ) {
+        markDownstreamStale(run, strategy.gotoTarget)
+        run.currentStepIndex = strategy.gotoTarget
+        run.status = 'running'
+        run.finishedAt = undefined
+        this.persistAndEmit(run)
+        this.startNextNode(run.id, strategy.gotoTarget)
+        return
+      }
     }
 
     const step = run.steps[stepIndex]
@@ -712,15 +856,18 @@ export class WorkflowManager {
     prompt: string
     injectedMemoryIds: string[]
   } {
+    const templateStep = this.getTemplateStepForRunStep(run, stepIndex)
     let mainPrompt: string
     if (stepIndex === 0) {
-      mainPrompt = [
+      const sections = [
         '# User request',
-        run.initialPrompt,
-        '',
-        '# Handoff requirement',
-        HANDOFF_HINT
-      ].join('\n')
+        run.initialPrompt
+      ]
+      if (templateStep?.interactive) {
+        sections.push('', '# Interaction mode', INTERACTIVE_HINT)
+      }
+      sections.push('', '# Handoff requirement', HANDOFF_HINT)
+      mainPrompt = sections.join('\n')
       return this.withMemoryContext(agent, run.projectPath, mainPrompt)
     }
 
@@ -762,6 +909,9 @@ export class WorkflowManager {
       }
     }
 
+    if (templateStep?.interactive) {
+      sections.push('', '# Interaction mode', INTERACTIVE_HINT)
+    }
     sections.push('', '# Handoff requirement', HANDOFF_HINT)
     mainPrompt = sections.join('\n')
     return this.withMemoryContext(agent, run.projectPath, mainPrompt)
@@ -800,6 +950,10 @@ export class WorkflowManager {
       }
     }
 
+    const templateStep = this.getTemplateStepForRunStep(run, stepIndex)
+    if (templateStep?.interactive) {
+      sections.push('', '# Interaction mode', INTERACTIVE_HINT)
+    }
     sections.push('', '# Handoff requirement', HANDOFF_HINT)
     const mainPrompt = sections.join('\n')
     return this.withMemoryContext(agent, run.projectPath, mainPrompt)
@@ -807,19 +961,22 @@ export class WorkflowManager {
 
   private markInterruptedRunsOnStartup(runs: WorkflowRun[]): WorkflowRun[] {
     return runs.map((run) => {
-      if (run.status !== 'running') return run
+      if (run.status !== 'running' && run.status !== 'awaiting-input') return run
 
       const interrupted: WorkflowRun = {
         ...run,
         finishedAt: run.finishedAt ?? Date.now(),
         steps: run.steps.map((step) => {
-          if (step.status !== 'running') return step
+          if (step.status !== 'running' && step.status !== 'awaiting-input') return step
           return {
             ...step,
             status: 'error' as const,
             worktreePath: undefined,
             executions: step.executions.map((execution, executionIndex, list) => {
-              if (executionIndex !== list.length - 1 || execution.status !== 'running') {
+              if (
+                executionIndex !== list.length - 1 ||
+                (execution.status !== 'running' && execution.status !== 'awaiting-input')
+              ) {
                 return execution
               }
               return {
@@ -978,12 +1135,19 @@ export class WorkflowManager {
     this.liveByRunId.set(runId, steps)
   }
 
-  private removeLiveStep(runId: string, executionId: string): void {
+  private removeLiveStep(runId: string, executionId: string): LiveStep | null {
     const steps = this.liveByRunId.get(runId)
-    if (!steps) return
+    if (!steps) return null
+    const removed = steps.find((ls) => ls.executionId === executionId) ?? null
     const filtered = steps.filter((ls) => ls.executionId !== executionId)
     if (filtered.length === 0) this.liveByRunId.delete(runId)
     else this.liveByRunId.set(runId, filtered)
+    return removed
+  }
+
+  private completeLiveStep(runId: string, executionId: string, closeInput: boolean): void {
+    const live = this.removeLiveStep(runId, executionId)
+    if (closeInput && live) this.runManager.closeInput(live.childRunId)
   }
 
   private hasLiveSteps(runId: string): boolean {
@@ -1123,6 +1287,18 @@ export class WorkflowManager {
     })
   }
 
+  private extractConversationSummary(events: AgentEvent[]): string {
+    const lines = events.flatMap((event) => {
+      if (event.kind === 'message') return [`Agent: ${event.text.trim()}`]
+      if (event.kind === 'system' && event.text.startsWith('↳')) {
+        return [`User: ${event.text.slice(1).trim()}`]
+      }
+      return []
+    })
+    const summary = lines.slice(-8).join('\n').trim()
+    return summary || 'Interactive conversation finished without a handoff JSON.'
+  }
+
   private withMemoryContext(
     agent: AgentDefinition,
     projectPath: string,
@@ -1158,6 +1334,7 @@ function markDownstreamStale(run: WorkflowRun, stepIndex: number): void {
   for (let i = stepIndex + 1; i < run.steps.length; i++) {
     if (
       run.steps[i].status === 'done' ||
+      run.steps[i].status === 'awaiting-input' ||
       run.steps[i].status === 'awaiting-confirm' ||
       run.steps[i].status === 'error'
     ) {

@@ -96,7 +96,7 @@ const templates: WorkflowTemplate[] = [
 ]
 
 const topbarChips: UiReviewFixture['topbarChips'] = {
-  workflow: ['3 running', '2 waiting', 'sound per run'],
+  workflow: ['3 running', '1 input', '2 waiting', 'sound per run'],
   templates: ['3 templates', 'node canvas later', 'linear V1'],
   agents: ['9 agents', '2 CLIs', 'templates linked'],
   single: ['single run', 'follow-up', 'transcript'],
@@ -162,6 +162,7 @@ export function useUiReviewFixture(): UiReviewFixture {
         return run
       },
       confirmStep: async () => {},
+      finishInteractiveStep: async () => {},
       rerunStep: async () => {},
       abort: async () => {},
       pushInput: async () => {},
@@ -271,15 +272,15 @@ function createRuns(): WorkflowRun[] {
       template: templates[1],
       runName: 'Agent Studio · Fix Icons',
       projectPath: '/Users/siyuan/work/agent-studio',
-      status: 'awaiting-confirm',
+      status: 'awaiting-input',
       currentStepIndex: 1,
       startedAt: fixedTime(13, 58),
       listMeta: '13:58 · /work/agent-studio · same repo warning',
-      tailLines: ['assistant: icon rail polished', 'handoff ready · waiting for confirm'],
-      stepStatuses: ['done', 'awaiting-confirm'],
+      tailLines: ['assistant: 需要确认图标密度', 'agent awaiting reply'],
+      stepStatuses: ['done', 'awaiting-input'],
       tailEvents: [
-        { kind: 'message', role: 'assistant', text: 'icon rail polished' },
-        { kind: 'system', text: 'handoff queued for confirmation' }
+        { kind: 'message', role: 'assistant', text: '图标 rail 已初步整理。请确认是否保留当前 24px 密度，还是压缩到 20px？' },
+        { kind: 'turn-done', sessionId: 'run-agent-studio-icons-session-2', reason: 'complete' }
       ]
     }),
     createRun({

@@ -115,6 +115,8 @@ export interface RunConfig {
   appendSystemPrompt?: string
   outputSchema?: JSONSchema
   resumeFrom?: ResumeHandle
+  /** Keep resident stdin open after a turn-done event for interactive workflow steps. */
+  keepStdinOpenAfterTurnDone?: boolean
   /** Optional absolute path to the CLI binary; falls back to PATH lookup. */
   cliPath?: string
   /** CLI permission mode. Defaults to bypassPermissions when unset. */
@@ -161,12 +163,26 @@ export interface RouteSuggestion {
   reason?: string
 }
 
+export type FailureStrategyType = 'stop' | 'retry-then-notify' | 'retry-then-goto'
+
+export interface FailureStrategy {
+  type: FailureStrategyType
+  /** Maximum automatic retries before notifying or jumping. Defaults to 3. */
+  maxRetries?: number
+  /** Target step index used by retry-then-goto after retries are exhausted. */
+  gotoTarget?: number
+}
+
 // ── Workflow template ────────────────────────────────────────────────────────
 
 export interface WorkflowTemplateStep {
   agentId: string
   role?: string
   rules?: StepRule[]
+  /** Allows user/agent conversation inside this step. Defaults to false. */
+  interactive?: boolean
+  /** Fallback behavior after StepRule handling. Defaults to stop. */
+  failureStrategy?: FailureStrategy
 }
 
 export interface WorkflowParallelGroup {
@@ -213,6 +229,7 @@ export interface CronPreview {
 export type StepStatus =
   | 'pending'
   | 'running'
+  | 'awaiting-input'
   | 'awaiting-confirm'
   | 'done'
   | 'stale'
@@ -264,6 +281,7 @@ export interface WorkflowRunStep {
 
 export type WorkflowRunStatus =
   | 'running'
+  | 'awaiting-input'
   | 'awaiting-confirm'
   | 'completed'
   | 'error'
@@ -471,6 +489,8 @@ export const IPC = {
   workflowGitSafety: 'workflow:git-safety',
   /** renderer → main: confirm the current awaiting handoff and advance. */
   workflowConfirmStep: 'workflow:confirm-step',
+  /** renderer → main: finish an interactive step without a handoff JSON. */
+  workflowFinishInteractive: 'workflow:finish-interactive',
   /** renderer → main: rerun one step and stale downstream steps. */
   workflowRerunStep: 'workflow:rerun-step',
   /** renderer → main: abort a running workflow. */
