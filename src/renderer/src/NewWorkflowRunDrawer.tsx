@@ -121,7 +121,7 @@ export function NewWorkflowRunDrawer({
     <aside className="workflow-new-run-drawer" aria-label="New Workflow Task">
       <div className="workflow-new-run-header">
         <div>
-          <strong>New Workflow Task</strong>
+          <strong>New Workflow Run</strong>
           <span>从模板启动一个新的任务实例</span>
         </div>
         <button type="button" onClick={onClose} aria-label="Close">

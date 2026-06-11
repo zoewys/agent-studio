@@ -10,12 +10,15 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import type { AgentDefinition, WorkflowRun } from '@shared/types'
+import type { AgentDefinition, WorkflowRun, WorkflowSchedule } from '@shared/types'
 import { WorkflowRunsList } from './WorkflowRunsList'
 import { WorkflowRunDetail } from './WorkflowRunDetail'
 
 import { NewWorkflowRunDrawer } from './NewWorkflowRunDrawer'
 import type { NewWorkflowRunDefaults } from './NewWorkflowRunDrawer'
+import { ScheduleList } from './ScheduleList'
+import { ScheduleDetail } from './ScheduleDetail'
+import { ScheduleDrawer } from './ScheduleDrawer'
 import { UiReviewMockNav } from './UiReviewMockNav'
 import { workflowNotificationForRun } from './workflowRunView'
 import {
@@ -24,6 +27,7 @@ import {
   readWorkflowNotificationSoundEnabled
 } from './workflowNotificationSound'
 import type { UseWorkflowsResult } from './useWorkflows'
+import { useSchedules } from './useSchedules'
 
 interface WorkflowWorkspaceProps {
   agents: AgentDefinition[]
@@ -42,12 +46,17 @@ export function WorkflowWorkspace({
   onUiReviewSurfaceChange,
   showMemoryReferences = false
 }: WorkflowWorkspaceProps): JSX.Element {
+  const [activeTab, setActiveTab] = useState<'runs' | 'schedules'>('runs')
   const [newRunDrawerOpen, setNewRunDrawerOpen] = useState(false)
+  const [scheduleDrawerOpen, setScheduleDrawerOpen] = useState(false)
+  const [editingSchedule, setEditingSchedule] = useState<WorkflowSchedule | null>(null)
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null)
   const [soundEnabled] = useState(readWorkflowNotificationSoundEnabled)
   const [selectedStepByRunId, setSelectedStepByRunId] = useState<Record<string, number>>({})
   const [workflowInput, setWorkflowInput] = useState('')
   const [workflowInputError, setWorkflowInputError] = useState<string | null>(null)
   const [attachedFiles, setAttachedFiles] = useState<string[]>([])
+  const schedules = useSchedules()
 
   const handlePickFiles = async () => {
     const files = await window.api.pickFiles()
@@ -69,6 +78,10 @@ export function WorkflowWorkspace({
     playedNotificationKeys.current = initial
   }
   const selectedRun = workflows.selectedRun
+  const selectedSchedule =
+    schedules.schedules.find((schedule) => schedule.id === selectedScheduleId) ??
+    schedules.schedules[0] ??
+    null
   const selectedStepIndex = selectedRun
     ? selectedStepByRunId[selectedRun.id] ?? selectedRun.currentStepIndex
     : 0
@@ -140,42 +153,113 @@ export function WorkflowWorkspace({
     onUiReviewSurfaceChange?.(newRunDrawerOpen ? 'new-run' : 'workflow')
   }, [newRunDrawerOpen, onUiReviewSurfaceChange, uiReviewEnabled])
 
+  useEffect(() => {
+    if (selectedScheduleId && schedules.schedules.some((schedule) => schedule.id === selectedScheduleId)) return
+    setSelectedScheduleId(schedules.schedules[0]?.id ?? null)
+  }, [schedules.schedules, selectedScheduleId])
+
+  const openNewScheduleDrawer = (): void => {
+    setEditingSchedule(null)
+    setScheduleDrawerOpen(true)
+  }
+
+  const openEditScheduleDrawer = (schedule: WorkflowSchedule): void => {
+    setEditingSchedule(schedule)
+    setScheduleDrawerOpen(true)
+  }
+
+  const saveSchedule = async (input: Parameters<typeof schedules.save>[0]): Promise<WorkflowSchedule> => {
+    const saved = await schedules.save(input)
+    setSelectedScheduleId(saved.id)
+    return saved
+  }
+
+  const deleteSchedule = async (id: string): Promise<void> => {
+    await schedules.remove(id)
+    setSelectedScheduleId((current) => (current === id ? null : current))
+  }
+
+  const openScheduledRun = (runId: string): void => {
+    setActiveTab('runs')
+    workflows.selectRun(runId)
+  }
+
   return (
     <section className="workflow-workspace">
-      <WorkflowRunsList
-        runs={workflows.runs}
-        selectedRunId={workflows.selectedRunId}
-        onSelectRun={workflows.selectRun}
-        onNewRun={() => setNewRunDrawerOpen(true)}
-        onDeleteRun={workflows.deleteRun}
-      />
-      <WorkflowRunDetail
-        agents={agents}
-        run={selectedRun}
-        selectedStepIndex={selectedStepIndex}
-        onSelectStep={setSelectedStepIndex}
-        selectedExecution={selectedExecution}
-        handoff={handoff}
-        uiReviewEnabled={uiReviewEnabled}
-        onConfirm={workflows.confirmStep}
-        onRerun={workflows.rerunStep}
-        onAbort={workflows.abort}
-        composerValue={workflowInput}
-        composerEditable={composerEditable}
-        composerEnabled={composerEnabled}
-        composerPlaceholder={composerPlaceholder}
-        composerError={workflowInputError}
-        onComposerChange={(value) => {
-          setWorkflowInput(value)
-          setWorkflowInputError(null)
-        }}
-        onComposerSend={sendWorkflowInput}
-        onUpdatePrompt={workflows.updatePrompt}
-        onPickFiles={handlePickFiles}
-        onRemoveFile={handleRemoveFile}
-        attachedFiles={attachedFiles}
-        showMemoryReferences={showMemoryReferences}
-      />
+      <div className="workflow-sidebar-shell">
+        <div className="workflow-tabs" role="tablist" aria-label="Workflow sections">
+          <button
+            type="button"
+            className={activeTab === 'runs' ? 'active' : ''}
+            onClick={() => setActiveTab('runs')}
+          >
+            Runs
+          </button>
+          <button
+            type="button"
+            className={activeTab === 'schedules' ? 'active' : ''}
+            onClick={() => setActiveTab('schedules')}
+          >
+            Schedules
+          </button>
+        </div>
+        {activeTab === 'runs' ? (
+          <WorkflowRunsList
+            runs={workflows.runs}
+            selectedRunId={workflows.selectedRunId}
+            onSelectRun={workflows.selectRun}
+            onNewRun={() => setNewRunDrawerOpen(true)}
+            onDeleteRun={workflows.deleteRun}
+          />
+        ) : (
+          <ScheduleList
+            schedules={schedules.schedules}
+            selectedScheduleId={selectedSchedule?.id ?? null}
+            loading={schedules.loading}
+            onSelectSchedule={setSelectedScheduleId}
+            onNewSchedule={openNewScheduleDrawer}
+            onToggle={schedules.toggle}
+          />
+        )}
+      </div>
+      {activeTab === 'runs' ? (
+        <WorkflowRunDetail
+          agents={agents}
+          run={selectedRun}
+          selectedStepIndex={selectedStepIndex}
+          onSelectStep={setSelectedStepIndex}
+          selectedExecution={selectedExecution}
+          handoff={handoff}
+          uiReviewEnabled={uiReviewEnabled}
+          onConfirm={workflows.confirmStep}
+          onRerun={workflows.rerunStep}
+          onAbort={workflows.abort}
+          composerValue={workflowInput}
+          composerEditable={composerEditable}
+          composerEnabled={composerEnabled}
+          composerPlaceholder={composerPlaceholder}
+          composerError={workflowInputError}
+          onComposerChange={(value) => {
+            setWorkflowInput(value)
+            setWorkflowInputError(null)
+          }}
+          onComposerSend={sendWorkflowInput}
+          onUpdatePrompt={workflows.updatePrompt}
+          onPickFiles={handlePickFiles}
+          onRemoveFile={handleRemoveFile}
+          attachedFiles={attachedFiles}
+          showMemoryReferences={showMemoryReferences}
+        />
+      ) : (
+        <ScheduleDetail
+          schedule={selectedSchedule}
+          templates={workflows.templates}
+          runs={workflows.runs}
+          onEdit={openEditScheduleDrawer}
+          onDelete={deleteSchedule}
+          onOpenRun={openScheduledRun}
+        />
+      )}
       {newRunDrawerOpen && (
         <NewWorkflowRunDrawer
           agents={agents}
@@ -186,6 +270,14 @@ export function WorkflowWorkspace({
           newRunDefaults={newRunDefaults}
           uiReviewEnabled={uiReviewEnabled}
           onClose={() => setNewRunDrawerOpen(false)}
+        />
+      )}
+      {scheduleDrawerOpen && (
+        <ScheduleDrawer
+          templates={workflows.templates}
+          schedule={editingSchedule}
+          onSave={saveSchedule}
+          onClose={() => setScheduleDrawerOpen(false)}
         />
       )}
       {uiReviewEnabled && (

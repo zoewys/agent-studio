@@ -9,9 +9,11 @@ import {
   type CliVersionResult,
   type AgentDefinition,
   type ModelCatalog,
+  type CronPreview,
   type WorkflowEventEnvelope,
   type WorkflowRun,
   type WorkflowRunGitSafety,
+  type WorkflowSchedule,
   type WorkflowStartInput,
   type WorkflowStartResult,
   type WorkflowTemplate,
@@ -25,6 +27,9 @@ import { TranscriptStore } from './TranscriptStore'
 import { AgentStore } from './AgentStore'
 import { WorkflowStore } from './WorkflowStore'
 import { WorkflowManager } from './WorkflowManager'
+import { ScheduleStore, type ScheduleSaveInput } from './ScheduleStore'
+import { Scheduler } from './Scheduler'
+import { describeCron, isValidCron, nextFireTime } from './cronParser'
 import { checkClis, getCliVersions } from './cliCheck'
 import { installClaudeCode, installCodexCli } from './cliInstall'
 import { listCliModels } from './cliModels'
@@ -38,14 +43,23 @@ export interface AppManagers {
   abortAll(): void
 }
 
+export interface AppNotificationHooks {
+  notifyScheduleResult?: (schedule: WorkflowSchedule, run: WorkflowRun) => void
+  notifyScheduleError?: (schedule: WorkflowSchedule, error: unknown) => void
+}
+
 /**
  * Registers all IPC handlers and returns the RunManager so the app can kill
  * live runs on shutdown. Events flow main → renderer via webContents.send.
  */
-export function registerIpc(getWindow: () => BrowserWindow | null): AppManagers {
+export function registerIpc(
+  getWindow: () => BrowserWindow | null,
+  notificationHooks: AppNotificationHooks = {}
+): AppManagers {
   const transcriptStore = new TranscriptStore()
   const agentStore = new AgentStore()
   const workflowStore = new WorkflowStore()
+  const scheduleStore = new ScheduleStore()
   const appSettingsStore = new AppSettingsStore()
   const runManager = new RunManager(transcriptStore)
   const memoryStore = new MemoryStore()
@@ -129,6 +143,18 @@ export function registerIpc(getWindow: () => BrowserWindow | null): AppManagers 
     signalCollector,
     memoryInjector
   )
+  const scheduler = new Scheduler(
+    scheduleStore,
+    workflowManager,
+    workflowStore,
+    emitWorkflow,
+    {
+      onScheduleRunResult: notificationHooks.notifyScheduleResult,
+      onScheduleRunError: notificationHooks.notifyScheduleError
+    }
+  )
+  workflowManager.setRunSettledHandler((run) => scheduler.handleWorkflowRunUpdated(run))
+  scheduler.start()
   void signalCollector.drainRawSignals()
 
   ipcMain.handle(IPC.runStart, (_e, config: RunConfig): RunStartResult => {
@@ -255,6 +281,36 @@ export function registerIpc(getWindow: () => BrowserWindow | null): AppManagers 
     workflowManager.updatePrompt(runId, newPrompt)
   )
 
+  // ── Workflow schedules ───────────────────────────────────────────────
+
+  ipcMain.handle(IPC.schedulesList, (): WorkflowSchedule[] => scheduleStore.list())
+
+  ipcMain.handle(IPC.schedulesSave, (_e, input: ScheduleSaveInput): WorkflowSchedule => {
+    const saved = scheduleStore.save(input)
+    scheduler.register(saved)
+    return saved
+  })
+
+  ipcMain.handle(IPC.schedulesDelete, (_e, id: string): void => {
+    scheduler.unregister(id)
+    scheduleStore.remove(id)
+  })
+
+  ipcMain.handle(IPC.schedulesToggle, (_e, id: string, enabled: boolean): WorkflowSchedule => {
+    const saved = scheduleStore.toggle(id, enabled)
+    if (saved.enabled) scheduler.register(saved)
+    else scheduler.unregister(saved.id)
+    return saved
+  })
+
+  ipcMain.handle(IPC.cronValidate, (_e, expression: string): boolean =>
+    isValidCron(expression)
+  )
+
+  ipcMain.handle(IPC.cronDescribe, (_e, expression: string): CronPreview =>
+    cronPreview(expression)
+  )
+
   // ── Agent memory ─────────────────────────────────────────────────────
 
   ipcMain.handle(IPC.memoryList, (_e, agentId: string, projectPath?: string): MemoryEntry[] =>
@@ -287,8 +343,25 @@ export function registerIpc(getWindow: () => BrowserWindow | null): AppManagers 
 
   return {
     abortAll() {
+      scheduler.stopAll()
       workflowManager.abortAll()
       runManager.abortAll()
+    }
+  }
+}
+
+function cronPreview(expression: string): CronPreview {
+  try {
+    return {
+      valid: true,
+      description: describeCron(expression),
+      nextFireAt: nextFireTime(expression).getTime()
+    }
+  } catch (err) {
+    return {
+      valid: false,
+      description: '',
+      error: err instanceof Error ? err.message : String(err)
     }
   }
 }

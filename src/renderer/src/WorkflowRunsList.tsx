@@ -91,7 +91,10 @@ export function WorkflowRunsList({
             onClick={() => onSelectRun(run.id)}
           >
             <div className="workflow-run-card-main">
-              <strong>{workflowRunDisplayName(run)}</strong>
+              <div className="workflow-run-card-title">
+                {run.scheduledBy && <span className="workflow-run-scheduled-badge">[scheduled]</span>}
+                <strong>{workflowRunDisplayName(run)}</strong>
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span className={`workflow-run-card-status workflow-run-card-status-${run.status}`}>
                   {runStatusShortLabel(run.status)}

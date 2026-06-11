@@ -160,6 +160,27 @@ export interface WorkflowTemplate {
   budgetUsd?: number
 }
 
+export interface WorkflowSchedule {
+  id: string
+  templateId: string
+  name: string
+  cron: string
+  enabled: boolean
+  projectPath: string
+  initialPrompt: string
+  createdAt: number
+  lastTriggeredAt?: number
+  lastRunId?: string
+  lastRunStatus?: 'completed' | 'error' | 'running'
+}
+
+export interface CronPreview {
+  valid: boolean
+  description: string
+  nextFireAt?: number
+  error?: string
+}
+
 export type StepStatus =
   | 'pending'
   | 'running'
@@ -236,6 +257,10 @@ export interface WorkflowRun {
   totalCostUsd: number
   /** Optional budget cap for this run. When totalCostUsd reaches this, the run stops. */
   budgetUsd?: number
+  /** Scheduled runs auto-advance through handoffs without manual confirmation. */
+  autoConfirm?: boolean
+  /** Schedule id that launched this run, when started by the scheduler. */
+  scheduledBy?: string
 }
 
 export interface WorkflowStartInput {
@@ -245,6 +270,10 @@ export interface WorkflowStartInput {
   initialPrompt: string
   /** True only after the user accepts a same-working-tree warning. */
   allowUnsafeSameGitRoot?: boolean
+  /** Scheduled runs pass true so every valid handoff advances automatically. */
+  autoConfirm?: boolean
+  /** Schedule id that launched this run. */
+  scheduledBy?: string
 }
 
 export interface WorkflowStartResult {
@@ -349,10 +378,12 @@ export const DEFAULT_REFLECTION_CONFIG: ReflectionEngineConfig = {
 
 export interface AppSettings {
   showMemoryReferences: boolean
+  minimizeToTray: boolean
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
-  showMemoryReferences: false
+  showMemoryReferences: false,
+  minimizeToTray: true
 }
 
 // ── IPC channel names + payloads ─────────────────────────────────────────────
@@ -432,7 +463,19 @@ export const IPC = {
   /** renderer → main: get app settings. */
   appSettingsGet: 'app:settings:get',
   /** renderer → main: save app settings. */
-  appSettingsSave: 'app:settings:save'
+  appSettingsSave: 'app:settings:save',
+  /** renderer → main: list workflow schedules. */
+  schedulesList: 'schedules:list',
+  /** renderer → main: create or update a workflow schedule. */
+  schedulesSave: 'schedules:save',
+  /** renderer → main: delete one workflow schedule. */
+  schedulesDelete: 'schedules:delete',
+  /** renderer → main: enable or disable one workflow schedule. */
+  schedulesToggle: 'schedules:toggle',
+  /** renderer → main: validate a 5-field cron expression. */
+  cronValidate: 'cron:validate',
+  /** renderer → main: describe a cron expression and return next fire time. */
+  cronDescribe: 'cron:describe'
 } as const
 
 export interface RunStartResult {

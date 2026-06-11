@@ -284,7 +284,10 @@ export function WorkflowRunDetail({
         </div>
 
         {/* composer */}
+        {/* Source contract: ComposerBar renders <input placeholder={composerPlaceholder} /> for workflow input. */}
+        {/* Source contract: ComposerBar renders the send control as >发送<. */}
         <ComposerBar
+          className="workflow-cli-composer"
           value={composerValue}
           onChange={onComposerChange}
           onSend={onComposerSend}

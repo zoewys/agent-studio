@@ -154,6 +154,32 @@ export function SettingsPanel({ settings, loading, onSave }: SettingsPanelProps)
           />
         </div>
       </section>
+
+      <hr className="settings-divider" />
+
+      <section className="settings-section">
+        <div className="settings-section-head">
+          <div>
+            <h3 className="settings-section-title">后台运行</h3>
+            <p className="settings-section-desc">关闭窗口后保留 Tray 中的定时任务调度器。</p>
+          </div>
+        </div>
+
+        <div className="settings-toggle-row">
+          <div className="settings-toggle-info">
+            <h4>关闭窗口时最小化到 Tray</h4>
+            <p>开启后，定时 workflow 会在后台继续触发。</p>
+          </div>
+          <button
+            type="button"
+            className={`settings-switch${settings.minimizeToTray ? ' on' : ''}`}
+            disabled={loading}
+            onClick={() => onSave({ ...settings, minimizeToTray: !settings.minimizeToTray })}
+            role="switch"
+            aria-checked={settings.minimizeToTray}
+          />
+        </div>
+      </section>
     </div>
   )
 }

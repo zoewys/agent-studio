@@ -8,9 +8,11 @@ import {
   type CliVersionResult,
   type AgentDefinition,
   type ModelCatalog,
+  type CronPreview,
   type WorkflowEventEnvelope,
   type WorkflowRun,
   type WorkflowRunGitSafety,
+  type WorkflowSchedule,
   type WorkflowStartInput,
   type WorkflowStartResult,
   type WorkflowTemplate,
@@ -91,6 +93,26 @@ const api = {
 
   updateWorkflowPrompt: (runId: string, newPrompt: string): Promise<WorkflowRun> =>
     ipcRenderer.invoke(IPC.workflowUpdatePrompt, runId, newPrompt),
+
+  listSchedules: (): Promise<WorkflowSchedule[]> =>
+    ipcRenderer.invoke(IPC.schedulesList),
+
+  saveSchedule: (
+    input: Omit<WorkflowSchedule, 'id' | 'createdAt'> & { id?: string; createdAt?: number }
+  ): Promise<WorkflowSchedule> =>
+    ipcRenderer.invoke(IPC.schedulesSave, input),
+
+  deleteSchedule: (id: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.schedulesDelete, id),
+
+  toggleSchedule: (id: string, enabled: boolean): Promise<WorkflowSchedule> =>
+    ipcRenderer.invoke(IPC.schedulesToggle, id, enabled),
+
+  cronValidate: (expression: string): Promise<boolean> =>
+    ipcRenderer.invoke(IPC.cronValidate, expression),
+
+  cronDescribe: (expression: string): Promise<CronPreview> =>
+    ipcRenderer.invoke(IPC.cronDescribe, expression),
 
   memoryList: (agentId: string, projectPath?: string): Promise<MemoryEntry[]> =>
     ipcRenderer.invoke(IPC.memoryList, agentId, projectPath),

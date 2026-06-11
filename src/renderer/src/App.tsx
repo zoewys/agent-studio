@@ -90,7 +90,7 @@ export function App(): JSX.Element {
         return 'Templates'
       case 'workflow':
         return uiReview.enabled && uiReviewWorkflowSurface === 'new-run'
-          ? 'Workflow · New Task Drawer'
+          ? 'Workflow · New Run Drawer'
           : 'Workflow'
       case 'single':
         return 'Single Agent'

@@ -1,12 +1,18 @@
-import { app, shell, BrowserWindow, nativeImage } from 'electron'
+import { app, shell, BrowserWindow, nativeImage, Tray, Menu, Notification } from 'electron'
 import { join } from 'node:path'
 import { registerIpc } from './ipc'
 import type { AppManagers } from './ipc'
+import { AppSettingsStore } from './AppSettingsStore'
+import type { WorkflowRun, WorkflowSchedule } from '@shared/types'
 
 let mainWindow: BrowserWindow | null = null
 let appManagers: AppManagers | null = null
+let tray: Tray | null = null
+let quitting = false
+let scheduleBadgeActive = false
 
 const appIconPath = join(__dirname, '../../resources/icon.png')
+const trayIconPath = join(__dirname, '../../resources/tray-icon.png')
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -28,6 +34,16 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => mainWindow?.show())
+  mainWindow.on('show', () => setScheduleBadge(false))
+  mainWindow.on('focus', () => setScheduleBadge(false))
+  mainWindow.on('close', (event) => {
+    if (quitting) return
+    const settings = new AppSettingsStore().get()
+    if (settings.minimizeToTray) {
+      event.preventDefault()
+      if (mainWindow) mainWindow.hide()
+    }
+  })
 
   // Open external links in the system browser, never in-app.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -43,16 +59,97 @@ function createWindow(): void {
   }
 }
 
+function createTray(): void {
+  const traySource = nativeImage.createFromPath(trayIconPath)
+  const fallbackSource = nativeImage.createFromPath(appIconPath)
+  const icon = (traySource.isEmpty() ? fallbackSource : traySource).resize({ width: 16, height: 16 })
+  tray = new Tray(icon)
+  tray.setToolTip('Agent Studio')
+  updateTrayMenu()
+}
+
+function updateTrayMenu(): void {
+  tray?.setContextMenu(Menu.buildFromTemplate([
+    {
+      label: scheduleBadgeActive ? '打开 Agent Studio（有定时任务失败）' : '打开 Agent Studio',
+      click: () => {
+        mainWindow?.show()
+        mainWindow?.focus()
+        setScheduleBadge(false)
+      }
+    },
+    { type: 'separator' },
+    {
+      label: '退出',
+      click: () => {
+        quitting = true
+        app.quit()
+      }
+    }
+  ]))
+}
+
+function setScheduleBadge(active: boolean): void {
+  scheduleBadgeActive = active
+  if (process.platform === 'darwin') {
+    if (active) app.dock.setBadge('!')
+    else app.dock.setBadge('')
+  }
+  tray?.setToolTip(active ? 'Agent Studio - 有定时任务失败' : 'Agent Studio')
+  updateTrayMenu()
+}
+
+function notifyScheduleResult(schedule: WorkflowSchedule, run: WorkflowRun): void {
+  if (run.status === 'error') {
+    setScheduleBadge(true)
+    showNotification(
+      `定时任务失败：${schedule.name}`,
+      `${run.steps[run.currentStepIndex]?.displayName ?? 'Step'} 执行出错`
+    )
+    return
+  }
+
+  if (run.status === 'completed') {
+    showNotification(
+      `定时任务完成：${schedule.name}`,
+      `${run.steps.length} 步全部完成`
+    )
+  }
+}
+
+function notifyScheduleError(schedule: WorkflowSchedule, error: unknown): void {
+  setScheduleBadge(true)
+  showNotification(
+    `定时任务失败：${schedule.name}`,
+    error instanceof Error ? error.message : String(error)
+  )
+}
+
+function showNotification(title: string, body: string): void {
+  if (!Notification.isSupported()) return
+  new Notification({ title, body }).show()
+}
+
 app.whenReady().then(() => {
   if (process.platform === 'darwin') {
     const dockIcon = nativeImage.createFromPath(appIconPath)
     if (!dockIcon.isEmpty()) app.dock.setIcon(dockIcon)
   }
 
-  appManagers = registerIpc(() => mainWindow)
+  createTray()
+  appManagers = registerIpc(() => mainWindow, {
+    notifyScheduleResult,
+    notifyScheduleError
+  })
   createWindow()
 
   app.on('activate', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show()
+      mainWindow.focus()
+      setScheduleBadge(false)
+      return
+    }
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
@@ -63,5 +160,6 @@ app.on('window-all-closed', () => {
 
 // Kill every live CLI child process before exiting to avoid orphans.
 app.on('before-quit', () => {
+  quitting = true
   appManagers?.abortAll()
 })

@@ -24,6 +24,7 @@ import type { SignalCollector } from './memory/SignalCollector'
 import { summarizeTranscript } from './memory/transcriptSummarizer'
 
 type EmitWorkflow = (envelope: WorkflowEventEnvelope) => void
+type RunSettledHandler = (run: WorkflowRun) => void
 
 interface LiveStep {
   workflowRunId: string
@@ -76,6 +77,8 @@ const HANDOFF_OUTPUT_SCHEMA: JSONSchema = {
 export class WorkflowManager {
   private runs = new Map<string, WorkflowRun>()
   private liveByRunId = new Map<string, LiveStep>()
+  private settledRunIds = new Set<string>()
+  private runSettledHandler: RunSettledHandler | null = null
 
   constructor(
     private readonly agentStore: AgentStore,
@@ -89,6 +92,10 @@ export class WorkflowManager {
     for (const run of this.markInterruptedRunsOnStartup(workflowStore.listRuns())) {
       this.runs.set(run.id, run)
     }
+  }
+
+  setRunSettledHandler(handler: RunSettledHandler | null): void {
+    this.runSettledHandler = handler
   }
 
   start(input: WorkflowStartInput): WorkflowStartResult {
@@ -118,6 +125,8 @@ export class WorkflowManager {
       totalOutputTokens: 0,
       totalCostUsd: 0,
       budgetUsd: template.budgetUsd,
+      autoConfirm: input.autoConfirm,
+      scheduledBy: input.scheduledBy,
       steps: template.steps.map((step) => {
         const agent = this.agentStore.list().find((a) => a.id === step.agentId)
         return {
@@ -463,9 +472,29 @@ export class WorkflowManager {
       return
     }
     execution.handoff = handoff
-    execution.status = 'awaiting-confirm'
+    execution.status = run.autoConfirm ? 'done' : 'awaiting-confirm'
     execution.finishedAt = Date.now()
-    run.steps[stepIndex].status = 'awaiting-confirm'
+    run.steps[stepIndex].status = execution.status
+
+    if (run.autoConfirm) {
+      this.collectMemorySignal('positive', 'user-confirmed', run, stepIndex, execution)
+      const nextIndex = run.currentStepIndex + 1
+      if (nextIndex >= run.steps.length) {
+        run.status = 'completed'
+        run.finishedAt = Date.now()
+        if (stepIndex === run.steps.length - 1) {
+          this.collectMemorySignal('completion', 'workflow-done', run, stepIndex, execution, { handoff })
+        }
+        this.persistAndEmit(run)
+      } else {
+        run.currentStepIndex = nextIndex
+        run.status = 'running'
+        this.persistAndEmit(run)
+        this.startStep(run.id, nextIndex)
+      }
+      return
+    }
+
     run.status = 'awaiting-confirm'
     if (stepIndex === run.steps.length - 1) {
       this.collectMemorySignal('completion', 'workflow-done', run, stepIndex, execution, { handoff })
@@ -612,6 +641,7 @@ export class WorkflowManager {
   private persistAndEmit(run: WorkflowRun): void {
     this.workflowStore.saveRun(run)
     this.emitUpdate(run)
+    this.emitSettledIfNeeded(run)
   }
 
   private persist(run: WorkflowRun): void {
@@ -620,6 +650,13 @@ export class WorkflowManager {
 
   private emitUpdate(run: WorkflowRun): void {
     this.emit({ runId: run.id, event: { kind: 'run-updated', run } })
+  }
+
+  private emitSettledIfNeeded(run: WorkflowRun): void {
+    if (run.status !== 'completed' && run.status !== 'error') return
+    if (this.settledRunIds.has(run.id)) return
+    this.settledRunIds.add(run.id)
+    this.runSettledHandler?.(run)
   }
 
   private emitAgentEvent(runId: string, stepIndex: number, executionId: string, event: AgentEvent): void {

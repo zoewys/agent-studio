@@ -22,26 +22,43 @@ function railIcon(mode: WorkspaceMode, size = 20) {
 }
 
 export function ModeRail({ mode, onModeChange }: ModeRailProps): JSX.Element {
-  const modes: { key: WorkspaceMode; label: string }[] = [
-    { key: 'workflow', label: 'Workflow' },
-    { key: 'templates', label: 'Templates' },
-    { key: 'agents', label: 'Agents' },
-    { key: 'single', label: 'Single' }
-  ]
-
   return (
     <nav className="mode-rail" aria-label="Workspace modes">
-      {modes.map(m => (
-        <button
-          key={m.key}
-          type="button"
-          className={`mode-item ${mode === m.key ? 'mode-item-active' : ''}`}
-          onClick={() => onModeChange(m.key)}
-        >
-          <span className="mode-icon">{railIcon(m.key)}</span>
-          <span>{m.label}</span>
-        </button>
-      ))}
+      <button
+        type="button"
+        className={`mode-item ${mode === 'workflow' ? 'mode-item-active' : ''}`}
+        onClick={() => onModeChange('workflow')}
+      >
+        <span className="mode-icon">{railIcon('workflow')}</span>
+        <span>Workflow</span>
+      </button>
+
+      <button
+        type="button"
+        className={`mode-item ${mode === 'templates' ? 'mode-item-active' : ''}`}
+        onClick={() => onModeChange('templates')}
+      >
+        <span className="mode-icon">{railIcon('templates')}</span>
+        <span>Templates</span>
+      </button>
+
+      <button
+        type="button"
+        className={`mode-item ${mode === 'agents' ? 'mode-item-active' : ''}`}
+        onClick={() => onModeChange('agents')}
+      >
+        <span className="mode-icon">{railIcon('agents')}</span>
+        <span>Agents</span>
+      </button>
+
+      <button
+        type="button"
+        className={`mode-item ${mode === 'single' ? 'mode-item-active' : ''}`}
+        onClick={() => onModeChange('single')}
+      >
+        <span className="mode-icon">{railIcon('single')}</span>
+        <span>Single</span>
+      </button>
 
       <div className="mode-rail-spacer" />
 
