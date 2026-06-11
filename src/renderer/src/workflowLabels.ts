@@ -11,6 +11,8 @@ export function workflowRunStatusLabel(status: WorkflowRunStatus): string {
   switch (status) {
     case 'running':
       return '运行中'
+    case 'awaiting-input':
+      return '等待回复'
     case 'awaiting-confirm':
       return '等待确认'
     case 'completed':
@@ -30,6 +32,8 @@ export function stepStatusLabel(status: StepStatus): string {
       return '待运行'
     case 'running':
       return '运行中'
+    case 'awaiting-input':
+      return '等待回复'
     case 'awaiting-confirm':
       return '等待确认'
     case 'done':

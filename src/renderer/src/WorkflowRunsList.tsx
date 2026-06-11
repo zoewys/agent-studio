@@ -18,11 +18,12 @@ type WorkflowRunUiMeta = WorkflowRun & {
   listMeta?: string
 }
 
-type FilterKey = 'all' | 'running' | 'awaiting-confirm' | 'completed' | 'error'
+type FilterKey = 'all' | 'running' | 'awaiting-input' | 'awaiting-confirm' | 'completed' | 'error'
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'running', label: 'Run' },
+  { key: 'awaiting-input', label: 'Input' },
   { key: 'awaiting-confirm', label: 'Wait' },
   { key: 'completed', label: 'Done' },
   { key: 'error', label: 'Error' }
@@ -79,16 +80,23 @@ export function WorkflowRunsList({
 
       <div className="workflow-run-cards">
         {filtered.map((run) => (
-          <button
-            type="button"
+          <div
+            role="button"
+            tabIndex={0}
             key={run.id}
             className={[
               'workflow-run-card',
               selectedRunId === run.id ? 'workflow-run-card-active' : '',
-              run.status === 'awaiting-confirm' ? 'workflow-run-card-waiting' : '',
+              run.status === 'awaiting-input' || run.status === 'awaiting-confirm' ? 'workflow-run-card-waiting' : '',
               run.status === 'error' || run.status === 'interrupted' ? 'workflow-run-card-error' : ''
             ].filter(Boolean).join(' ')}
             onClick={() => onSelectRun(run.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onSelectRun(run.id)
+              }
+            }}
           >
             <div className="workflow-run-card-main">
               <div className="workflow-run-card-title">
@@ -133,7 +141,7 @@ export function WorkflowRunsList({
                 <span key={`${run.id}-tail-${index}`}>{line}</span>
               ))}
             </div>
-          </button>
+          </div>
         ))}
       </div>
     </aside>
@@ -143,6 +151,7 @@ export function WorkflowRunsList({
 function runStatusShortLabel(status: WorkflowRun['status']): string {
   switch (status) {
     case 'running': return 'RUN'
+    case 'awaiting-input': return 'INPUT'
     case 'awaiting-confirm': return 'WAIT'
     case 'completed': return 'DONE'
     case 'error': return 'ERROR'

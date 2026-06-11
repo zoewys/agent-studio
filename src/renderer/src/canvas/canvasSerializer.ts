@@ -7,7 +7,13 @@
  */
 
 import type { Node, Edge } from '@xyflow/react'
-import type { WorkflowStepNode, WorkflowTemplateStep, WorkflowParallelGroup, StepRule } from '@shared/types'
+import type {
+  FailureStrategy,
+  WorkflowStepNode,
+  WorkflowTemplateStep,
+  WorkflowParallelGroup,
+  StepRule
+} from '@shared/types'
 import { isParallelGroup } from '@shared/types'
 
 // ---------------------------------------------------------------------------
@@ -26,6 +32,8 @@ export interface AgentNodeData {
   vendor: string
   model: string
   rules?: StepRule[]
+  interactive?: boolean
+  failureStrategy?: FailureStrategy
   [key: string]: unknown
 }
 
@@ -101,6 +109,8 @@ export function templateToCanvas(
           vendor: agent?.vendor ?? '',
           model: agent?.model ?? '',
           rules: member.rules,
+          interactive: member.interactive,
+          failureStrategy: member.failureStrategy,
           index: nodeIndex++
         }
 
@@ -140,6 +150,8 @@ export function templateToCanvas(
         vendor: agent?.vendor ?? '',
         model: agent?.model ?? '',
         rules: single.rules,
+        interactive: single.interactive,
+        failureStrategy: single.failureStrategy,
         index: nodeIndex++
       }
 
@@ -299,5 +311,7 @@ function nodeToStep(node: Node): WorkflowTemplateStep {
   }
   if (d?.role) step.role = d.role
   if (d?.rules && d.rules.length > 0) step.rules = d.rules
+  if (d?.interactive) step.interactive = true
+  if (d?.failureStrategy) step.failureStrategy = d.failureStrategy
   return step
 }

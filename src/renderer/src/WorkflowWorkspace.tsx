@@ -95,7 +95,8 @@ export function WorkflowWorkspace({
   const handoff = selectedExecution?.handoff ?? null
 
   const workflowCanInterject =
-    selectedAgent?.vendor === 'claude' && selectedStepState?.status === 'running'
+    (selectedAgent?.vendor === 'claude' && selectedStepState?.status === 'running') ||
+    selectedExecution?.status === 'awaiting-input'
   const workflowCanContinue =
     !!selectedExecution?.sessionId &&
     !!selectedStepState &&
@@ -232,6 +233,7 @@ export function WorkflowWorkspace({
           handoff={handoff}
           uiReviewEnabled={uiReviewEnabled}
           onConfirm={workflows.confirmStep}
+          onFinishInteractiveStep={workflows.finishInteractiveStep}
           onRerun={workflows.rerunStep}
           onAbort={workflows.abort}
           onSkipStep={workflows.skipStep}
@@ -268,7 +270,7 @@ export function WorkflowWorkspace({
           templates={workflows.templates}
           onStart={workflows.start}
           onInspectGitSafety={workflows.inspectGitSafety}
-          runningRunCount={workflows.runs.filter((run) => run.status === 'running').length}
+          runningRunCount={workflows.runs.filter((run) => run.status === 'running' || run.status === 'awaiting-input').length}
           newRunDefaults={newRunDefaults}
           uiReviewEnabled={uiReviewEnabled}
           onClose={() => setNewRunDrawerOpen(false)}
@@ -301,6 +303,9 @@ function buildWorkflowComposerPlaceholder(
     return `${selectedAgent.vendor} 运行中不支持实时插话，可先输入草稿，步骤完成后发送`
   }
   if (!selectedExecution?.sessionId) return '当前步骤暂无可继续的会话'
+  if (selectedExecution?.status === 'awaiting-input' || selectedStepState?.status === 'awaiting-input') {
+    return '回复 Agent...'
+  }
   if (selectedStepState?.status === 'running') return '向运行中的 agent 发送消息...'
   if (selectedStepState?.status === 'error') {
     return '输入修复指令，例如「请输出合法的 handoff JSON...」'

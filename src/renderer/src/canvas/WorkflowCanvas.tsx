@@ -29,7 +29,7 @@ import {
   Shield
 } from 'lucide-react'
 
-import type { AgentDefinition, WorkflowTemplate, StepRule } from '@shared/types'
+import type { AgentDefinition, FailureStrategy, WorkflowTemplate, StepRule } from '@shared/types'
 import { AgentNode, type AgentNodeData } from './AgentNode'
 import { ConditionalEdge } from './ConditionalEdge'
 import { useCanvasState } from './useCanvasState'
@@ -699,6 +699,11 @@ function NodePropertyPanel({
   const data = node.data as AgentNodeData
   const currentAgent = agents.find((agent) => agent.id === data.agentId) ?? null
   const rules: StepRule[] = (data as unknown as { rules?: StepRule[] }).rules ?? []
+  const failureStrategy =
+    (data as unknown as { failureStrategy?: FailureStrategy }).failureStrategy ?? { type: 'stop' as const }
+  const failureStrategyType = failureStrategy.type
+  const failureStrategyMaxRetries = failureStrategy.maxRetries ?? 3
+  const defaultGotoTarget = allNodes.findIndex((n) => n.id !== node.id)
 
   const getRule = (trigger: StepRule['on']): StepRule | undefined =>
     rules.find((r) => r.on === trigger)
@@ -763,6 +768,29 @@ function NodePropertyPanel({
   const handoffRule = getRule('handoff-failed')
   const errorAction = errorRule?.action ?? 'stop'
   const handoffAction = handoffRule?.action ?? 'stop'
+  const setFailureStrategy = (next: FailureStrategy | undefined) => {
+    updateNodeData(node.id, { failureStrategy: next })
+  }
+  const setFailureStrategyType = (type: FailureStrategy['type']) => {
+    if (type === 'stop') {
+      setFailureStrategy(undefined)
+      return
+    }
+    setFailureStrategy({
+      type,
+      maxRetries: failureStrategyMaxRetries,
+      ...(type === 'retry-then-goto' ? { gotoTarget: failureStrategy.gotoTarget ?? Math.max(0, defaultGotoTarget) } : {})
+    })
+  }
+  const updateFailureStrategyPatch = (patch: Partial<FailureStrategy>) => {
+    const type = failureStrategyType === 'stop' ? 'retry-then-notify' : failureStrategyType
+    setFailureStrategy({
+      type,
+      maxRetries: failureStrategyMaxRetries,
+      ...(type === 'retry-then-goto' ? { gotoTarget: failureStrategy.gotoTarget ?? Math.max(0, defaultGotoTarget) } : {}),
+      ...patch
+    })
+  }
 
   return (
     <>
@@ -937,6 +965,78 @@ function NodePropertyPanel({
           {handoffAction === 'retry' && 'Agent 输出格式不对时自动重试。'}
           {handoffAction === 'skip' && 'Agent 输出格式不对时跳过继续。'}
         </div>
+      </div>
+
+      <div style={{ height: 1, background: colors.border, margin: '4px 0' }} />
+
+      {/* Interactive mode */}
+      <div>
+        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, color: colors.textDim, marginBottom: 8, fontWeight: 600 }}>
+          交互模式
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <span style={{ fontSize: 12, color: colors.text }}>允许步骤内对话</span>
+          <button
+            type="button"
+            className={`settings-switch${data.interactive ? ' on' : ''}`}
+            style={{ minHeight: 'auto', flexShrink: 0 }}
+            title="允许步骤内对话"
+            aria-label="允许步骤内对话"
+            onClick={() => updateNodeData(node.id, { interactive: !data.interactive })}
+          />
+        </div>
+        <div style={hintStyle}>开启后，Agent 未输出 handoff 时步骤暂停等待用户回复。</div>
+      </div>
+
+      <div style={{ height: 1, background: colors.border, margin: '4px 0' }} />
+
+      {/* Failure strategy */}
+      <div>
+        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, color: colors.textDim, marginBottom: 8, fontWeight: 600 }}>
+          失败策略
+        </div>
+        <select
+          value={failureStrategyType}
+          onChange={(e) => setFailureStrategyType(e.target.value as FailureStrategy['type'])}
+          style={selectStyle}
+        >
+          <option value="stop">停止</option>
+          <option value="retry-then-notify">重试后通知</option>
+          <option value="retry-then-goto">重试后跳转</option>
+        </select>
+
+        {failureStrategyType !== 'stop' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '6px 10px', background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 6 }}>
+            <span style={{ fontSize: 11, color: colors.textDim }}>最大重试次数</span>
+            <input
+              type="number"
+              min={1}
+              max={10}
+              value={failureStrategyMaxRetries}
+              onChange={(e) => updateFailureStrategyPatch({ maxRetries: Math.min(10, Math.max(1, Number(e.target.value) || 1)) })}
+              style={{ ...numStyle, width: 56 }}
+            />
+          </div>
+        )}
+
+        {failureStrategyType === 'retry-then-goto' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '6px 10px', background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 6 }}>
+            <span style={{ fontSize: 11, color: colors.textDim, whiteSpace: 'nowrap' }}>跳转目标</span>
+            <select
+              value={failureStrategy.gotoTarget ?? Math.max(0, defaultGotoTarget)}
+              onChange={(e) => updateFailureStrategyPatch({ gotoTarget: Number(e.target.value) })}
+              style={{ ...selectStyle, marginTop: 0, flex: 1 }}
+            >
+              {allNodes.map((n, i) => {
+                if (n.id === node.id) return null
+                const nd = n.data as AgentNodeData
+                return <option key={n.id} value={i}>#{i + 1} {nd.agentName || 'Step'}{nd.role ? ` (${nd.role})` : ''}</option>
+              })}
+            </select>
+          </div>
+        )}
+
+        <div style={hintStyle}>StepRule 优先于此配置；失败策略作为兜底处理。</div>
       </div>
 
       {/* Recommend button */}

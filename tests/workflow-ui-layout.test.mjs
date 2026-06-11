@@ -43,6 +43,8 @@ test('step navigation lives inside run detail with chip bar', () => {
   assert.match(detail, /workflow-step-chip/)
   assert.match(detail, /step\.displayName/)
   assert.match(sharedTypes, /displayName\?: string/)
+  assert.match(detail, /for \(let index = 0; index < run\.steps\.length; index\+\+\)/)
+  assert.doesNotMatch(detail, /items: \[\{ step, index: 0 \}\]/)
 })
 
 test('run detail owns transcript, artifact cards, composer, and preview pane', () => {
@@ -152,6 +154,8 @@ test('ui review fixture provides v4 design data without touching persisted state
   assert.match(app, /uiReview\.topbarChips/)
   assert.match(fixture, /settings:\s*\['memory references', 'local storage'\]/)
   assert.match(app, /newRunDefaults=\{uiReview\.enabled \? uiReview\.newRunDefaults : undefined\}/)
+  assert.match(fixture, /status:\s*'awaiting-input'/)
+  assert.match(fixture, /stepStatuses:\s*\['done', 'awaiting-input'\]/)
 })
 
 test('ui review workflow detail suppresses production-only controls for screenshot parity', () => {

@@ -107,6 +107,7 @@ export class RunManager {
       appendSystemPrompt: config.appendSystemPrompt,
       outputSchema: config.outputSchema,
       resumeFrom: config.resumeFrom,
+      keepStdinOpenAfterTurnDone: config.keepStdinOpenAfterTurnDone,
       cliPath: config.cliPath,
       permissionMode: config.permissionMode,
       abortSignal: abort.signal
@@ -144,6 +145,10 @@ export class RunManager {
       throw new Error(`The ${run.adapter.vendor} adapter does not support mid-run interjection`)
     }
     await run.adapter.pushInput(text)
+  }
+
+  closeInput(id: string): void {
+    this.runs.get(id)?.adapter.closeInput?.()
   }
 
   abort(id: string): void {

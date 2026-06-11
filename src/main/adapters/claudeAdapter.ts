@@ -49,7 +49,7 @@ export class ClaudeAdapter implements CliAdapter {
       {
         onStdoutLine: (line) => {
           for (const ev of parseClaudeLine(line)) {
-            if (ev.kind === 'turn-done') handle.endStdin()
+            if (ev.kind === 'turn-done' && !input.keepStdinOpenAfterTurnDone) handle.endStdin()
             queue.push(ev)
           }
         },
@@ -88,6 +88,10 @@ export class ClaudeAdapter implements CliAdapter {
   async pushInput(text: string): Promise<void> {
     if (!this.handle) throw new Error('No live claude process to push input to')
     this.handle.writeLine(JSON.stringify(userMessage(text)))
+  }
+
+  closeInput(): void {
+    this.handle?.endStdin()
   }
 }
 

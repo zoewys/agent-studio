@@ -13,7 +13,7 @@ export interface WorkflowNotification {
   sound: WorkflowNotificationSound
 }
 
-export type WorkflowRunProgressSegment = 'done' | 'running' | 'waiting' | 'error' | 'idle'
+export type WorkflowRunProgressSegment = 'done' | 'running' | 'awaiting-input' | 'waiting' | 'error' | 'idle'
 
 type WorkflowRunUiMeta = WorkflowRun & {
   tailLines?: string[]
@@ -44,6 +44,8 @@ export function workflowRunProgressSegments(
         return 'done'
       case 'running':
         return 'running'
+      case 'awaiting-input':
+        return 'awaiting-input'
       case 'awaiting-confirm':
         return 'waiting'
       case 'error':
@@ -68,6 +70,15 @@ export function workflowNotificationForRun(run: WorkflowRun): WorkflowNotificati
     const execution = step?.executions.at(-1)
     return {
       key: `${run.id}:confirm:${run.currentStepIndex}:${execution?.id ?? 'none'}`,
+      sound: 'confirm'
+    }
+  }
+
+  if (run.status === 'awaiting-input') {
+    const step = run.steps[run.currentStepIndex]
+    const execution = step?.executions.at(-1)
+    return {
+      key: `${run.id}:input:${run.currentStepIndex}:${execution?.id ?? 'none'}`,
       sound: 'confirm'
     }
   }

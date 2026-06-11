@@ -81,6 +81,9 @@ const api = {
   confirmWorkflowStep: (runId: string, stepIndex?: number) =>
     ipcRenderer.invoke(IPC.workflowConfirmStep, runId, stepIndex),
 
+  finishInteractiveStep: (runId: string, stepIndex: number) =>
+    ipcRenderer.invoke(IPC.workflowFinishInteractive, runId, stepIndex),
+
   rerunWorkflowStep: (runId: string, stepIndex: number) =>
     ipcRenderer.invoke(IPC.workflowRerunStep, runId, stepIndex),
 

@@ -19,6 +19,7 @@ export interface RunTurnInput {
   appendSystemPrompt?: string
   outputSchema?: JSONSchema
   resumeFrom?: ResumeHandle
+  keepStdinOpenAfterTurnDone?: boolean
   cliPath?: string
   permissionMode?: PermissionMode
   abortSignal: AbortSignal
@@ -42,4 +43,6 @@ export interface CliAdapter {
   /** Append user text to a live resident process. Only adapters with
    *  capabilities.bidirectionalStdin implement this; others omit it. */
   pushInput?(text: string): Promise<void>
+  /** Close resident stdin after orchestration decides the conversation is over. */
+  closeInput?(): void
 }

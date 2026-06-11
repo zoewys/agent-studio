@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AgentDefinition, HandoffArtifactItem, WorkflowRun, WorkflowRunStep } from '@shared/types'
-import { AlertTriangle, ArrowRight, Check, CheckCircle, Code2, CornerUpRight, FileQuestion, Lightbulb, PenTool } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, CheckCircle, Code2, FileQuestion, Lightbulb, MessageCircle, PenTool } from 'lucide-react'
 import { TranscriptViewer } from './TranscriptViewer'
 import { MarkdownPreview } from './MarkdownPreview'
 import { MemoryReferences } from './MemoryReferences'
@@ -29,6 +29,7 @@ export interface WorkflowRunDetailProps {
   handoff: NonNullable<WorkflowRun['steps'][number]['executions'][number]['handoff']> | null
   uiReviewEnabled?: boolean
   onConfirm: (stepIndex?: number) => Promise<void>
+  onFinishInteractiveStep: (stepIndex: number) => Promise<void>
   onRerun: (stepIndex: number) => Promise<void>
   onAbort: () => Promise<void>
   onUpdatePrompt: (runId: string, newPrompt: string) => Promise<void>
@@ -62,6 +63,7 @@ export function WorkflowRunDetail({
   selectedExecution,
   handoff,
   onConfirm,
+  onFinishInteractiveStep,
   onRerun,
   onAbort,
   onUpdatePrompt,
@@ -158,8 +160,9 @@ export function WorkflowRunDetail({
     ? agents.find((agent) => agent.id === selectedStep.agentId) ?? null
     : null
   const awaitingConfirm =
-    run.status === 'awaiting-confirm' ||
-    run.steps.some((s) => s.status === 'awaiting-confirm')
+    selectedStep?.status === 'awaiting-confirm' ||
+    (run.status === 'awaiting-confirm' && run.steps.some((s) => s.status === 'awaiting-confirm'))
+  const awaitingInput = selectedStep?.status === 'awaiting-input'
   const { displayPath, gitSafetyMessage } = run as WorkflowRunUiMeta
 
   return (
@@ -193,6 +196,15 @@ export function WorkflowRunDetail({
             })()}
           </div>
           <div className="workflow-run-detail-actions">
+            {awaitingInput && (
+              <button
+                type="button"
+                className="primary"
+                onClick={() => onFinishInteractiveStep(selectedStepIndex)}
+              >
+                <MessageCircle size={14} /> 结束对话，进入下一步 <ArrowRight size={14} />
+              </button>
+            )}
             {awaitingConfirm && (
               <>
                 <button type="button" className="primary workflow-confirm-step" onClick={() => onConfirm(selectedStepIndex)}>
@@ -216,7 +228,7 @@ export function WorkflowRunDetail({
               </>
             )}
             <button type="button" onClick={() => onRerun(selectedStepIndex)}>Rerun Step</button>
-            {(run.status === 'running' || run.status === 'awaiting-confirm') && (
+            {(run.status === 'running' || run.status === 'awaiting-confirm' || run.status === 'awaiting-input') && (
               <button type="button" className="danger" onClick={onAbort}>Stop</button>
             )}
           </div>
@@ -226,6 +238,12 @@ export function WorkflowRunDetail({
         <div className="workflow-step-nav">
           {renderStepChips(run, agents, selectedStepIndex, onSelectStep)}
         </div>
+
+        {awaitingInput && (
+          <div className="workflow-awaiting-input-bar">
+            <span><span className="workflow-awaiting-input-dot" />Agent 正在等待你的回复</span>
+          </div>
+        )}
 
         {/* parallel transcript tabs */}
         {selectedStep?.parallelGroupId && (() => {
@@ -343,7 +361,7 @@ export function WorkflowRunDetail({
           value={composerValue}
           onChange={onComposerChange}
           onSend={onComposerSend}
-          disabled={!composerEditable}
+          disabled={!composerEditable || !composerEnabled}
           placeholder={composerPlaceholder}
           attachedFiles={attachedFiles}
           onPickFiles={onPickFiles}
@@ -380,14 +398,15 @@ function groupStepsByParallel(run: WorkflowRun): StepGroup[] {
   const groups: StepGroup[] = []
   let currentGroup: StepGroup | null = null
 
-  for (const step of run.steps) {
+  for (let index = 0; index < run.steps.length; index++) {
+    const step = run.steps[index]
     const gid = step.parallelGroupId
     if (gid && currentGroup?.parallelGroupId === gid) {
-      currentGroup.items.push({ step, index: 0 })
+      currentGroup.items.push({ step, index })
     } else {
       const newGroup: StepGroup = {
         parallelGroupId: gid,
-        items: [{ step, index: 0 }]
+        items: [{ step, index }]
       }
       groups.push(newGroup)
       currentGroup = newGroup
