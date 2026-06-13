@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — App Shell — 霓渊</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'ny-bg': '#0A0A0F',
+            'ny-surface': '#12121A',
+            'ny-float': '#1A1A2E',
+            'ny-border': '#2A2A40',
+            'ny-pink': '#FF006E',
+            'ny-cyan': '#00F0FF',
+            'ny-purple': '#B367FF',
+            'ny-green': '#00FF88',
+            'ny-text': '#E0E0F0',
+            'ny-muted': '#7B7B9A',
+            'ny-error': '#FF3355',
+            'ny-warn': '#FFAA00'
+          },
+          fontFamily: {
+            'display': ['Orbitron', 'sans-serif'],
+            'sans': ['Inter', 'system-ui', 'sans-serif'],
+            'mono': ['"JetBrains Mono"', 'monospace']
+          },
+          animation: {
+            'neon-pulse': 'neonPulse 2s ease-in-out infinite',
+            'scan': 'scan 8s linear infinite',
+            'glitch': 'glitch 0.3s ease-in-out infinite',
+            'flicker': 'flicker 3s linear infinite'
+          },
+          keyframes: {
+            neonPulse: {
+              '0%, 100%': { boxShadow: '0 0 5px #FF006E, 0 0 10px #FF006E, 0 0 20px #FF006E' },
+              '50%': { boxShadow: '0 0 2px #FF006E, 0 0 5px #FF006E, 0 0 10px #FF006E' }
+            },
+            scan: {
+              '0%': { transform: 'translateY(-100%)' },
+              '100%': { transform: 'translateY(100vh)' }
+            },
+            flicker: {
+              '0%, 19%, 21%, 23%, 25%, 54%, 56%, 100%': { opacity: 1 },
+              '20%, 24%, 55%': { opacity: 0.4 }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      background-color: #0A0A0F;
+      color: #E0E0F0;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+    .crt-grid {
+      background-image:
+        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    .scanline {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.15), transparent);
+      animation: scan 6s linear infinite;
+      pointer-events: none;
+    }
+    .neon-border {
+      box-shadow: 0 0 5px rgba(255, 0, 110, 0.3), inset 0 0 5px rgba(255, 0, 110, 0.05);
+    }
+    .mode-item {
+      transition: all 0.2s;
+      clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+    }
+    .mode-item:hover {
+      background: rgba(255, 0, 110, 0.1);
+      text-shadow: 0 0 8px rgba(255, 0, 110, 0.6);
+    }
+    .mode-item.active {
+      background: rgba(255, 0, 110, 0.15);
+      box-shadow: inset 3px 0 0 #FF006E, 0 0 15px rgba(255, 0, 110, 0.2);
+    }
+    .hud-bracket {
+      position: relative;
+    }
+    .hud-bracket::before, .hud-bracket::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border: 1px solid #00F0FF;
+    }
+    .hud-bracket::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+    .hud-bracket::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden antialiased">
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const MODES = [
+      { id: 'workflow', label: 'WORKFLOW', icon: 'workflow' },
+      { id: 'templates', label: 'TEMPLATES', icon: 'git-branch' },
+      { id: 'agents', label: 'AGENTS', icon: 'bot' },
+      { id: 'single', label: 'SINGLE', icon: 'message-square' },
+      { id: 'settings', label: 'SETTINGS', icon: 'settings' }
+    ];
+
+    function Icon({ name, size = 20 }) {
+      const icons = {
+        workflow: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><path d="M10 6.5h4M10 6.5v4M17.5 10v4M6.5 10v7H10"/></svg>,
+        'git-branch': <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>,
+        bot: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M9 8V6a3 3 0 016 0v2"/><circle cx="9" cy="14" r="1.5" fill="currentColor"/><circle cx="15" cy="14" r="1.5" fill="currentColor"/></svg>,
+        'message-square': <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
+        settings: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+        'help-circle': <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+        bell: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
+        cpu: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>,
+        coins: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="7"/><path d="M19.5 9a7 7 0 100 10 7 7 0 000-10z"/></svg>
+      };
+      return icons[name] || null;
+    }
+
+    function ModeRail({ active, onChange }) {
+      return (
+        <nav className="w-[72px] h-full bg-ny-surface border-r border-ny-border flex flex-col items-center py-5 relative overflow-hidden">
+          <div className="scanline"/>
+          <div className="mb-6 relative">
+            <div className="w-10 h-10 bg-ny-bg border border-ny-pink neon-border flex items-center justify-center text-ny-pink font-display text-xs animate-flicker"
+              style={{ clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))' }}
+            >
+              NY
+            </div>
+          </div>
+          <div className="flex-1 flex flex-col gap-2 w-full px-2">
+            {MODES.map(m => {
+              const isActive = active === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => onChange(m.id)}
+                  className={`mode-item group relative w-full aspect-[4/3] flex flex-col items-center justify-center gap-1 ${isActive ? 'active text-ny-pink' : 'text-ny-muted'}`}
+                  title={m.label}
+                >
+                  <Icon name={m.icon} size={18} />
+                  <span className="text-[8px] font-display tracking-wider">{m.label.slice(0, 3)}</span>
+                  {isActive && <span className="absolute inset-0 shadow-[inset_0_0_20px_rgba(255,0,110,0.15)] pointer-events-none" />}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-auto pt-3 border-t border-ny-border w-12">
+            <button className="w-full aspect-square flex items-center justify-center text-ny-muted hover:text-ny-cyan transition-colors">
+              <Icon name="help-circle" size={18} />
+            </button>
+          </div>
+        </nav>
+      );
+    }
+
+    function Header() {
+      return (
+        <header className="h-14 bg-ny-surface/90 backdrop-blur border-b border-ny-border flex items-center justify-between px-5 relative">
+          <div className="scanline" style={{ animationDelay: '2s' }} />
+          <div className="flex items-center gap-3">
+            <h1 className="font-display text-lg font-semibold text-ny-pink tracking-[0.2em]">AGENT STUDIO</h1>
+            <span className="text-[10px] text-ny-cyan font-display tracking-widest">霓渊 // NEON ABYSS</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="hud-bracket flex items-center gap-2 px-3 py-1.5 bg-ny-float border border-ny-border text-xs"
+            style={{ clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))' }}>
+              <span className="w-1.5 h-1.5 bg-ny-green animate-pulse rounded-none"></span>
+              <span className="text-ny-muted">CLI</span>
+              <span className="text-ny-text">ONLINE</span>
+            </div>
+            <div className="flex items-center gap-4 text-[10px] font-mono text-ny-muted uppercase"
+            >
+              <span className="hud-bracket px-2 py-1 border border-ny-border"><Icon name="cpu" size={12} /> RUNS:12</span>
+              <span className="hud-bracket px-2 py-1 border border-ny-border text-ny-cyan"><Icon name="coins" size={12} /> $2.41</span>
+            </div>
+            <button className="w-8 h-8 flex items-center justify-center text-ny-muted hover:text-ny-cyan transition-colors"
+            style={{ textShadow: '0 0 8px rgba(0,240,255,0.4)' }}>
+              <Icon name="bell" size={18} />
+            </button>
+            <div className="w-8 h-8 bg-ny-float border border-ny-cyan flex items-center justify-center text-[10px] font-display text-ny-cyan"
+              style={{ clipPath: 'polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px))' }}
+            >
+              Z
+            </div>
+          </div>
+        </header>
+      );
+    }
+
+    function EmptyWorkspace({ mode }) {
+      const labels = {
+        workflow: '工作流运行',
+        templates: '工作流模板',
+        agents: 'Agent 管理',
+        single: '单次运行',
+        settings: '系统设置'
+      };
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center crt-grid relative overflow-hidden"
+        >
+          <div className="scanline" style={{ animationDelay: '4s' }} />
+          <div className="relative w-72 h-48 mb-6 opacity-60"
+            style={{ filter: 'drop-shadow(0 0 20px rgba(255,0,110,0.3))' }}
+          >
+            <svg viewBox="0 0 288 192" className="w-full h-full"
+            >
+              <defs>
+                <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#FF006E" />
+                  <stop offset="100%" stopColor="#00F0FF" />
+                </linearGradient>
+              </defs>
+              <rect x="20" y="20" width="248" height="152" rx="2" fill="none" stroke="url(#neonGrad)" strokeWidth="1" strokeOpacity="0.4" />
+              <rect x="40" y="40" width="80" height="80" fill="none" stroke="#FF006E" strokeWidth="1" strokeOpacity="0.5" />
+              <rect x="168" y="40" width="80" height="80" fill="none" stroke="#00F0FF" strokeWidth="1" strokeOpacity="0.5" />
+              <rect x="104" y="136" width="80" height="36" fill="none" stroke="#B367FF" strokeWidth="1" strokeOpacity="0.5" />
+              <line x1="120" y1="80" x2="168" y2="80" stroke="#B367FF" strokeWidth="1" strokeOpacity="0.4" strokeDasharray="4 2" />
+              <circle cx="230" cy="40" r="4" fill="#00F0FF" fillOpacity="0.8" />
+            </svg>
+          </div>
+          <h2 className="font-display text-2xl text-ny-text mb-2 tracking-widest"
+            style={{ textShadow: '0 0 20px rgba(0,240,255,0.5)' }}
+          >
+            {labels[mode].toUpperCase()}
+          </h2>
+          <p className="text-xs text-ny-muted mb-6 font-mono">SELECT A WORKSPACE FROM THE NAV RAIL</p>
+          <button
+            className="px-6 py-2.5 bg-ny-pink/10 border border-ny-pink text-ny-pink text-xs font-display tracking-wider hover:bg-ny-pink/20 transition-all"
+            style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))', boxShadow: '0 0 15px rgba(255,0,110,0.2)' }}
+          >
+            [ + ] 新建 {labels[mode]}
+          </button>
+        </div>
+      );
+    }
+
+    function App() {
+      const [mode, setMode] = useState('workflow');
+      return (
+        <div className="h-screen w-screen flex flex-col bg-ny-bg"
+        >
+          <Header />
+          <div className="flex-1 flex overflow-hidden"
+003e
+            <ModeRail active={mode} onChange={setMode} />
+            <main className="flex-1 bg-ny-bg relative overflow-hidden">
+              <EmptyWorkspace mode={mode} />
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

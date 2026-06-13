@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — Canvas — 墨垣</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'mo-bg': '#0B0C10',
+            'mo-surface': '#14161A',
+            'mo-float': '#1C1F26',
+            'mo-border': '#2A2D35',
+            'mo-gold': '#C9A96E',
+            'mo-jade': '#6B8F71',
+            'mo-text': '#E8E0D5',
+            'mo-muted': '#8B8578'
+          },
+          fontFamily: {
+            'display': ['"Noto Serif SC"', 'serif'],
+            'sans': ['Inter', 'system-ui', 'sans-serif'],
+            'mono': ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background: #0B0C10; color: #E8E0D5; font-family: 'Inter', sans-serif; }
+    .ink-grid {
+      background-image:
+        linear-gradient(rgba(201,169,110,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,169,110,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .mountain-bg {
+      background-image: url("data:image/svg+xml,%3Csvg width='240' height='120' viewBox='0 0 240 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 120 L50 60 L100 100 L150 40 L190 90 L240 55 L240 120 Z' fill='none' stroke='%23C9A96E' stroke-width='0.6' opacity='0.04'/%3E%3C/svg%3E");
+      background-size: 240px 120px;
+    }
+    .gold-glow { box-shadow: 0 0 0 1px rgba(201,169,110,0.35), 0 8px 32px rgba(201,169,110,0.1); }
+    .node-selected { box-shadow: 0 0 0 2px #C9A96E, 0 12px 40px rgba(201,169,110,0.18); }
+    .parallel-box { background: repeating-linear-gradient(45deg, rgba(201,169,110,0.03), rgba(201,169,110,0.03) 8px, transparent 8px, transparent 16px); }
+    .ink-brush { filter: url(#ink-brush); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #2A2D35; border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden">
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const Icon = ({ name, size = 16, className = '' }) => {
+      const icons = {
+        workflow: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><path d="M10 6.5h4M10 6.5v4M17.5 10v4M6.5 10v7H10"/></svg>,
+        bot: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M9 8V6a3 3 0 016 0v2"/><circle cx="9" cy="14" r="1.5" fill="currentColor"/><circle cx="15" cy="14" r="1.5" fill="currentColor"/><line x1="12" y1="16" x2="12" y2="16.5"/></svg>,
+        search: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>,
+        save: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
+        undo: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>,
+        redo: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 019-9 9 9 0 016 2.3L21 13"/></svg>,
+        zoomIn: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6M21 21l-4.35-4.35"/></svg>,
+        zoomOut: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><circle cx="11" cy="11" r="7"/><path d="M8 11h6M21 21l-4.35-4.35"/></svg>,
+        maximize: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M8 21H5a2 2 0 01-2-2v-3M16 21h3a2 2 0 002-2v-3"/></svg>,
+        layout: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>,
+        settings: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
+        chevronDown: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M6 9l6 6 6-6"/></svg>,
+        plus: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M12 5v14M5 12h14"/></svg>,
+        more: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/></svg>,
+        lock: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>,
+        gitBranch: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>,
+        alert: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      };
+      return icons[name] || null;
+    };
+
+    const AGENTS = [
+      { id: 'a1', name: 'Architect', role: '架构师', vendor: 'claude', model: 'Sonnet 4.6', icon: 'bot' },
+      { id: 'a2', name: 'Coder', role: '编码者', vendor: 'codex', model: 'codex-1', icon: 'bot' },
+      { id: 'a3', name: 'Reviewer', role: '审查员', vendor: 'claude', model: 'Haiku 4.5', icon: 'bot' },
+      { id: 'a4', name: 'Tester', role: '测试员', vendor: 'api', model: 'DeepSeek-V3', icon: 'bot' },
+      { id: 'a5', name: 'DocWriter', role: '文档员', vendor: 'claude', model: 'Sonnet 4.6', icon: 'bot' }
+    ];
+
+    function Header() {
+      return (
+        <header className="h-12 bg-mo-surface border-b border-mo-border flex items-center justify-between px-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="font-display text-lg font-semibold text-mo-gold">Agent Studio</span>
+            <div className="h-4 w-px bg-mo-border"/>
+            <button className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-mo-float border border-mo-border text-sm text-mo-text hover:border-mo-gold/40 transition-colors">
+              Code Review Pipeline
+              <Icon name="chevronDown" size={14} className="text-mo-muted"/>
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="p-1.5 rounded-md text-mo-muted hover:text-mo-text hover:bg-mo-float"><Icon name="save" size={16}/></button>
+            <button className="p-1.5 rounded-md text-mo-muted hover:text-mo-text hover:bg-mo-float"><Icon name="undo" size={16}/></button>
+            <button className="p-1.5 rounded-md text-mo-muted hover:text-mo-text hover:bg-mo-float"><Icon name="redo" size={16}/></button>
+            <div className="h-4 w-px bg-mo-border mx-1"/>
+            <button className="p-1.5 rounded-md text-mo-muted hover:text-mo-text hover:bg-mo-float"><Icon name="zoomOut" size={16}/></button>
+            <span className="text-xs text-mo-muted w-12 text-center">100%</span>
+            <button className="p-1.5 rounded-md text-mo-muted hover:text-mo-text hover:bg-mo-float"><Icon name="zoomIn" size={16}/></button>
+            <button className="p-1.5 rounded-md text-mo-muted hover:text-mo-text hover:bg-mo-float"><Icon name="maximize" size={16}/></button>
+            <button className="p-1.5 rounded-md text-mo-muted hover:text-mo-text hover:bg-mo-float"><Icon name="layout" size={16}/></button>
+            <div className="h-4 w-px bg-mo-border mx-1"/>
+            <button className="px-3 py-1.5 rounded-md bg-mo-gold/10 border border-mo-gold/40 text-mo-gold text-xs font-medium hover:bg-mo-gold/20">Run</button>
+          </div>
+        </header>
+      );
+    }
+
+    function AgentSidebar() {
+      return (
+        <aside className="w-60 bg-mo-surface border-r border-mo-border flex flex-col shrink-0">
+          <div className="p-3 border-b border-mo-border">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-semibold text-mo-muted uppercase tracking-wider">Agents</span>
+              <button className="text-mo-gold hover:text-mo-gold-soft"><Icon name="plus" size={16}/></button>
+            </div>
+            <div className="relative">
+              <Icon name="search" size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-mo-muted"/>
+              <input
+                type="text"
+                placeholder="搜索 Agent..."
+                className="w-full bg-mo-bg border border-mo-border rounded-md pl-8 pr-3 py-1.5 text-xs text-mo-text placeholder:text-mo-muted focus:outline-none focus:border-mo-gold/50"
+              />
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {AGENTS.map(a => (
+              <div key={a.id} className="group flex items-center gap-3 p-2.5 rounded-lg bg-mo-bg border border-mo-border hover:border-mo-gold/40 hover:bg-mo-float cursor-grab active:cursor-grabbing transition-all">
+                <div className="w-8 h-8 rounded-md bg-mo-float border border-mo-border flex items-center justify-center text-mo-gold"><Icon name={a.icon} size={16}/></div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-mo-text truncate">{a.name}</div>
+                  <div className="text-[10px] text-mo-muted truncate">{a.role} · {a.model}</div>
+                </div>
+                <Icon name="more" size={14} className="text-mo-muted opacity-0 group-hover:opacity-100"/>
+              </div>
+            ))}
+          </div>
+        </aside>
+      );
+    }
+
+    function Canvas({ selected, onSelect }) {
+      const nodes = [
+        { id: 'n1', agent: AGENTS[0], x: 100, y: 80 },
+        { id: 'n2', agent: AGENTS[1], x: 340, y: 80 },
+        { id: 'n3', agent: AGENTS[2], x: 340, y: 220 },
+        { id: 'n4', agent: AGENTS[3], x: 340, y: 360 },
+        { id: 'n5', agent: AGENTS[4], x: 600, y: 220 }
+      ];
+      return (
+        <div className="flex-1 relative overflow-hidden ink-grid mountain-bg">
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
+            <defs>
+              <linearGradient id="edgeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#C9A96E" stopOpacity="0.6"/>
+                <stop offset="100%" stopColor="#6B8F71" stopOpacity="0.6"/>
+              </linearGradient>
+              <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#6B8F71" fillOpacity="0.7"/>
+              </marker>
+            </defs>
+            <path d="M 236 124 C 290 124, 290 124, 340 124" stroke="url(#edgeGrad)" strokeWidth="2" fill="none" markerEnd="url(#arrow)"/>
+            <path d="M 236 124 C 290 80, 290 152, 340 152" stroke="url(#edgeGrad)" strokeWidth="2" fill="none" markerEnd="url(#arrow)"/>
+            <path d="M 236 124 C 290 80, 290 292, 340 292" stroke="url(#edgeGrad)" strokeWidth="2" fill="none" markerEnd="url(#arrow)"/>
+            <path d="M 236 124 C 290 80, 290 388, 340 388" stroke="url(#edgeGrad)" strokeWidth="2" fill="none" markerEnd="url(#arrow)"/>
+            <path d="M 496 152 C 550 152, 550 236, 600 236" stroke="url(#edgeGrad)" strokeWidth="2" fill="none" markerEnd="url(#arrow)"/>
+            <path d="M 496 236 C 550 236, 550 236, 600 236" stroke="url(#edgeGrad)" strokeWidth="2" fill="none" markerEnd="url(#arrow)"/>
+            <path d="M 496 388 C 550 388, 550 236, 600 236" stroke="url(#edgeGrad)" strokeWidth="2" fill="none" markerEnd="url(#arrow)"/>
+          </svg>
+
+          <div className="absolute left-[300px] top-[130px] w-[260px] h-[300px] rounded-xl border-2 border-dashed border-mo-gold/30 parallel-box pointer-events-none" style={{ zIndex: 0 }}>
+            <div className="absolute -top-3 left-4 px-2 py-0.5 bg-mo-surface border border-mo-gold/30 rounded text-[10px] text-mo-gold font-medium">并行执行 ∥</div>
+          </div>
+
+          {nodes.map(n => (
+            <div
+              key={n.id}
+              onClick={() => onSelect(n.id)}
+              className={`absolute w-44 rounded-xl border cursor-pointer transition-all ${selected === n.id ? 'node-selected bg-mo-float border-mo-gold' : 'bg-mo-surface border-mo-border hover:border-mo-gold/50'}`}
+              style={{ left: n.x, top: n.y, zIndex: 2 }}
+            >
+              <div className="flex items-center gap-2 p-3 border-b border-mo-border/50">
+                <div className={`w-7 h-7 rounded-md flex items-center justify-center ${n.agent.vendor === 'claude' ? 'bg-mo-gold/15 text-mo-gold' : n.agent.vendor === 'codex' ? 'bg-mo-jade/15 text-mo-jade' : 'bg-blue-500/10 text-blue-400'}`}>
+                  <Icon name={n.agent.icon} size={15}/>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-mo-text truncate">{n.agent.name}</div>
+                  <div className="text-[10px] text-mo-muted truncate">{n.agent.model}</div>
+                </div>
+              </div>
+              <div className="px-3 py-2 text-[10px] text-mo-muted truncate">{n.agent.role}</div>
+              <div className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-mo-gold border-2 border-mo-bg"/>
+              <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-mo-jade border-2 border-mo-bg"/>
+            </div>
+          ))}
+
+          <div className="absolute bottom-4 right-4 w-40 h-28 bg-mo-surface/90 border border-mo-border rounded-lg overflow-hidden shadow-lg">
+            <div className="absolute inset-0 ink-grid opacity-50"/>
+            {nodes.map(n => (
+              <div
+                key={n.id}
+                className={`absolute w-4 h-3 rounded-sm ${selected === n.id ? 'bg-mo-gold' : 'bg-mo-border'}`}
+                style={{ left: n.x * 0.18 + 8, top: n.y * 0.12 + 6 }}
+              />
+            ))}
+            <div className="absolute inset-0 border-2 border-mo-gold/30 rounded-lg"/>
+          </div>
+        </div>
+      );
+    }
+
+    function PropertyPanel({ selected }) {
+      const node = selected ? AGENTS[parseInt(selected.replace('n','')) - 1] : null;
+      return (
+        <aside className="w-72 bg-mo-surface border-l border-mo-border flex flex-col shrink-0">
+          <div className="p-4 border-b border-mo-border">
+            <span className="text-xs font-semibold text-mo-muted uppercase tracking-wider">Properties</span>
+          </div>
+          {node ? (
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs text-mo-muted">Agent</label>
+                <select className="w-full bg-mo-bg border border-mo-border rounded-md px-3 py-2 text-sm text-mo-text focus:border-mo-gold/50 outline-none">
+                  <option>{node.name}</option>
+                  {AGENTS.filter(a => a.id !== node.id).map(a => <option key={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-mo-muted">步骤名称</label>
+                <input type="text" defaultValue={node.role} className="w-full bg-mo-bg border border-mo-border rounded-md px-3 py-2 text-sm text-mo-text focus:border-mo-gold/50 outline-none"/>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-mo-muted">模型覆盖</label>
+                <select className="w-full bg-mo-bg border border-mo-border rounded-md px-3 py-2 text-sm text-mo-text focus:border-mo-gold/50 outline-none">
+                  <option>{node.model}</option>
+                  <option>使用 Agent 默认</option>
+                </select>
+              </div>
+              <div className="pt-4 border-t border-mo-border space-y-3">
+                <span className="text-xs font-semibold text-mo-muted uppercase tracking-wider">步骤规则</span>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-mo-muted">On Error</label>
+                  <select className="w-full bg-mo-bg border border-mo-border rounded-md px-3 py-2 text-sm text-mo-text outline-none focus:border-mo-gold/50">
+                    <option>stop</option>
+                    <option>retry 3 times</option>
+                    <option>skip</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-mo-muted">On Done</label>
+                  <select className="w-full bg-mo-bg border border-mo-border rounded-md px-3 py-2 text-sm text-mo-text outline-none focus:border-mo-gold/50">
+                    <option>continue</option>
+                    <option>await confirm</option>
+                  </select>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm text-mo-text">需要用户输入</span>
+                  <button className="w-9 h-5 rounded-full bg-mo-gold relative transition-colors">
+                    <span className="absolute right-0.5 top-0.5 w-4 h-4 rounded-full bg-mo-surface shadow"/>
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-mo-muted">预算上限 (USD)</label>
+                  <input type="number" defaultValue="0.50" className="w-full bg-mo-bg border border-mo-border rounded-md px-3 py-2 text-sm text-mo-text outline-none focus:border-mo-gold/50"/>
+                </div>
+              </div>
+              <div className="pt-4 border-t border-mo-border">
+                <span className="text-xs font-semibold text-mo-muted uppercase tracking-wider block mb-2">Prompt 模板</span>
+                <textarea
+                  className="w-full h-32 bg-mo-bg border border-mo-border rounded-md px-3 py-2 text-xs text-mo-text font-mono outline-none focus:border-mo-gold/50 resize-none"
+                  defaultValue={`你正在执行 ${node.role} 步骤。\n\n上下文：\n{{memory}}\n\n请输出...`}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-mo-muted p-6 text-center">
+              <Icon name="workflow" size={32} className="mb-3 opacity-40"/>
+              <p className="text-sm">选择一个节点以编辑属性</p>
+            </div>
+          )}
+        </aside>
+      );
+    }
+
+    function ModeRail() {
+      const modes = [
+        { id: 'workflow', icon: 'workflow' },
+        { id: 'templates', icon: 'gitBranch', active: true },
+        { id: 'agents', icon: 'bot' },
+        { id: 'single', icon: 'workflow' },
+        { id: 'settings', icon: 'settings' }
+      ];
+      return (
+        <nav className="w-16 h-full bg-mo-surface border-r border-mo-border flex flex-col items-center py-5 shrink-0">
+          <div className="w-8 h-8 rounded border border-mo-error text-mo-error flex items-center justify-center text-xs font-display mb-6 transform -rotate-3">墨</div>
+          <div className="flex-1 flex flex-col gap-2 w-full px-2">
+            {modes.map(m => (
+              <button key={m.id} className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${m.active ? 'text-mo-gold bg-mo-gold/10 border-r-2 border-mo-gold' : 'text-mo-muted hover:text-mo-text hover:bg-mo-float'}`}>
+                <Icon name={m.icon} size={20}/>
+              </button>
+            ))}
+          </div>
+        </nav>
+      );
+    }
+
+    function App() {
+      const [selected, setSelected] = useState('n2');
+      return (
+        <div className="h-screen w-screen flex flex-col bg-mo-bg">
+          <Header />
+          <div className="flex-1 flex overflow-hidden">
+            <ModeRail />
+            <AgentSidebar />
+            <Canvas selected={selected} onSelect={setSelected} />
+            <PropertyPanel selected={selected} />
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

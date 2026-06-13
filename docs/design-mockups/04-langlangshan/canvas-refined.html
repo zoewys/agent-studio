@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — Canvas — 山色</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            base:    '#F3EFE6',
+            surface: '#FFFFFF',
+            float:   '#FAF7F2',
+            border:  '#E5DDD0',
+            'border-deep': '#D5CBB8',
+            /* 山野色系 */
+            earth:   '#B87A4A',
+            'earth-light': '#D49A6A',
+            'earth-soft': '#F0E4D8',
+            forest:  '#5A7A6A',
+            'forest-light': '#7A9A8A',
+            clay:    '#C4705A',
+            'clay-soft': '#F5E4DC',
+            /* 文字 */
+            text:    '#2A2724',
+            muted:   '#7A7268',
+            faint:   '#B0A898',
+          },
+          fontFamily: {
+            display: ['"Noto Serif SC"', 'serif'],
+            sans:    ['Inter', 'system-ui', 'sans-serif'],
+            mono:    ['"JetBrains Mono"', 'monospace'],
+          },
+          animation: {
+            'pulse-soft': 'pulseSoft 4s ease-in-out infinite',
+          },
+          keyframes: {
+            pulseSoft: {
+              '0%, 100%': { opacity: 0.6 },
+              '50%': { opacity: 1 },
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: #F3EFE6; color: #2A2724;
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 温暖底纹 */
+    .warm-bg {
+      background: #F3EFE6;
+      position: relative;
+    }
+    .warm-bg::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 25% 30%, rgba(184,122,74,0.035) 0%, transparent 50%),
+        radial-gradient(ellipse at 75% 70%, rgba(90,122,106,0.025) 0%, transparent 45%);
+      pointer-events: none;
+    }
+
+    .canvas-grid {
+      background-image:
+        linear-gradient(rgba(180, 160, 140, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(180, 160, 140, 0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .node-card {
+      border-radius: 14px;
+      border: 1.5px solid #E5DDD0;
+      background: #FFFFFF;
+      transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      cursor: pointer;
+    }
+    .node-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(42,39,36,0.08);
+    }
+    .node-card.selected {
+      border-color: #B87A4A;
+      box-shadow: 0 0 0 1.5px rgba(184,122,74,0.2), 0 8px 32px rgba(184,122,74,0.10);
+    }
+
+    .shadow-card {
+      box-shadow: 0 1px 3px rgba(42,39,36,0.04), 0 4px 16px rgba(42,39,36,0.04);
+    }
+    .shadow-float {
+      box-shadow: 0 2px 8px rgba(42,39,36,0.06), 0 8px 32px rgba(42,39,36,0.06);
+    }
+
+    .sidebar {
+      background: #FAF7F2;
+      border-right: 1px solid #E5DDD0;
+    }
+    .property-panel {
+      background: #FAF7F2;
+      border-left: 1px solid #E5DDD0;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #E5DDD0; border-radius: 2px; }
+
+    /* 按钮 */
+    .btn-ghost {
+      padding: 6px 12px; border-radius: 10px; font-size: 12px;
+      color: #7A7268; cursor: pointer; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-ghost:hover { background: rgba(180,160,140,0.12); color: #2A2724; }
+
+    .btn-primary {
+      padding: 7px 18px; border-radius: 10px; font-size: 12px; font-weight: 500;
+      background: #B87A4A; color: #FFFFFF; border: none; cursor: pointer;
+      transition: all 0.25s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary:hover { background: #C88A5A; }
+    .btn-primary:active { transform: scale(0.97); }
+
+    .connector-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      border: 2.5px solid #F3EFE6; position: absolute;
+      box-shadow: 0 1px 3px rgba(42,39,36,0.08);
+    }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    /* ─── 图标 ─── */
+    const Icons = {
+      branch(s=16) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+          <path d="M18 9 a9 9 0 0 1 -9 9"/>
+        </svg>;
+      },
+      save(s=16) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+        </svg>;
+      },
+      bot(s=18) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="4" y="8" width="16" height="12" rx="3"/><path d="M9 8 v-2 a3 3 0 0 1 6 0 v2"/>
+          <circle cx="9" cy="14" r="1.5" fill="currentColor" opacity="0.6"/><circle cx="15" cy="14" r="1.5" fill="currentColor" opacity="0.6"/>
+        </svg>;
+      },
+      search(s=14) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21 l-4.35-4.35"/></svg>;
+      },
+      plus(s=14) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+      },
+      undo(s=15) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0 -9 -9 9 9 0 0 0 -6 2.3 L3 13"/></svg>;
+      },
+      zoomIn(s=14) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6M21 21l-4.35-4.35"/></svg>;
+      },
+      zoomOut(s=14) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M21 21l-4.35-4.35"/></svg>;
+      },
+      chevronDown(s=12) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>;
+      },
+      more(s=14) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/></svg>;
+      },
+      workflow(s=20) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+          <path d="M10 6.5 h4" opacity="0.5"/><path d="M17.5 10 v4" opacity="0.5"/><path d="M6.5 10 v7 H10" opacity="0.5"/>
+        </svg>;
+      },
+    };
+
+    const AGENTS = [
+      { id: 'architect', name: 'Architect', role: '架构师', vendor: 'claude', model: 'Sonnet 4.6', color: '#B87A4A', x: 80, y: 80 },
+      { id: 'coder',     name: 'Coder',     role: '编码者', vendor: 'codex',  model: 'codex-1',    color: '#5A7A6A', x: 320, y: 80 },
+      { id: 'reviewer',  name: 'Reviewer',  role: '审查员', vendor: 'claude', model: 'Haiku 4.5',  color: '#C4705A', x: 320, y: 220 },
+      { id: 'tester',    name: 'Tester',    role: '测试员', vendor: 'api',    model: 'DeepSeek',   color: '#7A7A6A', x: 320, y: 360 },
+      { id: 'docwriter', name: 'DocWriter', role: '文档员', vendor: 'claude', model: 'Sonnet 4.6', color: '#A0806A', x: 580, y: 220 },
+    ];
+
+    /* ─── 工具栏 ─── */
+    function Toolbar() {
+      return (
+        <div style={{
+          height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 16px', flexShrink: 0,
+          background: '#FFFFFF', borderBottom: '1px solid #E5DDD0',
+          boxShadow: '0 1px 4px rgba(42,39,36,0.02)',
+        }}>
+          <div className="flex items-center gap-2.5">
+            <div style={{
+              fontFamily: '"Noto Serif SC", serif', fontSize: 14, fontWeight: 600,
+              color: '#B87A4A', letterSpacing: '0.03em',
+            }}>
+              Agent Studio
+            </div>
+            <div style={{ width: 1, height: 18, background: '#E5DDD0' }} />
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-float cursor-pointer transition-colors" style={{ fontSize: 12, color: '#2A2724' }}>
+              Code Review Pipeline {Icons.chevronDown(12)}
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <span className="btn-ghost">{Icons.undo(15)}</span>
+            <span className="btn-ghost" style={{ fontSize: 11 }}>{Icons.workflow(16)}</span>
+            <span className="btn-ghost">{Icons.save(15)}</span>
+            <div style={{ width: 1, height: 18, background: '#E5DDD0' }} />
+            <span className="btn-ghost">{Icons.zoomOut(14)}</span>
+            <span style={{ fontSize: 11, color: '#7A7268', width: 36, textAlign: 'center' }}>100%</span>
+            <span className="btn-ghost">{Icons.zoomIn(14)}</span>
+            <div style={{ width: 1, height: 18, background: '#E5DDD0' }} />
+            <button className="btn-primary">{Icons.bot(16)} 执行</button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── 侧边栏 ─── */
+    function Sidebar({ selected, onSelect }) {
+      return (
+        <aside className="sidebar" style={{ width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid #E5DDD0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#7A7268', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Agents</span>
+              <button style={{ color: '#7A7268', cursor: 'pointer', padding: 2, borderRadius: 6, transition: 'all 0.2s' }}
+                className="hover:bg-border hover:text-text"
+              >{Icons.plus(14)}</button>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#B0A898' }}>{Icons.search(13)}</div>
+              <input placeholder="搜索 Agent..." style={{
+                width: '100%', padding: '7px 10px 7px 28px',
+                background: '#F3EFE6', border: '1px solid #E5DDD0', borderRadius: 10,
+                fontSize: 12, color: '#2A2724', outline: 'none',
+                transition: 'border-color 0.2s',
+              }} className="focus:border-earth" />
+            </div>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: '8px 10px' }}>
+            {AGENTS.map(a => {
+              const isActive = selected === 'n' + a.id;
+              return (
+                <div
+                  key={a.id}
+                  onClick={() => onSelect('n' + a.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '9px 10px', borderRadius: 12, marginBottom: 2,
+                    cursor: 'pointer',
+                    background: isActive ? 'rgba(184,122,74,0.06)' : 'transparent',
+                    border: `1px solid ${isActive ? 'rgba(184,122,74,0.15)' : 'transparent'}`,
+                    transition: 'all 0.25s',
+                  }}
+                  className={isActive ? '' : 'hover:bg-float'}
+                >
+                  <div style={{
+                    width: 34, height: 34, borderRadius: 10,
+                    background: a.color + '12',
+                    border: '1px solid ' + a.color + '20',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {Icons.bot(17)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#2A2724' }}>{a.name}</div>
+                    <div style={{ fontSize: 10, color: '#7A7268', marginTop: 1 }}>{a.role} · {a.model}</div>
+                  </div>
+                  <div style={{
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: a.color, opacity: isActive ? 0.6 : 0.3, flexShrink: 0,
+                  }} />
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+      );
+    }
+
+    /* ─── 画布节点 ─── */
+    function NodeCard({ id, agent, selected, onClick }) {
+      return (
+        <div
+          onClick={() => onClick(id)}
+          className={`node-card ${selected === id ? 'selected' : ''}`}
+          style={{
+            position: 'absolute', left: agent.x, top: agent.y, width: 190, zIndex: 2,
+          }}
+        >
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '14px 14px 10px',
+            borderBottom: '1px solid rgba(229,221,208,0.5)',
+          }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: agent.color + '12',
+              border: '1.5px solid ' + agent.color + '25',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: agent.color, flexShrink: 0,
+            }}>
+              {Icons.bot(16)}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#2A2724', lineHeight: 1.3 }}>
+                {agent.name}
+              </div>
+              <div style={{ fontSize: 10, color: '#7A7268', marginTop: 1 }}>{agent.model}</div>
+            </div>
+          </div>
+          <div style={{
+            padding: '8px 14px 10px',
+            fontSize: 11, color: '#9A9288',
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <span style={{ background: agent.color + '15', padding: '1px 6px', borderRadius: 4, color: agent.color, fontSize: 9, fontWeight: 500 }}>
+              {agent.vendor}
+            </span>
+            {agent.role}
+          </div>
+
+          {/* 连接端点 */}
+          <div className="connector-dot" style={{ right: -6, top: '50%', transform: 'translateY(-50%)', background: agent.color }} />
+          <div className="connector-dot" style={{ left: -6, top: '50%', transform: 'translateY(-50%)', background: agent.color }} />
+        </div>
+      );
+    }
+
+    /* ─── 画布 ─── */
+    function Canvas({ selected, onSelect }) {
+      const edgeStyles = (from, to, color1, color2) => {
+        return { from, to, color1, color2 };
+      };
+      const edges = [
+        edgeStyles('architect', 'coder',     '#B87A4A', '#5A7A6A'),
+        edgeStyles('architect', 'reviewer',  '#B87A4A', '#C4705A'),
+        edgeStyles('architect', 'tester',    '#B87A4A', '#7A7A6A'),
+        edgeStyles('coder',     'docwriter', '#5A7A6A', '#A0806A'),
+        edgeStyles('reviewer',  'docwriter', '#C4705A', '#A0806A'),
+        edgeStyles('tester',    'docwriter', '#7A7A6A', '#A0806A'),
+      ];
+
+      const getEdgePath = (fromId, toId) => {
+        const from = AGENTS.find(a => a.id === fromId);
+        const to = AGENTS.find(a => a.id === toId);
+        if (!from || !to) return '';
+        const x1 = from.x + 190, y1 = from.y + 48;
+        const x2 = to.x, y2 = to.y + 48;
+        const cy = (y1 + y2) / 2;
+        return `M ${x1} ${y1} C ${(x1+x2)/2} ${y1}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}`;
+      };
+
+      return (
+        <div className="flex-1 relative overflow-hidden warm-bg canvas-grid">
+          {/* SVG 连线 */}
+          <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1, pointerEvents: 'none' }}>
+            <defs>
+              {edges.map((e, i) => (
+                <linearGradient key={i} id={`edge${i}`} x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor={e.color1} stopOpacity="0.45"/>
+                  <stop offset="100%" stopColor={e.color2} stopOpacity="0.45"/>
+                </linearGradient>
+              ))}
+            </defs>
+            {edges.map((e, i) => (
+              <path key={i} d={getEdgePath(e.from, e.to)}
+                fill="none" stroke={`url(#edge${i})`} strokeWidth="2" strokeLinecap="round"
+                markerEnd="url(#dot)"
+              />
+            ))}
+            <marker id="dot" viewBox="0 0 8 8" refX="4" refY="4" markerWidth="6" markerHeight="6">
+              <circle cx="4" cy="4" r="3" fill="#C4B5A0" opacity="0.6"/>
+            </marker>
+          </svg>
+
+          {/* 并行组框 */}
+          <div style={{
+            position: 'absolute', left: 290, top: 150,
+            width: 250, height: 290, zIndex: 0,
+            border: '2px dashed rgba(180,160,140,0.3)',
+            borderRadius: 16,
+            background: 'rgba(180,160,140,0.02)',
+          }}>
+            <div style={{
+              position: 'absolute', top: -8, left: 16,
+              padding: '0 10px', background: '#F3EFE6',
+              fontSize: 10, color: '#9A9288',
+              letterSpacing: '0.05em',
+            }}>
+              并行执行
+            </div>
+          </div>
+
+          {/* 节点 */}
+          {AGENTS.map(a => (
+            <NodeCard
+              key={'n' + a.id}
+              id={'n' + a.id}
+              agent={a}
+              selected={selected}
+              onClick={onSelect}
+            />
+          ))}
+
+          {/* 小地图 */}
+          <div style={{
+            position: 'absolute', bottom: 16, right: 16, zIndex: 5,
+            width: 136, background: '#FFFFFF',
+            border: '1px solid #E5DDD0',
+            borderRadius: 12, padding: 10,
+          }}>
+            <div style={{
+              fontSize: 8, color: '#B0A898', letterSpacing: '0.1em',
+              marginBottom: 6,
+            }}>MINIMAP</div>
+            <div style={{
+              position: 'relative', height: 48,
+              background: 'rgba(243,239,230,0.5)', borderRadius: 6, overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                backgroundImage: 'linear-gradient(rgba(180,160,140,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(180,160,140,0.04) 1px, transparent 1px)',
+                backgroundSize: '16px 16px',
+              }} />
+              {AGENTS.map(a => (
+                <div key={a.id} style={{
+                  position: 'absolute',
+                  left: a.x * 0.14 + 8, top: a.y * 0.09 + 6,
+                  width: 14, height: 10, borderRadius: 3,
+                  background: a.color,
+                  opacity: selected === 'n' + a.id ? 0.8 : 0.25,
+                  transition: 'opacity 0.3s',
+                }} />
+              ))}
+            </div>
+          </div>
+
+          {/* 底部提示 */}
+          <div style={{
+            position: 'absolute', bottom: 18, left: '50%', transform: 'translateX(-50%)',
+            fontSize: 10, color: '#B0A898', letterSpacing: '0.1em', zIndex: 5,
+          }}>
+            拖拽 Agent 到画布 · 连线编排工作流
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── 属性面板 ─── */
+    function PropertyPanel({ selected }) {
+      const agent = selected ? AGENTS.find(a => 'n' + a.id === selected) : null;
+      return (
+        <aside className="property-panel" style={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '16px 16px 14px', borderBottom: '1px solid #E5DDD0' }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: '#7A7268', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Properties</span>
+          </div>
+          {agent ? (
+            <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                marginBottom: 20, paddingBottom: 16,
+                borderBottom: '1px solid #E5DDD0',
+              }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 10,
+                  background: agent.color + '12',
+                  border: '1.5px solid ' + agent.color + '25',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: agent.color,
+                }}>
+                  {Icons.bot(19)}
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#2A2724' }}>{agent.name}</div>
+                  <div style={{ fontSize: 10, color: '#7A7268', marginTop: 1 }}>{agent.role}</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {[
+                  { label: 'Agent', type: 'select', value: agent.name, options: AGENTS.map(a => a.name) },
+                  { label: '步骤名称', type: 'text', value: agent.role },
+                  { label: '模型覆盖', type: 'select', value: agent.model, options: [agent.model, '使用 Agent 默认'] },
+                ].map(f => (
+                  <div key={f.label}>
+                    <div style={{ fontSize: 10, color: '#7A7268', marginBottom: 4 }}>{f.label}</div>
+                    {f.type === 'text' ? (
+                      <input defaultValue={f.value} style={{
+                        width: '100%', padding: '7px 10px', borderRadius: 10,
+                        background: '#F3EFE6', border: '1px solid #E5DDD0',
+                        fontSize: 12, color: '#2A2724', outline: 'none',
+                      }} className="focus:border-earth" />
+                    ) : (
+                      <div style={{
+                        width: '100%', padding: '7px 10px', borderRadius: 10,
+                        background: '#F3EFE6', border: '1px solid #E5DDD0',
+                        fontSize: 12, color: '#2A2724',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      }}>
+                        {f.value}
+                        {Icons.chevronDown(12)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #E5DDD0' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#7A7268', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>
+                  步骤规则
+                </div>
+                {[
+                  { label: 'On Error', value: 'stop' },
+                  { label: 'On Done', value: 'continue' },
+                ].map(f => (
+                  <div key={f.label} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 10, color: '#7A7268', marginBottom: 3 }}>{f.label}</div>
+                    <div style={{
+                      width: '100%', padding: '6px 10px', borderRadius: 10,
+                      background: '#F3EFE6', border: '1px solid #E5DDD0',
+                      fontSize: 12, color: '#2A2724',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    }}>
+                      {f.value}
+                      {Icons.chevronDown(12)}
+                    </div>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                  <span style={{ fontSize: 12, color: '#2A2724' }}>需要用户输入</span>
+                  <div style={{ width: 34, height: 20, borderRadius: 10, background: '#B87A4A', position: 'relative', cursor: 'pointer' }}>
+                    <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#FFFFFF', position: 'absolute', top: 2, right: 2, boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #E5DDD0' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#7A7268', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
+                  Prompt 模板
+                </div>
+                <textarea defaultValue={`你正在执行 ${agent.role} 步骤。\n\n上下文：\n{{memory}}\n\n请输出...`}
+                  style={{
+                    width: '100%', height: 80, padding: 10, borderRadius: 10,
+                    background: '#F3EFE6', border: '1px solid #E5DDD0',
+                    fontSize: 11, fontFamily: '"JetBrains Mono", monospace',
+                    color: '#2A2724', outline: 'none', resize: 'none',
+                  }} className="focus:border-earth"
+                />
+              </div>
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#B0A898', padding: 20 }}>
+              <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.3 }}>○</div>
+              <div style={{ fontSize: 11 }}>选择一个节点以编辑属性</div>
+            </div>
+          )}
+        </aside>
+      );
+    }
+
+    /* ─── ModeRail ─── */
+    function ModeRail() {
+      const modes = [
+        { id: 'workflow', icon: 'workflow' },
+        { id: 'templates', icon: 'branch',  active: true },
+        { id: 'agents',    icon: 'bot' },
+        { id: 'single',    icon: 'workflow' },
+        { id: 'settings',  icon: 'workflow' },
+      ];
+      const iconMap = { workflow: Icons.workflow(20), branch: Icons.branch(20), bot: Icons.bot(20) };
+      return (
+        <nav style={{
+          width: 60, background: '#FFFFFF', borderRight: '1px solid #E5DDD0',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          paddingTop: 20, flexShrink: 0,
+        }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: '#B87A4A', color: '#FFFFFF',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 10, fontFamily: '"Noto Serif SC", serif', fontWeight: 700,
+            marginBottom: 24,
+          }}>山</div>
+          {modes.map(m => (
+            <button key={m.id} style={{
+              width: 36, height: 36, borderRadius: 10, marginBottom: 4,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: m.active ? '#B87A4A' : '#B0A898',
+              background: m.active ? 'rgba(184,122,74,0.08)' : 'transparent',
+              border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+            }}
+              className={m.active ? '' : 'hover:bg-float hover:text-text'}
+            >
+              {iconMap[m.icon] || Icons.bot(20)}
+            </button>
+          ))}
+        </nav>
+      );
+    }
+
+    /* ─── App ─── */
+    function App() {
+      const [selected, setSelected] = useState('n2');
+      return (
+        <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: '#F3EFE6', overflow: 'hidden' }}>
+          <Toolbar />
+          <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            <ModeRail />
+            <Sidebar selected={selected} onSelect={setSelected} />
+            <Canvas selected={selected} onSelect={setSelected} />
+            <PropertyPanel selected={selected} />
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

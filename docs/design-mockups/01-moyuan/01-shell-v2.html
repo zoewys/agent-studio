@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — Shell (v2) — 墨垣</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            base: '#0D0E12',
+            surface: '#15171B',
+            float: '#1E2026',
+            border: '#282B33',
+            gold: '#C5A55A',
+            'gold-light': '#D4BB77',
+            'gold-soft': '#A88B4A',
+            jade: '#5A7D5E',
+            'jade-light': '#6F9B73',
+            text: '#E6DDD0',
+            muted: '#8A8478',
+            error: '#B84C45',
+            warn: '#CC8A35',
+            ink: '#C5A55A'
+          },
+          fontFamily: {
+            display: ['"Noto Serif SC"', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          animation: {
+            'breathe-gold': 'breatheGold 4s ease-in-out infinite',
+            'seal-in': 'sealIn 0.6s ease-out forwards',
+            'fade-in': 'fadeIn 0.8s ease-out forwards',
+            'slide-up': 'slideUp 0.6s ease-out forwards',
+            'glow-pulse': 'glowPulse 3s ease-in-out infinite'
+          },
+          keyframes: {
+            breatheGold: {
+              '0%, 100%': { opacity: '0.6' },
+              '50%': { opacity: '1' }
+            },
+            sealIn: {
+              '0%': { transform: 'scale(0.7) rotate(-8deg)', opacity: '0' },
+              '100%': { transform: 'scale(1) rotate(-2deg)', opacity: '1' }
+            },
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' }
+            },
+            slideUp: {
+              '0%': { transform: 'translateY(16px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' }
+            },
+            glowPulse: {
+              '0%, 100%': { boxShadow: '0 0 4px rgba(197,165,90,0.15)' },
+              '50%': { boxShadow: '0 0 12px rgba(197,165,90,0.3)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: #0D0E12;
+      color: #E6DDD0;
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ── 云纹暗纹（极淡，不干扰阅读） ── */
+    .cloud-moire {
+      position: relative;
+    }
+    .cloud-moire::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg width='240' height='160' viewBox='0 0 240 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 160 Q 40 130 80 148 Q 120 100 160 130 Q 200 80 240 120 L 240 160 Z' fill='%23C5A55A' fill-opacity='0.025'/%3E%3Cpath d='M0 120 Q 60 90 100 110 Q 140 60 180 95 Q 220 50 240 80 L 240 120 Z' fill='%23C5A55A' fill-opacity='0.02'/%3E%3Cpath d='M0 90 Q 30 70 70 82 Q 110 40 150 65 Q 190 30 240 50 L 240 90 Z' fill='%235A7D5E' fill-opacity='0.015'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 480px 320px;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    /* ── 回纹边框装饰（极淡） ── */
+    .keyline-deco {
+      position: relative;
+    }
+    .keyline-deco::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 8px;
+      right: 8px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(197,165,90,0.15), transparent);
+    }
+
+    /* ── ModeRail 项 ── */
+    .mode-btn {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 10px;
+      transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      cursor: pointer;
+      color: #8A8478;
+    }
+    .mode-btn:hover {
+      background: rgba(197,165,90,0.05);
+      color: #E6DDD0;
+    }
+    .mode-btn.active {
+      background: linear-gradient(135deg, rgba(197,165,90,0.10) 0%, rgba(197,165,90,0.03) 100%);
+      color: #C5A55A;
+    }
+    .mode-btn.active::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 20%;
+      width: 2px;
+      height: 60%;
+      background: linear-gradient(180deg, #C5A55A, rgba(197,165,90,0.3));
+      border-radius: 0 2px 2px 0;
+    }
+    .mode-btn svg { transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+    .mode-btn:hover svg { transform: scale(1.08); }
+
+    /* ── 金色光晕（选中态用） ── */
+    .gold-ring {
+      box-shadow: 0 0 0 1px rgba(197,165,90,0.25), 0 0 20px rgba(197,165,90,0.06);
+    }
+
+    /* ── 柔滑阴影 ── */
+    .shadow-panel { box-shadow: 0 4px 24px rgba(0,0,0,0.25), 0 1px 4px rgba(0,0,0,0.15); }
+    .shadow-float { box-shadow: 0 8px 32px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.15); }
+    .shadow-button { box-shadow: 0 2px 8px rgba(0,0,0,0.20); }
+
+    /* ── 印章 ── */
+    .chop-seal {
+      width: 32px;
+      height: 32px;
+      border: 1.5px solid rgba(184, 76, 69, 0.7);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Noto Serif SC', serif;
+      font-size: 12px;
+      color: rgba(184, 76, 69, 0.8);
+      transform: rotate(-2deg);
+      flex-shrink: 0;
+      letter-spacing: -0.02em;
+    }
+
+    /* ── 分隔线 ── */
+    .divider-h {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(40, 43, 51, 0.8), transparent);
+    }
+
+    /* ── 自定义滚动条 ── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-thumb { background: #282B33; border-radius: 2px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+
+    /* ── 金线分割 ── */
+    .gold-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(197,165,90,0.12), transparent);
+    }
+
+    /* ── 选中指示器动画 ── */
+    .active-indicator {
+      animation: indicatorIn 0.4s ease-out forwards;
+    }
+    @keyframes indicatorIn {
+      from { transform: scaleY(0); opacity: 0; }
+      to { transform: scaleY(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    /* ─── 图标集（手工精修，笔触有起笔收笔感） ─── */
+    const Icons = {
+      workflow:       (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><path d="M10 6.5 h4" opacity="0.6"/><path d="M17.5 10 v4" opacity="0.6"/><rect x="14" y="14" width="7" height="7" rx="1.2"/><path d="M6.5 10 v7 H10" opacity="0.6"/></svg>,
+      gitBranch:      (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9 a9 9 0 0 1 -9 9"/></svg>,
+      bot:            (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="8" width="16" height="12" rx="2.5"/><path d="M9 8 v-2 a3 3 0 0 1 6 0 v2"/><circle cx="9" cy="14" r="1.5" fill="currentColor" opacity="0.7"/><circle cx="15" cy="14" r="1.5" fill="currentColor" opacity="0.7"/></svg>,
+      messageSquare:  (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15 a2 2 0 0 1 -2 2 H7 l-4 4 V5 a2 2 0 0 1 2 -2 h14 a2 2 0 0 1 2 2 z"/></svg>,
+      settings:       (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1 v2 M12 21 v2 M4.22 4.22 l1.42 1.42 M18.36 18.36 l1.42 1.42 M1 12 h2 M21 12 h2 M4.22 19.78 l1.42 -1.42 M18.36 5.64 l1.42 -1.42" opacity="0.5"/></svg>,
+      helpCircle:     (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9 a3 3 0 0 1 5.83 1 c0 2 -3 3 -3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+      bell:           (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8 A6 6 0 0 0 6 8 c0 7 -3 9 -3 9 h18 s-3 -2 -3 -9"/><path d="M13.73 21 a2 2 0 0 1 -3.46 0"/></svg>,
+      cpu:            (s=16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/></svg>,
+      coins:          (s=16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="8" r="7"/><path d="M19.5 9 a7 7 0 1 0 0 10 a7 7 0 0 0 0 -10 z"/></svg>,
+      user:           (s=20) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21 v-2 a4 4 0 0 0 -4 -4 H8 a4 4 0 0 0 -4 4 v2"/><circle cx="12" cy="7" r="4"/></svg>,
+      plus:           (s=16) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+      dot:            (s=8)  => <svg width={s} height={s} viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="3"/></svg>,
+    };
+
+    /* ─── Mode 定义 ─── */
+    const MODES = [
+      { id: 'workflow',  label: 'Workflow',  icon: 'workflow' },
+      { id: 'templates', label: 'Templates', icon: 'gitBranch' },
+      { id: 'agents',    label: 'Agents',    icon: 'bot' },
+      { id: 'single',    label: 'Single',    icon: 'messageSquare' },
+      { id: 'settings',  label: 'Settings',  icon: 'settings' },
+    ];
+
+    /* ─── 组件：ModeRail ─── */
+    function ModeRail({ active, onChange }) {
+      return (
+        <nav className="w-[72px] h-full bg-surface border-r border-border flex flex-col items-center py-5 shrink-0 relative cloud-moire"
+        >
+          {/* 顶部印章 */}
+          <div className="chop-seal mb-8" style={{ animation: 'sealIn 0.6s ease-out forwards' }}>墨</div>
+
+          {/* 模式按钮 */}
+          <div className="flex-1 flex flex-col gap-1.5 w-full px-2.5">
+            {MODES.map((m) => {
+              const isActive = active === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => onChange(m.id)}
+                  className={`mode-btn ${isActive ? 'active' : ''}`}
+                  title={m.label}
+                >
+                  <span className={`p-2 rounded-lg transition-all duration-300 ${isActive ? 'bg-gold/8 text-gold' : ''}`}>
+                    {Icons[m.icon](20)}
+                  </span>
+                  <span className={`text-[9px] font-medium tracking-wider mt-0.5 transition-colors duration-300 ${isActive ? 'text-gold' : 'text-muted'}`}>
+                    {m.label.slice(0, 4)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 底部帮助 */}
+          <div className="mt-auto pt-4 w-12">
+            <div className="divider-h mb-4 opacity-50" />
+            <button className="w-full aspect-square rounded-lg flex items-center justify-center text-muted hover:text-text hover:bg-float transition-all cursor-pointer"
+              title="帮助"
+            >
+              {Icons.helpCircle(18)}
+            </button>
+          </div>
+        </nav>
+      );
+    }
+
+    /* ─── 组件：StatusChip ─── */
+    function StatusChip({ icon, label, value, pulse }) {
+      return (
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-float/60 border border-border/60 text-[11px] text-muted leading-none">
+          {pulse && (
+            <span className="relative flex w-2 h-2">
+              <span className="animate-ping absolute inline-flex w-full h-full rounded-full bg-jade opacity-30"></span>
+              <span className="relative inline-flex w-2 h-2 rounded-full bg-jade"></span>
+            </span>
+          )}
+          {icon && <span className="opacity-60">{icon}</span>}
+          {label && <span>{label}</span>}
+          {value && <span className="text-text font-medium">{value}</span>}
+        </div>
+      );
+    }
+
+    /* ─── 组件：Header ─── */
+    function Header() {
+      return (
+        <header className="h-[52px] bg-surface/90 backdrop-blur-lg border-b border-border flex items-center justify-between px-5 shrink-0 relative z-10"
+        >
+          {/* 左侧 Brand */}
+          <div className="flex items-center gap-3">
+            <h1 className="font-display text-lg font-semibold text-gold tracking-wider" style={{ textShadow: '0 0 20px rgba(197,165,90,0.1)' }}>
+              Agent Studio
+            </h1>
+            <span className="h-3 w-px bg-border/60" />
+            <span className="text-[11px] text-muted font-display italic tracking-wide">墨垣</span>
+          </div>
+
+          {/* 右侧状态区 */}
+          <div className="flex items-center gap-3">
+            <StatusChip
+              pulse
+              label="Claude CLI"
+              value="就绪"
+            />
+            <div className="flex items-center gap-2.5">
+              <StatusChip icon={Icons.cpu(14)} value="12" label="runs" />
+              <StatusChip icon={Icons.coins(14)} value="$2.41" />
+            </div>
+
+            <span className="w-px h-5 bg-border/60" />
+
+            <button className="relative w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-text hover:bg-float transition-all">
+              {Icons.bell(18)}
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-error" />
+            </button>
+
+            <button className="w-8 h-8 rounded-lg bg-gradient-to-br from-gold/15 to-jade/10 border border-gold/20 flex items-center justify-center text-[11px] font-display text-gold/80 hover:border-gold/40 hover:text-gold transition-all">
+              Z
+            </button>
+          </div>
+        </header>
+      );
+    }
+
+    /* ─── 组件：EmptyWorkspace ─── */
+    function EmptyWorkspace({ mode }) {
+      const labels = {
+        workflow:  '工作流运行',
+        templates: '工作流模板',
+        agents:    'Agent 管理',
+        single:    '单次对话',
+        settings:  '系统设置',
+      };
+      const subtitles = {
+        workflow:  '启动、监控、审查历史运行',
+        templates: '可视化编排多 Agent 工作流',
+        agents:    '定义和管理 AI Agent 的配置',
+        single:    '快速和单个 Agent 对话',
+        settings:  'CLI / API / 数据 / 通知',
+      };
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden cloud-moire"
+        >
+          {/* 背景晕染 */}
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            <svg className="w-full h-full opacity-[0.03]">
+              <defs>
+                <radialGradient id="g1" cx="30%" cy="30%" r="50%">
+                  <stop offset="0%" stopColor="#C5A55A" stopOpacity="0.5"/>
+                  <stop offset="100%" stopColor="#C5A55A" stopOpacity="0"/>
+                </radialGradient>
+                <radialGradient id="g2" cx="70%" cy="70%" r="50%">
+                  <stop offset="0%" stopColor="#5A7D5E" stopOpacity="0.3"/>
+                  <stop offset="100%" stopColor="#5A7D5E" stopOpacity="0"/>
+                </radialGradient>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#g1)"/>
+              <rect width="100%" height="100%" fill="url(#g2)"/>
+            </svg>
+          </div>
+
+          {/* 装饰山水几何 */}
+          <div className="relative mb-10 opacity-30">
+            <svg width="200" height="120" viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M0 120 L30 72 L60 90 L100 40 L140 80 L180 32 L200 50 L200 120 Z"
+                stroke="#C5A55A" strokeWidth="0.8" strokeOpacity="0.3" fill="#C5A55A" fillOpacity="0.03"/>
+              <path d="M20 120 L50 82 L80 100 L110 55 L150 95 L180 52 L200 70 L200 120 Z"
+                stroke="#C5A55A" strokeWidth="0.5" strokeOpacity="0.15" fill="none"/>
+              <circle cx="170" cy="30" r="14" stroke="#C5A55A" strokeWidth="0.6" strokeOpacity="0.2" fill="#C5A55A" fillOpacity="0.03"/>
+              <circle cx="170" cy="30" r="6" fill="#C5A55A" fillOpacity="0.08"/>
+            </svg>
+          </div>
+
+          {/* 主文案 */}
+          <h2 className="font-display text-2xl text-text tracking-wide mb-2"
+            style={{ textShadow: '0 0 30px rgba(230,221,208,0.08)' }}>
+            {labels[mode]}
+          </h2>
+          <p className="text-sm text-muted/80 mb-7 tracking-wide">{subtitles[mode]}</p>
+
+          {/* CTA */}
+          <button className="group relative px-5 py-2.5 rounded-lg bg-gold/8 border border-gold/30 text-gold text-sm font-medium overflow-hidden transition-all duration-300 hover:bg-gold/15 hover:border-gold/50 hover:shadow-[0_0_20px_rgba(197,165,90,0.12)] active:scale-[0.98]"
+          >
+            <span className="relative z-10 flex items-center gap-2">
+              {Icons.plus(16)}
+              创建 {labels[mode]}
+            </span>
+            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-gold/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+          </button>
+
+          {/* 底部提示 */}
+          <p className="absolute bottom-8 text-[11px] text-muted/40 tracking-wide">
+            从左侧模式导航选择不同的工作区
+          </p>
+        </div>
+      );
+    }
+
+    /* ─── 主应用 ─── */
+    function App() {
+      const [mode, setMode] = useState('workflow');
+
+      return (
+        <div className="h-screen w-screen flex flex-col bg-base overflow-hidden select-none">
+          <Header />
+          <div className="flex-1 flex overflow-hidden">
+            <ModeRail active={mode} onChange={setMode} />
+            <main className="flex-1 bg-base relative overflow-hidden">
+              <EmptyWorkspace mode={mode} />
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

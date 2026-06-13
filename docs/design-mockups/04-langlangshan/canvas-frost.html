@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — Canvas — 山色 · 璃光</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            /* 山夜底色 */
+            deep:  '#1A1816',
+            deep2: '#201E1C',
+            /* 玻璃面板 */
+            glass: 'rgba(30, 28, 26, 0.72)',
+            'glass-border': 'rgba(255, 255, 255, 0.06)',
+            'glass-hover': 'rgba(40, 38, 35, 0.8)',
+            /* 山野暖色 */
+            earth: '#B87A4A',
+            'earth-light': '#D49A6A',
+            'earth-soft': 'rgba(184, 122, 74, 0.12)',
+            forest: '#5A7A6A',
+            'forest-light': '#7A9A8A',
+            clay: '#C4705A',
+            'clay-soft': 'rgba(196, 112, 90, 0.12)',
+            /* 文字 */
+            text: '#E8E0D0',
+            muted: '#9A9288',
+            faint: '#6A6258',
+          },
+          fontFamily: {
+            display: ['"Noto Serif SC"', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          animation: {
+            'wave-drift': 'waveDrift 8s ease-in-out infinite',
+            'wave-drift-2': 'waveDrift2 12s ease-in-out infinite',
+            'ripple': 'ripple 0.8s ease-out',
+            'glass-shimmer': 'glassShimmer 6s ease-in-out infinite',
+            'pulse-glow': 'pulseGlow 4s ease-in-out infinite',
+          },
+          keyframes: {
+            waveDrift: {
+              '0%, 100%': { transform: 'translateX(0) translateY(0)' },
+              '50%': { transform: 'translateX(30px) translateY(-8px)' },
+            },
+            waveDrift2: {
+              '0%, 100%': { transform: 'translateX(0) translateY(0)' },
+              '50%': { transform: 'translateX(-20px) translateY(6px)' },
+            },
+            ripple: {
+              '0%': { boxShadow: '0 0 0 0 rgba(184, 122, 74, 0.3)' },
+              '100%': { boxShadow: '0 0 0 20px rgba(184, 122, 74, 0)' },
+            },
+            glassShimmer: {
+              '0%, 100%': { backgroundPosition: '0% 50%' },
+              '50%': { backgroundPosition: '100% 50%' },
+            },
+            pulseGlow: {
+              '0%, 100%': { opacity: '0.5' },
+              '50%': { opacity: '1' },
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1A1816; color: #E8E0D0;
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── 水波背景 ── */
+    .wave-bg {
+      position: relative;
+      background: #1A1816;
+      overflow: hidden;
+    }
+    .wave-bg::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 70% 30%, rgba(184,122,74,0.04) 0%, transparent 50%),
+        radial-gradient(ellipse at 30% 70%, rgba(90,122,106,0.03) 0%, transparent 45%);
+      pointer-events: none;
+    }
+    .wave-svg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      opacity: 0.12;
+    }
+    .wave-svg path { fill: none; stroke-linecap: round; }
+
+    /* ── 磨砂玻璃面板 ── */
+    .frost {
+      background: rgba(30, 28, 26, 0.75);
+      backdrop-filter: blur(24px) saturate(1.3);
+      -webkit-backdrop-filter: blur(24px) saturate(1.3);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .frost-strong {
+      background: rgba(30, 28, 26, 0.85);
+      backdrop-filter: blur(28px) saturate(1.4);
+      -webkit-backdrop-filter: blur(28px) saturate(1.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .frost:hover {
+      background: rgba(40, 38, 35, 0.85);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    /* ── 画布网格（淡光点） ── */
+    .canvas-dots {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 36px 36px;
+    }
+
+    /* ── 节点玻璃卡 ── */
+    .node-frost {
+      border-radius: 14px;
+      background: rgba(30, 28, 26, 0.78);
+      backdrop-filter: blur(20px) saturate(1.25);
+      -webkit-backdrop-filter: blur(20px) saturate(1.25);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+      transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+    }
+    .node-frost:hover {
+      transform: translateY(-3px);
+      background: rgba(40, 38, 35, 0.85);
+      border-color: rgba(255, 255, 255, 0.10);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    }
+    .node-frost.selected {
+      border-color: rgba(184, 122, 74, 0.4);
+      background: rgba(40, 38, 35, 0.85);
+      box-shadow: 0 0 0 1.5px rgba(184, 122, 74, 0.15), 0 12px 48px rgba(0, 0, 0, 0.35);
+    }
+    /* 选中时的光晕 */
+    .node-frost.selected::before {
+      content: '';
+      position: absolute; inset: -2px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(184,122,74,0.08), transparent, rgba(90,122,106,0.05));
+      pointer-events: none;
+    }
+
+    /* ── 玻璃发光边框（节点内部装饰） ── */
+    .node-glow-line {
+      position: absolute; top: 0; left: 20%; right: 20%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    }
+
+    /* ── 按钮 ── */
+    .btn-glass {
+      padding: 6px 14px; border-radius: 10px; font-size: 12px;
+      color: #9A9288; cursor: pointer; transition: all 0.25s;
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .btn-glass:hover {
+      background: rgba(255,255,255,0.06);
+      color: #E8E0D0;
+    }
+
+    .btn-primary-glass {
+      padding: 7px 18px; border-radius: 10px; font-size: 12px; font-weight: 500;
+      background: rgba(184, 122, 74, 0.2);
+      border: 1px solid rgba(184, 122, 74, 0.25);
+      color: #D49A6A; cursor: pointer;
+      transition: all 0.25s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary-glass:hover {
+      background: rgba(184, 122, 74, 0.3);
+      border-color: rgba(184, 122, 74, 0.4);
+      box-shadow: 0 0 20px rgba(184, 122, 74, 0.08);
+    }
+
+    .connector-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      border: 2px solid rgba(30, 28, 26, 0.9);
+      position: absolute;
+    }
+
+    /* ── 滚动条 ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+    /* ── 发光文字 ── */
+    .text-glow { text-shadow: 0 0 20px rgba(232, 224, 208, 0.04); }
+
+    /* ── 水波光效 ── */
+    .ripple-effect {
+      animation: ripple 0.8s ease-out;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    /* ─── 图标 ─── */
+    const I = {
+      branch(s=16) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9 a9 9 0 0 1 -9 9"/></svg>; },
+      save(s=15) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>; },
+      bot(s=17) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M9 8 v-2 a3 3 0 0 1 6 0 v2"/><circle cx="9" cy="14" r="1.5" fill="currentColor" opacity="0.5"/><circle cx="15" cy="14" r="1.5" fill="currentColor" opacity="0.5"/></svg>; },
+      search(s=13) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21 l-4.35-4.35"/></svg>; },
+      plus(s=14) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>; },
+      undo(s=14) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0 -9 -9 9 9 0 0 0 -6 2.3 L3 13"/></svg>; },
+      zoomin(s=13) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6M21 21l-4.35-4.35"/></svg>; },
+      zoomout(s=13) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M21 21l-4.35-4.35"/></svg>; },
+      cd(s=11) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>; },
+      layout(s=14) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>; },
+      play(s=14) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>; },
+    };
+
+    const AGENTS = [
+      { id: 'architect', name: 'Architect', role: '架构师', vendor: 'claude', model: 'Sonnet 4.6', color: '#B87A4A', x: 80, y: 80 },
+      { id: 'coder',     name: 'Coder',     role: '编码者', vendor: 'codex',  model: 'codex-1',    color: '#5A7A6A', x: 320, y: 80 },
+      { id: 'reviewer',  name: 'Reviewer',  role: '审查员', vendor: 'claude', model: 'Haiku 4.5',  color: '#C4705A', x: 320, y: 220 },
+      { id: 'tester',    name: 'Tester',    role: '测试员', vendor: 'api',    model: 'DeepSeek',   color: '#7A7A6A', x: 320, y: 360 },
+      { id: 'docwriter', name: 'DocWriter', role: '文档员', vendor: 'claude', model: 'Sonnet 4.6', color: '#A0806A', x: 580, y: 220 },
+    ];
+
+    /* ─── 水波 SVG 背景 ─── */
+    function WaveSVG() {
+      return (
+        <svg className="wave-svg" viewBox="0 0 800 600" preserveAspectRatio="none">
+          {/* 第一层波 - 最淡 */}
+          <path d="M0 350 Q 100 330 200 350 T 400 350 T 600 350 T 800 350"
+            stroke="#B87A4A" strokeWidth="0.8" opacity="0.15" fill="none"
+            className="animate-wave-drift" style={{ animationDelay: '0s' }}
+          />
+          <path d="M0 370 Q 100 390 200 370 T 400 370 T 600 370 T 800 370"
+            stroke="#B87A4A" strokeWidth="0.6" opacity="0.10" fill="none"
+            className="animate-wave-drift" style={{ animationDelay: '-2s' }}
+          />
+          {/* 第二层波 */}
+          <path d="M0 250 Q 150 230 300 250 T 600 250 T 800 250"
+            stroke="#5A7A6A" strokeWidth="0.7" opacity="0.12" fill="none"
+            className="animate-wave-drift-2" style={{ animationDelay: '-1s' }}
+          />
+          <path d="M0 270 Q 150 290 300 270 T 600 270 T 800 270"
+            stroke="#5A7A6A" strokeWidth="0.5" opacity="0.08" fill="none"
+            className="animate-wave-drift-2" style={{ animationDelay: '-3s' }}
+          />
+          {/* 第三层波 - 最远处 */}
+          <path d="M0 150 Q 80 140 160 150 T 320 150 T 480 150 T 640 150 T 800 150"
+            stroke="#C4705A" strokeWidth="0.5" opacity="0.08" fill="none"
+            className="animate-wave-drift" style={{ animationDelay: '-4s' }}
+          />
+          {/* 涟漪圆点 */}
+          <circle cx="200" cy="300" r="40" fill="none" stroke="#B87A4A" strokeWidth="0.4" opacity="0.06"
+            className="animate-pulse-glow" />
+          <circle cx="600" cy="200" r="30" fill="none" stroke="#5A7A6A" strokeWidth="0.4" opacity="0.05"
+            className="animate-pulse-glow" style={{ animationDelay: '-2s' }} />
+        </svg>
+      );
+    }
+
+    /* ─── 工具栏 ─── */
+    function Toolbar() {
+      return (
+        <div className="frost-strong" style={{
+          height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 16px', flexShrink: 0, zIndex: 10,
+          borderBottom: '1px solid rgba(255,255,255,0.04)',
+        }}>
+          <div className="flex items-center gap-3">
+            <div style={{ fontFamily: '"Noto Serif SC", serif', fontSize: 14, fontWeight: 600, color: '#B87A4A', letterSpacing: '0.03em' }}>
+              Agent Studio
+            </div>
+            <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.06)' }} />
+            <div className="flex items-center gap-1">
+              <span className="btn-glass">{I.save(15)}</span>
+              <span className="btn-glass">{I.undo(14)}</span>
+              <span className="btn-glass">{I.layout(14)}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <span className="btn-glass">{I.zoomout(13)}</span>
+            <span style={{ fontSize: 11, color: '#6A6258', width: 36, textAlign: 'center' }}>100%</span>
+            <span className="btn-glass">{I.zoomin(13)}</span>
+            <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.06)' }} />
+            <button className="btn-primary-glass">{I.play(14)} 执行</button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── 侧边栏 ─── */
+    function Sidebar({ selected, onSelect }) {
+      return (
+        <aside className="frost" style={{
+          width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column',
+          borderRight: '1px solid rgba(255,255,255,0.04)', borderLeft: 'none', borderTop: 'none', borderBottom: 'none',
+        }}>
+          <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#6A6258', letterSpacing: '0.08em' }}>AGENTS</span>
+              <button style={{ color: '#6A6258', cursor: 'pointer', padding: 2 }} className="hover:text-text">{I.plus(14)}</button>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#6A6258' }}>{I.search(13)}</div>
+              <input placeholder="搜索 Agent..." style={{
+                width: '100%', padding: '7px 10px 7px 28px',
+                background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 10,
+                fontSize: 12, color: '#E8E0D0', outline: 'none',
+              }} />
+            </div>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: '6px 8px' }}>
+            {AGENTS.map(a => {
+              const isActive = selected === 'n' + a.id;
+              return (
+                <div key={a.id}
+                  onClick={() => onSelect('n' + a.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '9px 10px', borderRadius: 12, marginBottom: 2,
+                    cursor: 'pointer',
+                    background: isActive ? 'rgba(184,122,74,0.08)' : 'transparent',
+                    border: `1px solid ${isActive ? 'rgba(184,122,74,0.15)' : 'transparent'}`,
+                    transition: 'all 0.25s',
+                  }}>
+                  <div style={{
+                    width: 34, height: 34, borderRadius: 10,
+                    background: a.color + '15', border: '1px solid ' + a.color + '20',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: a.color,
+                  }}>{I.bot(17)}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#E8E0D0' }}>{a.name}</div>
+                    <div style={{ fontSize: 10, color: '#6A6258', marginTop: 1 }}>{a.role} · {a.model}</div>
+                  </div>
+                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: a.color, opacity: isActive ? 0.7 : 0.25 }} />
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+      );
+    }
+
+    /* ─── 节点 ─── */
+    function NodeCard({ id, agent, selected, onClick }) {
+      return (
+        <div onClick={() => onClick(id)} className={`node-frost ${selected === id ? 'selected' : ''}`}
+          style={{ position: 'absolute', left: agent.x, top: agent.y, width: 190, zIndex: 2 }}
+        >
+          {/* 顶部发光线条 */}
+          <div className="node-glow-line" />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: agent.color + '15',
+              border: '1px solid ' + agent.color + '20',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: agent.color,
+            }}>{I.bot(16)}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#E8E0D0', lineHeight: 1.3 }}>{agent.name}</div>
+              <div style={{ fontSize: 10, color: '#6A6258', marginTop: 1 }}>{agent.model}</div>
+            </div>
+          </div>
+          <div style={{ padding: '8px 14px 10px', fontSize: 11, color: '#9A9288', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              background: agent.color + '12', padding: '1px 7px', borderRadius: 4,
+              color: agent.color, fontSize: 9, fontWeight: 500, border: '1px solid ' + agent.color + '15',
+            }}>{agent.vendor}</span>
+            {agent.role}
+          </div>
+
+          {/* 连接端点 */}
+          <div className="connector-dot" style={{ right: -5, top: '50%', transform: 'translateY(-50%)', background: agent.color, boxShadow: '0 0 6px ' + agent.color + '50' }} />
+          <div className="connector-dot" style={{ left: -5, top: '50%', transform: 'translateY(-50%)', background: agent.color, boxShadow: '0 0 6px ' + agent.color + '50' }} />
+        </div>
+      );
+    }
+
+    /* ─── 画布 ─── */
+    function Canvas({ selected, onSelect }) {
+      return (
+        <div className="flex-1 relative overflow-hidden wave-bg canvas-dots">
+          <WaveSVG />
+
+          {/* SVG 发光连线 */}
+          <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1, pointerEvents: 'none' }}>
+            <defs>
+              {[
+                ['#B87A4A', '#5A7A6A'], ['#B87A4A', '#C4705A'], ['#B87A4A', '#7A7A6A'],
+                ['#5A7A6A', '#A0806A'], ['#C4705A', '#A0806A'], ['#7A7A6A', '#A0806A'],
+              ].map(([c1, c2], i) => (
+                <linearGradient key={i} id={`eg${i}`} x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor={c1} stopOpacity="0.3"/>
+                  <stop offset="100%" stopColor={c2} stopOpacity="0.3"/>
+                </linearGradient>
+              ))}
+            </defs>
+            {[
+              ['architect', 'coder', 0], ['architect', 'reviewer', 1], ['architect', 'tester', 2],
+              ['coder', 'docwriter', 3], ['reviewer', 'docwriter', 4], ['tester', 'docwriter', 5],
+            ].map(([f, t, i]) => {
+              const from = AGENTS.find(a => a.id === f); const to = AGENTS.find(a => a.id === t);
+              if (!from || !to) return null;
+              const x1 = from.x + 190, y1 = from.y + 48, x2 = to.x, y2 = to.y + 48;
+              return (
+                <g key={i}>
+                  {/* 发光底层 */}
+                  <path d={`M ${x1} ${y1} C ${(x1+x2)/2} ${y1}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}`}
+                    fill="none" stroke={`url(#eg${i})`} strokeWidth="4" strokeLinecap="round" opacity="0.3"
+                    filter="blur(3px)" />
+                  {/* 线本身 */}
+                  <path d={`M ${x1} ${y1} C ${(x1+x2)/2} ${y1}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}`}
+                    fill="none" stroke={`url(#eg${i})`} strokeWidth="1.5" strokeLinecap="round" />
+                </g>
+              );
+            })}
+          </svg>
+
+          {/* 并行组 */}
+          <div style={{
+            position: 'absolute', left: 290, top: 150, width: 250, height: 290, zIndex: 0,
+            border: '1.5px dashed rgba(255,255,255,0.06)', borderRadius: 16,
+            background: 'rgba(255,255,255,0.015)',
+          }}>
+            <div style={{
+              position: 'absolute', top: -8, left: 16, padding: '0 10px',
+              background: '#1A1816', fontSize: 10, color: '#6A6258',
+            }}>并行执行</div>
+          </div>
+
+          {/* 节点 */}
+          {AGENTS.map(a => (
+            <NodeCard key={'n' + a.id} id={'n' + a.id} agent={a} selected={selected} onClick={onSelect} />
+          ))}
+
+          {/* 玻璃小地图 */}
+          <div className="frost" style={{
+            position: 'absolute', bottom: 16, right: 16, zIndex: 5,
+            width: 136, borderRadius: 12, padding: 10,
+          }}>
+            <div style={{ fontSize: 8, color: '#6A6258', letterSpacing: '0.1em', marginBottom: 6 }}>MINIMAP</div>
+            <div style={{ position: 'relative', height: 48, background: 'rgba(0,0,0,0.15)', borderRadius: 6, overflow: 'hidden' }}>
+              {AGENTS.map(a => (
+                <div key={a.id} style={{
+                  position: 'absolute', left: a.x * 0.14 + 8, top: a.y * 0.09 + 6,
+                  width: 14, height: 10, borderRadius: 3,
+                  background: a.color,
+                  opacity: selected === 'n' + a.id ? 0.7 : 0.2,
+                  transition: 'opacity 0.3s',
+                }} />
+              ))}
+            </div>
+          </div>
+
+          {/* 底部水印 */}
+          <div style={{
+            position: 'absolute', bottom: 18, left: '50%', transform: 'translateX(-50%)',
+            fontSize: 10, color: 'rgba(255,255,255,0.04)', letterSpacing: '0.15em', zIndex: 5,
+          }}>
+            拖拽 Agent 到画布 · 连线编排工作流
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── 属性面板 ─── */
+    function PropertyPanel({ selected }) {
+      const agent = selected ? AGENTS.find(a => 'n' + a.id === selected) : null;
+      return (
+        <aside className="frost" style={{
+          width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column',
+          borderLeft: '1px solid rgba(255,255,255,0.04)',
+        }}>
+          <div style={{ padding: '16px 16px 14px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: '#6A6258', letterSpacing: '0.08em' }}>PROPERTIES</span>
+          </div>
+          {agent ? (
+            <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: agent.color + '15', border: '1px solid ' + agent.color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', color: agent.color }}>{I.bot(19)}</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#E8E0D0' }}>{agent.name}</div>
+                  <div style={{ fontSize: 10, color: '#6A6258', marginTop: 1 }}>{agent.role}</div>
+                </div>
+              </div>
+              {[
+                { label: 'Agent', value: agent.name },
+                { label: '步骤名称', value: agent.role },
+                { label: '模型覆盖', value: agent.model },
+              ].map(f => (
+                <div key={f.label} style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, color: '#6A6258', marginBottom: 4 }}>{f.label}</div>
+                  <div style={{
+                    padding: '7px 10px', borderRadius: 10,
+                    background: 'rgba(0,0,0,0.2)',
+                    border: '1px solid rgba(255,255,255,0.04)',
+                    fontSize: 12, color: '#E8E0D0',
+                  }}>{f.value}</div>
+                </div>
+              ))}
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#6A6258', letterSpacing: '0.08em', marginBottom: 12 }}>步骤规则</div>
+                {['On Error', 'On Done'].map(label => (
+                  <div key={label} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 10, color: '#6A6258', marginBottom: 3 }}>{label}</div>
+                    <div style={{
+                      padding: '6px 10px', borderRadius: 10,
+                      background: 'rgba(0,0,0,0.2)',
+                      border: '1px solid rgba(255,255,255,0.04)',
+                      fontSize: 12, color: '#E8E0D0',
+                    }}>{label === 'On Error' ? 'stop' : 'continue'}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#6A6258', letterSpacing: '0.08em', marginBottom: 6 }}>PROMPT 模板</div>
+                <textarea defaultValue={`你正在执行 ${agent.role} 步骤。\n\n上下文：{{memory}}`}
+                  style={{
+                    width: '100%', height: 80, padding: 10, borderRadius: 10,
+                    background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.04)',
+                    fontSize: 11, fontFamily: '"JetBrains Mono", monospace',
+                    color: '#E8E0D0', outline: 'none', resize: 'none',
+                  }} />
+              </div>
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#6A6258', padding: 20 }}>
+              <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.2 }}>◌</div>
+              <div style={{ fontSize: 11 }}>选择一个节点以编辑属性</div>
+            </div>
+          )}
+        </aside>
+      );
+    }
+
+    /* ─── ModeRail ─── */
+    function ModeRail() {
+      const modes = ['workflow', 'templates', 'agents', 'single', 'settings'];
+      return (
+        <nav className="frost" style={{
+          width: 56, display: 'flex', flexDirection: 'column', alignItems: 'center',
+          paddingTop: 20, flexShrink: 0,
+          borderRight: '1px solid rgba(255,255,255,0.04)', borderLeft: 'none', borderTop: 'none', borderBottom: 'none',
+        }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(184,122,74,0.2)', border: '1px solid rgba(184,122,74,0.2)', color: '#B87A4A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontFamily: '"Noto Serif SC", serif', fontWeight: 700, marginBottom: 24 }}>山</div>
+          {modes.map((m, i) => (
+            <button key={m} style={{
+              width: 36, height: 36, borderRadius: 10, marginBottom: 4,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: i === 1 ? '#B87A4A' : '#5A5248',
+              background: i === 1 ? 'rgba(184,122,74,0.06)' : 'transparent',
+              border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+            }} className={i === 1 ? '' : 'hover:bg-glass-hover hover:text-muted'}>
+              {I.bot(18)}
+            </button>
+          ))}
+        </nav>
+      );
+    }
+
+    /* ─── App ─── */
+    function App() {
+      const [selected, setSelected] = useState('n2');
+      return (
+        <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: '#1A1816', overflow: 'hidden' }}>
+          <Toolbar />
+          <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            <ModeRail />
+            <Sidebar selected={selected} onSelect={setSelected} />
+            <Canvas selected={selected} onSelect={setSelected} />
+            <PropertyPanel selected={selected} />
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

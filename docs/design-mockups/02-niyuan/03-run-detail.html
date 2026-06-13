@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — Run Detail — 霓渊</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'ny-bg': '#0A0A0F',
+            'ny-surface': '#12121A',
+            'ny-float': '#1A1A2E',
+            'ny-border': '#2A2A40',
+            'ny-pink': '#FF006E',
+            'ny-cyan': '#00F0FF',
+            'ny-purple': '#B367FF',
+            'ny-green': '#00FF88',
+            'ny-text': '#E0E0F0',
+            'ny-muted': '#7B7B9A',
+            'ny-error': '#FF3355'
+          },
+          fontFamily: {
+            'display': ['Orbitron', 'sans-serif'],
+            'sans': ['Inter', 'system-ui', 'sans-serif'],
+            'mono': ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background: #0A0A0F; color: #E0E0F0; font-family: 'Inter', sans-serif; }
+    .crt-grid {
+      background-image:
+        linear-gradient(rgba(0, 240, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .scanline {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.12), transparent);
+      animation: scan 5s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100vh); } }
+    .chip-running { box-shadow: 0 0 10px rgba(255, 0, 110, 0.4), inset 0 0 8px rgba(255,0,110,0.1); }
+    .pulse-dot { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .clip-corner { clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px)); }
+    .clip-corner-sm { clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px)); }
+    .terminal-text { text-shadow: 0 0 5px rgba(0, 255, 136, 0.3); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #2A2A40; border-radius: 0; }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden">
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const Icon = ({ name, size = 16, className = '' }) => {
+      const icons = {
+        workflow: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><path d="M10 6.5h4M10 6.5v4M17.5 10v4M6.5 10v7H10"/></svg>,
+        bot: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M9 8V6a3 3 0 016 0v2"/><circle cx="9" cy="14" r="1.5" fill="currentColor"/><circle cx="15" cy="14" r="1.5" fill="currentColor"/></svg>,
+        search: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>,
+        filter: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
+        plus: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M12 5v14M5 12h14"/></svg>,
+        edit: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+        chevronDown: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M6 9l6 6 6-6"/></svg>,
+        check: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><polyline points="20 6 9 17 4 12"/></svg>,
+        x: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M18 6L6 18M6 6l12 12"/></svg>,
+        file: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+        gitBranch: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>,
+        settings: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      };
+      return icons[name] || null;
+    };
+
+    const runs = [
+      { id: 1, name: 'Refactor auth module', status: 'running', time: '14:32', tokens: '12.4k', cost: '$0.42' },
+      { id: 2, name: 'Update API docs', status: 'completed', time: '13:10', tokens: '8.1k', cost: '$0.28' },
+      { id: 3, name: 'Fix CI pipeline', status: 'error', time: '11:45', tokens: '4.2k', cost: '$0.15' },
+      { id: 4, name: 'Add unit tests', status: 'aborted', time: '10:22', tokens: '2.1k', cost: '$0.07' },
+      { id: 5, name: 'Optimize queries', status: 'awaiting-input', time: '09:55', tokens: '6.7k', cost: '$0.21' }
+    ];
+
+    const steps = [
+      { id: 1, label: 'ARCHITECT', status: 'done' },
+      { id: 2, label: 'CODER', status: 'running' },
+      { id: 3, label: 'REVIEWER', status: 'pending' },
+      { id: 4, label: 'TESTER', status: 'pending' },
+      { id: 5, label: 'DOC', status: 'pending' }
+    ];
+
+    const transcripts = [
+      { type: 'tool', agent: 'Architect', content: 'analyze_project_structure → 发现 14 个相关文件', time: '14:32:01' },
+      { type: 'think', agent: 'Architect', content: '我需要先理解当前 auth 模块的依赖关系，再提出重构方案。', time: '14:32:03' },
+      { type: 'text', agent: 'Architect', content: '已生成重构计划：1) 提取 token 验证逻辑到 middleware；2) 统一错误码；3) 补充 refresh token 轮换。', time: '14:32:08' },
+      { type: 'handoff', agent: 'Architect → Coder', content: 'handoff 至 Coder 执行具体修改', time: '14:32:09' },
+      { type: 'tool', agent: 'Coder', content: 'edit_file src/auth/middleware.ts (+45, -12)', time: '14:32:12' },
+      { type: 'tool', agent: 'Coder', content: 'edit_file src/auth/token.ts (+88, -31)', time: '14:32:15' },
+      { type: 'text', agent: 'Coder', content: '正在应用第二处修改，预计还需要 2-3 步。', time: '14:32:18', live: true }
+    ];
+
+    const artifacts = [
+      { name: 'middleware.ts', type: 'ts', lines: '+45 -12' },
+      { name: 'token.ts', type: 'ts', lines: '+88 -31' },
+      { name: 'errors.ts', type: 'ts', lines: '+23 -0' }
+    ];
+
+    function StatusBadge({ status }) {
+      const styles = {
+        running: 'text-ny-pink border-ny-pink/50 bg-ny-pink/10',
+        completed: 'text-ny-green border-ny-green/50 bg-ny-green/10',
+        error: 'text-ny-error border-ny-error/50 bg-ny-error/10',
+        aborted: 'text-ny-muted border-ny-border bg-ny-float',
+        'awaiting-input': 'text-ny-cyan border-ny-cyan/50 bg-ny-cyan/10'
+      };
+      const labels = {
+        running: 'RUNNING', completed: 'DONE', error: 'ERROR', aborted: 'ABORTED', 'awaiting-input': 'AWAIT INPUT'
+      };
+      return (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border text-[10px] font-display tracking-wider ${styles[status]}`}>
+          {status === 'running' && <span className="w-1.5 h-1.5 bg-current pulse-dot"/>}
+          {labels[status]}
+        </span>
+      );
+    }
+
+    function StepChip({ step }) {
+      const statusStyles = {
+        done: 'border-ny-green text-ny-green bg-ny-green/10',
+        running: 'chip-running border-ny-pink text-ny-pink bg-ny-pink/10',
+        pending: 'border-ny-border text-ny-muted bg-ny-bg'
+      };
+      return (
+        <button className={`flex items-center gap-2 px-3 py-1.5 border text-[10px] font-display tracking-wider transition-all hover:brightness-110 ${statusStyles[step.status]}`}
+        >
+          <span className="w-4 h-4 border border-current flex items-center justify-center text-[9px]">
+            {step.status === 'done' ? '✓' : step.id}
+          </span>
+          {step.label}
+        </button>
+      );
+    }
+
+    function RunsList() {
+      const [selected, setSelected] = useState(1);
+      return (
+        <aside className="w-64 bg-ny-surface border-r border-ny-border flex flex-col shrink-0 relative">
+          <div className="scanline" />
+          <div className="p-3 border-b border-ny-border space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-display text-ny-muted tracking-widest">RUNS</span>
+              <button className="p-1 rounded text-ny-pink hover:bg-ny-pink/10"><Icon name="plus" size={14}/></button>
+            </div>
+            <div className="relative">
+              <Icon name="search" size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-ny-muted"/>
+              <input type="text" placeholder="搜索运行..." className="w-full bg-ny-bg border border-ny-border pl-7 pr-2 py-1 text-xs text-ny-text placeholder:text-ny-muted outline-none focus:border-ny-cyan font-mono clip-corner-sm"/>
+            </div>
+            <button className="flex items-center gap-1.5 text-[10px] text-ny-muted hover:text-ny-text font-display"><Icon name="filter" size={12}/> ALL STATUS</button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {runs.map(r => (
+              <div
+                key={r.id}
+                onClick={() => setSelected(r.id)}
+                className={`p-3 border cursor-pointer transition-all clip-corner-sm ${selected === r.id ? 'bg-ny-float border-ny-pink shadow-[0_0_15px_rgba(255,0,110,0.15)]' : 'bg-ny-bg border-ny-border hover:border-ny-cyan/50'}`}
+              >
+                <div className="flex items-start justify-between mb-1">
+                  <span className="text-sm text-ny-text font-medium truncate pr-2">{r.name}</span>
+                  <StatusBadge status={r.status} />
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-ny-muted font-mono">
+                  <span>{r.time}</span>
+                  <span>{r.tokens} · {r.cost}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+      );
+    }
+
+    function RunDetail() {
+      return (
+        <div className="flex-1 flex flex-col min-w-0 bg-ny-bg crt-grid relative">
+          <div className="scanline" style={{ animationDelay: '2s' }} />
+          <div className="h-14 border-b border-ny-border flex items-center justify-between px-4 shrink-0">
+            <div className="flex items-center gap-3">
+              <input defaultValue="Refactor auth module" className="bg-transparent text-ny-text font-medium text-sm border border-transparent hover:border-ny-border focus:border-ny-pink rounded-none px-2 py-1 outline-none w-56 font-display tracking-wider"/>
+              <StatusBadge status="running" />
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 text-[10px] font-mono text-ny-muted">
+                <span className="flex items-center gap-1">TOKENS: <strong className="text-ny-cyan">12.4k</strong></span>
+                <span className="flex items-center gap-1">COST: <strong className="text-ny-cyan">$0.42</strong></span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button className="px-3 py-1.5 border border-ny-error/50 text-ny-error text-[10px] font-display hover:bg-ny-error/10 clip-corner-sm">ABORT</button>
+                <button className="px-3 py-1.5 border border-ny-border text-ny-muted text-[10px] font-display hover:text-ny-text hover:bg-ny-float clip-corner-sm">RERUN</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-4 py-3 border-b border-ny-border flex items-center gap-2 overflow-x-auto">
+            {steps.map(s => <StepChip key={s.id} step={s} />)}
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="border border-ny-border bg-ny-surface overflow-hidden clip-corner">
+              <button className="w-full flex items-center justify-between px-4 py-2.5 bg-ny-float/50 text-[10px] text-ny-muted hover:text-ny-text font-display">
+                <span className="flex items-center gap-2"><Icon name="edit" size={13}/> CURRENT STEP PROMPT</span>
+                <Icon name="chevronDown" size={14}/>
+              </button>
+              <div className="p-4">
+                <pre className="text-xs text-ny-text font-mono leading-relaxed whitespace-pre-wrap terminal-text">{`你是一名资深 TypeScript 工程师。请根据 Architect 给出的方案重构 auth 模块。\n\n要求：\n- 保持现有 API 不变\n- 补充单元测试\n- 使用依赖注入解耦`}</pre>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-display text-ny-muted tracking-widest">TRANSCRIPT</span>
+                <div className="flex items-center gap-2">
+                  <Icon name="search" size={13} className="text-ny-muted"/>
+                  <input type="text" placeholder="搜索..." className="bg-ny-bg border border-ny-border px-2 py-1 text-xs text-ny-text outline-none focus:border-ny-cyan w-32 font-mono clip-corner-sm"/>
+                </div>
+              </div>
+              <div className="border border-ny-border bg-ny-surface p-3 space-y-3 clip-corner">
+                {transcripts.map((t, i) => (
+                  <div key={i} className="flex gap-3">
+                    <div className="w-16 shrink-0 text-[10px] text-ny-muted font-mono pt-0.5">{t.time}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[10px] px-1.5 py-0.5 border ${t.type === 'tool' ? 'border-ny-green/50 text-ny-green bg-ny-green/10' : t.type === 'think' ? 'border-ny-muted/50 text-ny-muted' : t.type === 'handoff' ? 'border-ny-pink/50 text-ny-pink bg-ny-pink/10' : 'border-ny-cyan/50 text-ny-cyan bg-ny-cyan/10'}`}
+                        >
+                          {t.type === 'tool' ? 'TOOL' : t.type === 'think' ? 'THINK' : t.type === 'handoff' ? 'HANDOFF' : 'TEXT'}
+                        </span>
+                        <span className="text-xs text-ny-pink font-medium font-display">{t.agent}</span>
+                      </div>
+                      <div className={`text-xs leading-relaxed ${t.live ? 'text-ny-text terminal-text' : 'text-ny-muted'}`}>
+                        {t.content}
+                        {t.live && <span className="inline-block w-1.5 h-3.5 bg-ny-pink ml-0.5 align-middle animate-pulse"/>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[10px] font-display text-ny-muted tracking-widest">ARTIFACTS</span>
+              <div className="flex gap-2">
+                {artifacts.map((a, i) => (
+                  <button key={i} className="group flex items-center gap-3 px-3 py-2 border border-ny-border bg-ny-surface hover:border-ny-cyan transition-all clip-corner-sm"
+                  >
+                    <div className="w-8 h-8 bg-ny-bg border border-ny-border flex items-center justify-center text-ny-cyan"><Icon name="file" size={16}/></div>
+                    <div className="text-left">
+                      <div className="text-xs text-ny-text font-medium font-display text-[10px]">{a.name}</div>
+                      <div className="text-[10px] text-ny-green font-mono">{a.lines}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="h-16 border-t border-ny-border bg-ny-surface px-4 flex items-center gap-3 shrink-0">
+            <div className="flex-1 relative">
+              <input type="text" placeholder="输入将继续发送给 Coder..." className="w-full bg-ny-bg border border-ny-border pl-4 pr-24 py-2.5 text-sm text-ny-text placeholder:text-ny-muted outline-none focus:border-ny-pink font-mono clip-corner-sm"/>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-ny-muted font-mono">ENTER</span>
+            </div>
+            <button className="px-5 py-2.5 bg-ny-pink/10 border border-ny-pink text-ny-pink text-sm font-display tracking-wider hover:bg-ny-pink/20 clip-corner-sm">SEND</button>
+          </div>
+        </div>
+      );
+    }
+
+    function PreviewPanel() {
+      const [tab, setTab] = useState('code');
+      return (
+        <aside className="w-80 bg-ny-surface border-l border-ny-border flex flex-col shrink-0 relative">
+          <div className="scanline" style={{ animationDelay: '4s' }} />
+          <div className="flex items-center justify-between px-3 py-2 border-b border-ny-border">
+            <div className="flex gap-1">
+              {['code', 'preview', 'diff'].map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-2.5 py-1 text-[10px] font-display tracking-wider transition-colors clip-corner-sm ${tab === t ? 'text-ny-pink bg-ny-pink/10' : 'text-ny-muted hover:text-ny-text hover:bg-ny-float'}`}
+                >
+                  {t.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <button className="text-ny-muted hover:text-ny-text"><Icon name="x" size={14}/></button>
+          </div>
+          <div className="flex-1 overflow-auto p-3">
+            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-ny-border">
+              <Icon name="file" size={14} className="text-ny-cyan"/>
+              <span className="text-xs text-ny-text font-medium font-display text-[10px]">token.ts</span>
+            </div>
+            <pre className="text-[11px] font-mono leading-5 text-ny-text terminal-text">{`export interface TokenConfig {
+  issuer: string;
+  audience: string;
+  rotationWindow: number;
+}
+
+export async function rotateRefreshToken(
+  oldToken: string,
+  config: TokenConfig
+): Promise<{ token: string; expiresAt: Date }> {
+  const payload = await verify(oldToken, config);
+  // ...
+}`}</pre>
+          </div>
+        </aside>
+      );
+    }
+
+    function ModeRail() {
+      const modes = [
+        { id: 'workflow', icon: 'workflow', active: true },
+        { id: 'templates', icon: 'gitBranch' },
+        { id: 'agents', icon: 'bot' },
+        { id: 'single', icon: 'workflow' },
+        { id: 'settings', icon: 'settings' }
+      ];
+      return (
+        <nav className="w-16 h-full bg-ny-surface border-r border-ny-border flex flex-col items-center py-5 shrink-0">
+          <div className="w-9 h-9 bg-ny-bg border border-ny-pink flex items-center justify-center text-[10px] font-display text-ny-pink mb-6 clip-corner-sm animate-pulse"
+          >NY</div>
+          <div className="flex-1 flex flex-col gap-2 w-full px-2">
+            {modes.map(m => (
+              <button key={m.id} className={`w-full aspect-square flex items-center justify-center transition-all clip-corner-sm ${m.active ? 'text-ny-pink bg-ny-pink/10 border-r-2 border-ny-pink shadow-[0_0_15px_rgba(255,0,110,0.2)]' : 'text-ny-muted hover:text-ny-text hover:bg-ny-float'}`}
+              >
+                <Icon name={m.icon} size={20}/>
+              </button>
+            ))}
+          </div>
+        </nav>
+      );
+    }
+
+    function App() {
+      return (
+        <div className="h-screen w-screen flex flex-col bg-ny-bg">
+          <div className="h-12 bg-ny-surface border-b border-ny-border flex items-center justify-between px-4 shrink-0">
+            <div className="flex items-center gap-3">
+              <span className="font-display text-sm font-semibold text-ny-pink tracking-widest">AGENT STUDIO</span>
+              <span className="text-[10px] text-ny-cyan font-display tracking-widest">霓渊</span>
+            </div>
+          </div>
+          <div className="flex-1 flex overflow-hidden">
+            <ModeRail />
+            <RunsList />
+            <RunDetail />
+            <PreviewPanel />
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — Canvas — 竹韵</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            base:  '#F5F3EE',
+            surface: '#FFFFFF',
+            float: '#FCFAF8',
+            border: '#E0DAD0',
+            'border-light': '#EAE4DA',
+            /* 饱和竹色 */
+            bamboo: '#3D8A4D',
+            'bamboo-light': '#6AAA6A',
+            'bamboo-bright': '#2DB84A',
+            'bamboo-soft': '#EAF4EC',
+            earth: '#C07838',
+            clay: '#D06040',
+            gold: '#D4A850',
+            text: '#2A2724',
+            muted: '#7A7268',
+            faint: '#AEA698',
+          },
+          fontFamily: {
+            display: ['"Noto Serif SC"', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #F5F3EE; color: #2A2724; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+    .canvas-grid {
+      background-image:
+        linear-gradient(rgba(180, 175, 165, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(180, 175, 165, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .node-card {
+      border-radius: 12px; background: #FFFFFF; border: 1px solid #E0DAD0;
+      cursor: pointer; transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+    }
+    .node-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(42,39,36,0.06); border-color: #C8C0B0; }
+    .node-card.selected { border-color: #3D8A4D; box-shadow: 0 0 0 1.5px rgba(61,138,77,0.18), 0 8px 28px rgba(61,138,77,0.06); }
+    .node-card.selected .node-topline { opacity: 1; }
+    .node-topline {
+      position: absolute; top: 0; left: 16px; right: 16px; height: 3px;
+      background: linear-gradient(90deg, #3D8A4D, #6AAA6A);
+      border-radius: 0 0 3px 3px; opacity: 0; transition: opacity 0.3s;
+    }
+
+    .btn-ghost { padding: 6px 12px; border-radius: 8px; font-size: 12px; color: #7A7268; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px; }
+    .btn-ghost:hover { background: #F0ECE6; color: #2A2724; }
+
+    .btn-primary {
+      padding: 7px 20px; border-radius: 8px; font-size: 12px; font-weight: 500;
+      background: #3D8A4D; color: #FFFFFF; border: none; cursor: pointer;
+      transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary:hover { background: #4A9A5A; box-shadow: 0 0 16px rgba(61,138,77,0.15); }
+    .btn-primary:active { transform: scale(0.97); }
+
+    .connector-dot { width: 10px; height: 10px; border-radius: 50%; border: 2.5px solid #F5F3EE; position: absolute; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #D0C8B8; border-radius: 2px; }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden">
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const I = {
+      save(s=15) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>; },
+      undo(s=14) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0 -9 -9 9 9 0 0 0 -6 2.3 L3 13"/></svg>; },
+      bot(s=17) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M9 8 v-2 a3 3 0 0 1 6 0 v2"/><circle cx="9" cy="14" r="1.5" fill="currentColor" opacity="0.5"/><circle cx="15" cy="14" r="1.5" fill="currentColor" opacity="0.5"/></svg>; },
+      search(s=13) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21 l-4.35-4.35"/></svg>; },
+      plus(s=14) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>; },
+      zoomin(s=13) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6M21 21l-4.35-4.35"/></svg>; },
+      zoomout(s=13) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M21 21l-4.35-4.35"/></svg>; },
+      layout(s=14) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>; },
+      play(s=14) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>; },
+    };
+
+    const AGENTS = [
+      { id: 'architect', name: 'Architect', role: '架构师', vendor: 'claude', model: 'Sonnet 4.6', color: '#3D8A4D', x: 80, y: 80 },
+      { id: 'coder',     name: 'Coder',     role: '编码者', vendor: 'codex',  model: 'codex-1',    color: '#C07838', x: 320, y: 80 },
+      { id: 'reviewer',  name: 'Reviewer',  role: '审查员', vendor: 'claude', model: 'Haiku 4.5',  color: '#D06040', x: 320, y: 220 },
+      { id: 'tester',    name: 'Tester',    role: '测试员', vendor: 'api',    model: 'DeepSeek',   color: '#6A8A7A', x: 320, y: 360 },
+      { id: 'docwriter', name: 'DocWriter', role: '文档员', vendor: 'claude', model: 'Sonnet 4.6', color: '#D4A850', x: 580, y: 220 },
+    ];
+
+    /* ─── 工具栏 ─── */
+    function Toolbar() {
+      return (
+        <div style={{
+          height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 20px', flexShrink: 0,
+          background: '#FFFFFF',
+          borderBottom: '3px solid #3D8A4D',
+          boxShadow: '0 2px 8px rgba(42,39,36,0.03)',
+        }}>
+          <div className="flex items-center gap-4">
+            <div style={{ fontFamily: '"Noto Serif SC", serif', fontSize: 14, fontWeight: 700, color: '#3D8A4D', letterSpacing: '0.03em' }}>Agent Studio</div>
+            <div className="flex items-center gap-1">
+              <span className="btn-ghost">{I.save(15)}</span>
+              <span className="btn-ghost">{I.undo(14)}</span>
+              <span className="btn-ghost">{I.layout(14)}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <span className="btn-ghost">{I.zoomout(13)}</span>
+            <span style={{ fontSize: 11, color: '#AEA698', width: 36, textAlign: 'center' }}>100%</span>
+            <span className="btn-ghost">{I.zoomin(13)}</span>
+            <div style={{ width: 1, height: 16, background: '#E0DAD0' }} />
+            <button className="btn-primary">{I.play(14)} 执行</button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── ModeRail ─── */
+    function ModeRail() {
+      const modes = ['workflow', 'templates', 'agents', 'single', 'settings'];
+      return (
+        <nav style={{
+          width: 52, background: '#FAF8F4', display: 'flex', flexDirection: 'column', alignItems: 'center',
+          paddingTop: 24, flexShrink: 0,
+          borderRight: '2px solid #E0DAD0',
+        }}>
+          <div style={{
+            width: 26, height: 26, borderRadius: 7,
+            background: '#3D8A4D', color: '#FFFFFF',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 10, fontFamily: '"Noto Serif SC", serif', fontWeight: 700,
+            marginBottom: 28,
+          }}>竹</div>
+          {modes.map((m, i) => (
+            <button key={m} style={{
+              width: 34, height: 34, borderRadius: 9, marginBottom: 6,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: i === 1 ? '#3D8A4D' : '#AEA698',
+              background: i === 1 ? 'rgba(61,138,77,0.08)' : 'transparent',
+              border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+              position: 'relative',
+            }} className={i === 1 ? '' : 'hover:bg-white/60 hover:text-muted'}>
+              {I.bot(18)}
+              {i === 1 && <div style={{ position: 'absolute', right: -2, top: 8, bottom: 8, width: 2, background: '#3D8A4D', borderRadius: '2px 0 0 2px' }} />}
+            </button>
+          ))}
+        </nav>
+      );
+    }
+
+    /* ─── 侧边栏 ─── */
+    function Sidebar({ selected, onSelect }) {
+      return (
+        <aside style={{
+          width: 210, flexShrink: 0, display: 'flex', flexDirection: 'column',
+          background: '#F8F6F2', borderRight: '2px solid #3D8A4D',
+        }}>
+          <div style={{ padding: '16px 14px 10px', borderBottom: '1.5px solid #E0DAD0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#3D8A4D', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Agents</span>
+              <button style={{ color: '#AEA698', cursor: 'pointer', padding: 2, lineHeight: 0 }} className="hover:text-muted">{I.plus(14)}</button>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#AEA698' }}>{I.search(13)}</div>
+              <input placeholder="搜索 Agent..." style={{
+                width: '100%', padding: '7px 10px 7px 28px',
+                background: '#FFFFFF', border: '1px solid #E0DAD0', borderRadius: 8,
+                fontSize: 12, color: '#2A2724', outline: 'none',
+              }} className="focus:border-bamboo" />
+            </div>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: '8px 8px' }}>
+            {AGENTS.map(a => {
+              const isActive = selected === 'n' + a.id;
+              return (
+                <div key={a.id} onClick={() => onSelect('n' + a.id)} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 10px', borderRadius: 9, marginBottom: 2,
+                  cursor: 'pointer',
+                  background: isActive ? '#FFFFFF' : 'transparent',
+                  border: '1px solid ' + (isActive ? 'rgba(61,138,77,0.1)' : 'transparent'),
+                  boxShadow: isActive ? '0 1px 3px rgba(42,39,36,0.02)' : 'none',
+                  transition: 'all 0.2s',
+                }} className={isActive ? '' : 'hover:bg-white/60'}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, background: a.color + '0C', border: '1px solid ' + a.color + '14', display: 'flex', alignItems: 'center', justifyContent: 'center', color: a.color }}>{I.bot(16)}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: '#2A2724' }}>{a.name}</div>
+                    <div style={{ fontSize: 10, color: '#7A7268', marginTop: 1 }}>{a.role}</div>
+                  </div>
+                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: a.color, opacity: isActive ? 0.7 : 0.15 }} />
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+      );
+    }
+
+    /* ─── 节点 ─── */
+    function NodeCard({ id, agent, selected, onClick }) {
+      return (
+        <div onClick={() => onClick(id)} className={`node-card ${selected === id ? 'selected' : ''}`}
+          style={{ position: 'absolute', left: agent.x, top: agent.y, width: 186, zIndex: 2 }}
+        >
+          <div className="node-topline" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 14px 10px', borderBottom: '1px solid rgba(224,218,208,0.3)' }}>
+            <div style={{ width: 30, height: 30, borderRadius: 8, background: agent.color + '0A', border: '1px solid ' + agent.color + '14', display: 'flex', alignItems: 'center', justifyContent: 'center', color: agent.color, flexShrink: 0 }}>{I.bot(16)}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#2A2724', lineHeight: 1.3 }}>{agent.name}</div>
+              <div style={{ fontSize: 10, color: '#7A7268', marginTop: 1 }}>{agent.model}</div>
+            </div>
+          </div>
+          <div style={{ padding: '8px 14px 10px', fontSize: 11, color: '#A09888', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ background: agent.color + '10', padding: '1px 6px', borderRadius: 4, color: agent.color, fontSize: 9, fontWeight: 500 }}>{agent.vendor}</span>
+            {agent.role}
+          </div>
+          <div className="connector-dot" style={{ right: -5, top: '50%', transform: 'translateY(-50%)', background: agent.color }} />
+          <div className="connector-dot" style={{ left: -5, top: '50%', transform: 'translateY(-50%)', background: agent.color }} />
+        </div>
+      );
+    }
+
+    /* ─── 画布 ─── */
+    function Canvas({ selected, onSelect }) {
+      return (
+        <div className="flex-1 relative overflow-hidden canvas-grid" style={{ background: '#F5F3EE' }}>
+          {/* 画布底色晕 */}
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none',
+            background: 'radial-gradient(ellipse at 40% 30%, rgba(61,138,77,0.02) 0%, transparent 50%), radial-gradient(ellipse at 60% 70%, rgba(212,168,80,0.015) 0%, transparent 45%)'
+          }} />
+
+          <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1, pointerEvents: 'none' }}>
+            <defs>
+              {[
+                ['#3D8A4D', '#C07838'], ['#3D8A4D', '#D06040'], ['#3D8A4D', '#6A8A7A'],
+                ['#C07838', '#D4A850'], ['#D06040', '#D4A850'], ['#6A8A7A', '#D4A850'],
+              ].map(([c1, c2], i) => (
+                <linearGradient key={i} id={`eg${i}`} x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor={c1} stopOpacity="0.35"/>
+                  <stop offset="100%" stopColor={c2} stopOpacity="0.35"/>
+                </linearGradient>
+              ))}
+            </defs>
+            {[
+              ['architect', 'coder', 0], ['architect', 'reviewer', 1], ['architect', 'tester', 2],
+              ['coder', 'docwriter', 3], ['reviewer', 'docwriter', 4], ['tester', 'docwriter', 5],
+            ].map(([f, t, i]) => {
+              const from = AGENTS.find(a => a.id === f); const to = AGENTS.find(a => a.id === t);
+              if (!from || !to) return null;
+              const x1 = from.x + 186, y1 = from.y + 48, x2 = to.x, y2 = to.y + 48;
+              return (
+                <path key={i} d={`M ${x1} ${y1} C ${(x1+x2)/2} ${y1}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}`}
+                  fill="none" stroke={`url(#eg${i})`} strokeWidth="1.8" strokeLinecap="round" />
+              );
+            })}
+          </svg>
+
+          <div style={{
+            position: 'absolute', left: 290, top: 150, width: 250, height: 290, zIndex: 0,
+            border: '2px dashed rgba(160,155,145,0.2)', borderRadius: 14,
+            background: 'rgba(160,155,145,0.02)',
+          }}>
+            <div style={{ position: 'absolute', top: -9, left: 16, padding: '0 10px', background: '#F5F3EE', fontSize: 10, color: '#AEA698' }}>并行执行</div>
+          </div>
+
+          {AGENTS.map(a => (
+            <NodeCard key={'n' + a.id} id={'n' + a.id} agent={a} selected={selected} onClick={onSelect} />
+          ))}
+
+          <div style={{
+            position: 'absolute', bottom: 16, right: 16, zIndex: 5,
+            width: 130, background: '#FFFFFF', border: '1px solid #E0DAD0', borderRadius: 10, padding: 10,
+            boxShadow: '0 1px 4px rgba(42,39,36,0.02)',
+          }}>
+            <div style={{ fontSize: 8, color: '#AEA698', letterSpacing: '0.1em', marginBottom: 6 }}>MINIMAP</div>
+            <div style={{ position: 'relative', height: 44, background: 'rgba(245,243,238,0.5)', borderRadius: 5 }}>
+              {AGENTS.map(a => (
+                <div key={a.id} style={{ position: 'absolute', left: a.x * 0.14 + 8, top: a.y * 0.1 + 5, width: 12, height: 9, borderRadius: 2, background: a.color, opacity: selected === 'n' + a.id ? 0.6 : 0.15, transition: 'opacity 0.3s' }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── 属性面板 ─── */
+    function PropertyPanel({ selected }) {
+      const agent = selected ? AGENTS.find(a => 'n' + a.id === selected) : null;
+      return (
+        <aside style={{
+          width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column',
+          background: '#F8F6F2', borderLeft: '2px solid #3D8A4D',
+        }}>
+          <div style={{ padding: '16px 16px 14px', borderBottom: '1.5px solid #E0DAD0' }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: '#3D8A4D', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Properties</span>
+          </div>
+          {agent ? (
+            <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, paddingBottom: 14, borderBottom: '1px solid #E0DAD0' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: agent.color + '0A', border: '1px solid ' + agent.color + '14', display: 'flex', alignItems: 'center', justifyContent: 'center', color: agent.color }}>{I.bot(18)}</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#2A2724' }}>{agent.name}</div>
+                  <div style={{ fontSize: 10, color: '#7A7268', marginTop: 1 }}>{agent.role}</div>
+                </div>
+              </div>
+              {[
+                { label: 'Agent', value: agent.name },
+                { label: '步骤名称', value: agent.role },
+                { label: '模型覆盖', value: agent.model },
+              ].map(f => (
+                <div key={f.label} style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, color: '#7A7268', marginBottom: 4 }}>{f.label}</div>
+                  <div style={{ padding: '7px 10px', borderRadius: 8, background: '#FFFFFF', border: '1px solid #E0DAD0', fontSize: 12, color: '#2A2724' }}>{f.value}</div>
+                </div>
+              ))}
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #E0DAD0' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#7A7268', letterSpacing: '0.08em', marginBottom: 12, textTransform: 'uppercase' }}>步骤规则</div>
+                {['On Error', 'On Done'].map(label => (
+                  <div key={label} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 10, color: '#7A7268', marginBottom: 3 }}>{label}</div>
+                    <div style={{ padding: '6px 10px', borderRadius: 8, background: '#FFFFFF', border: '1px solid #E0DAD0', fontSize: 12, color: '#2A2724' }}>{label === 'On Error' ? 'stop' : 'continue'}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #E0DAD0' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#7A7268', letterSpacing: '0.08em', marginBottom: 6, textTransform: 'uppercase' }}>Prompt 模板</div>
+                <textarea defaultValue={`你正在执行 ${agent.role} 步骤。\n\n上下文：{{memory}}`}
+                  style={{ width: '100%', height: 80, padding: 10, borderRadius: 8, background: '#FFFFFF', border: '1px solid #E0DAD0', fontSize: 11, fontFamily: '"JetBrains Mono", monospace', color: '#2A2724', outline: 'none', resize: 'none' }}
+                  className="focus:border-bamboo" />
+              </div>
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#AEA698', padding: 20 }}>
+              <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.15 }}>◌</div>
+              <div style={{ fontSize: 11 }}>选择一个节点以编辑属性</div>
+            </div>
+          )}
+        </aside>
+      );
+    }
+
+    function App() {
+      const [selected, setSelected] = useState('n2');
+      return (
+        <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: '#F5F3EE', overflow: 'hidden' }}>
+          <Toolbar />
+          <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            <ModeRail />
+            <Sidebar selected={selected} onSelect={setSelected} />
+            <Canvas selected={selected} onSelect={setSelected} />
+            <PropertyPanel selected={selected} />
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

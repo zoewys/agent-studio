@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — 玉润 (Jade Lustre)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            /* ── 墨底 ── */
+            base:    '#0A0C0D',
+            surface: 'rgba(21, 23, 26, 0.82)',
+            float:   'rgba(28, 31, 36, 0.88)',
+            border:  'rgba(37, 40, 48, 0.55)',
+            /* ── 青玉色系 ── */
+            jade:    '#5A8E6A',
+            'jade-light':  '#7BAA88',
+            'jade-glow':   '#9DC4A0',
+            'jade-deep':   '#3D6B4F',
+            /* ── 金镶点缀 ── */
+            gold:    '#C5A55A',
+            'gold-soft': '#A88B4A',
+            /* ── 文字 ── */
+            text:    '#E0DCD0',
+            muted:   '#888480',
+            /* ── 语义 ── */
+            error:   '#B84C45',
+            success: '#5A8E6A',
+          },
+          fontFamily: {
+            display: ['"Noto Serif SC"', 'serif'],
+            sans:    ['Inter', 'system-ui', 'sans-serif'],
+            mono:    ['"JetBrains Mono"', 'monospace'],
+          },
+          animation: {
+            'jade-breathe': 'jadeBreathe 5s ease-in-out infinite',
+            'glow-soft':    'glowSoft 3s ease-in-out infinite',
+            'in-scale':     'inScale 0.5s ease-out forwards',
+          },
+          keyframes: {
+            jadeBreathe: {
+              '0%, 100%': { opacity: '0.5', filter: 'brightness(1)' },
+              '50%':      { opacity: '0.8', filter: 'brightness(1.08)' },
+            },
+            glowSoft: {
+              '0%, 100%': { boxShadow: '0 0 6px rgba(90,142,106,0.08), 0 0 20px rgba(90,142,106,0.04)' },
+              '50%':      { boxShadow: '0 0 12px rgba(90,142,106,0.18), 0 0 40px rgba(90,142,106,0.06)' },
+            },
+            inScale: {
+              '0%': { transform: 'scale(0.92)', opacity: '0' },
+              '100%': { transform: 'scale(1)', opacity: '1' },
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    :root { color-scheme: dark; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: #0A0C0D;
+      color: #E0DCD0;
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ── 玉絮纹理（极淡的玉石内部絮状结构） ── */
+    .jade-vein {
+      position: relative;
+    }
+    .jade-vein::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg width='300' height='300' viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.025' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23f)' opacity='0.02'/%3E%3C/svg%3E");
+      background-size: 600px 600px;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    /* ── 玉质玻璃面板 ── */
+    .jade-glass {
+      background: rgba(21, 23, 26, 0.75);
+      backdrop-filter: blur(16px) saturate(1.2);
+      -webkit-backdrop-filter: blur(16px) saturate(1.2);
+      border: 1px solid rgba(37, 40, 48, 0.5);
+    }
+    .jade-glass-strong {
+      background: rgba(28, 31, 36, 0.85);
+      backdrop-filter: blur(20px) saturate(1.3);
+      -webkit-backdrop-filter: blur(20px) saturate(1.3);
+      border: 1px solid rgba(37, 40, 48, 0.6);
+    }
+
+    /* ── 玉润阴影（多层的柔和扩散） ── */
+    .shadow-jade {
+      box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.25),
+        0 1px 4px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(90, 142, 106, 0.04);
+    }
+    .shadow-jade-float {
+      box-shadow:
+        0 8px 40px rgba(0, 0, 0, 0.30),
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(90, 142, 106, 0.03);
+    }
+    .shadow-jade-button {
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.20),
+        0 0 0 1px rgba(90, 142, 106, 0.06);
+    }
+
+    /* ── 玉色边缘光晕 ── */
+    .jade-glow-edge {
+      box-shadow:
+        inset 0 0 20px rgba(90, 142, 106, 0.04),
+        0 0 0 1px rgba(90, 142, 106, 0.15);
+    }
+
+    /* ── ModeRail 按钮 ── */
+    .mode-btn {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      color: #888480;
+      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .mode-btn:hover {
+      background: rgba(90, 142, 106, 0.06);
+      color: #E0DCD0;
+    }
+    .mode-btn.active {
+      color: #5A8E6A;
+      background: rgba(90, 142, 106, 0.08);
+      box-shadow:
+        inset 0 0 20px rgba(90, 142, 106, 0.04),
+        0 0 0 1px rgba(90, 142, 106, 0.12);
+    }
+    .mode-btn.active::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 22%;
+      width: 2.5px;
+      height: 56%;
+      background: linear-gradient(180deg, #5A8E6A 40%, rgba(90, 142, 106, 0.2));
+      border-radius: 0 3px 3px 0;
+      animation: inScale 0.35s ease-out;
+    }
+    .mode-btn svg {
+      transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .mode-btn:hover svg {
+      transform: scale(1.06);
+    }
+
+    /* ── 金线装饰 ── */
+    .gold-line {
+      height: 1px;
+      background: linear-gradient(90deg,
+        transparent,
+        rgba(197, 165, 90, 0.12) 30%,
+        rgba(197, 165, 90, 0.12) 70%,
+        transparent
+      );
+    }
+
+    /* ── 玉色背景晕染 ── */
+    .aura-jade {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+    }
+
+    /* ── 自定义滚动条 ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(37, 40, 48, 0.8); border-radius: 2px; }
+
+    /* ── 印章 ── */
+    .seal {
+      width: 34px;
+      height: 34px;
+      border: 1.5px solid rgba(184, 76, 69, 0.6);
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Noto Serif SC', serif;
+      font-size: 12px;
+      color: rgba(184, 76, 69, 0.7);
+      transform: rotate(-2deg);
+      flex-shrink: 0;
+    }
+
+    /* ── 头像圆形 ── */
+    .avatar-ring {
+      background: linear-gradient(135deg, rgba(90, 142, 106, 0.3), rgba(197, 165, 90, 0.15));
+      border: 1px solid rgba(90, 142, 106, 0.25);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    /* ─── 图标库 ─── */
+    const Icons = {
+      workflow(s=20) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M10 6.5 h4" opacity="0.5"/>
+          <path d="M17.5 10 v4" opacity="0.5"/><path d="M6.5 10 v7 H10" opacity="0.5"/>
+        </svg>;
+      },
+      gitBranch(s=20) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+          <path d="M18 9 a9 9 0 0 1 -9 9"/>
+        </svg>;
+      },
+      bot(s=20) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="4" y="8" width="16" height="12" rx="3"/><path d="M9 8 v-2 a3 3 0 0 1 6 0 v2"/>
+          <circle cx="9" cy="14" r="1.5" fill="currentColor" opacity="0.7"/><circle cx="15" cy="14" r="1.5" fill="currentColor" opacity="0.7"/>
+        </svg>;
+      },
+      message(s=20) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15 a2 2 0 0 1 -2 2 H7 l-4 4 V5 a2 2 0 0 1 2 -2 h14 a2 2 0 0 1 2 2 z"/>
+        </svg>;
+      },
+      settings(s=20) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M12 1 v2 M12 21 v2 M4.22 4.22 l1.42 1.42 M18.36 18.36 l1.42 1.42 M1 12 h2 M21 12 h2 M4.22 19.78 l1.42 -1.42 M18.36 5.64 l1.42 -1.42" opacity="0.4"/>
+        </svg>;
+      },
+      help(s=18) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10"/><path d="M9.09 9 a3 3 0 0 1 5.83 1 c0 2 -3 3 -3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>;
+      },
+      bell(s=18) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 8 A6 6 0 0 0 6 8 c0 7 -3 9 -3 9 h18 s-3 -2 -3 -9"/><path d="M13.73 21 a2 2 0 0 1 -3.46 0"/>
+        </svg>;
+      },
+      cpu(s=14) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/>
+          <line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/>
+        </svg>;
+      },
+      coins(s=14) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="8" cy="8" r="7"/><path d="M19.5 9 a7 7 0 1 0 0 10 a7 7 0 0 0 0 -10 z"/>
+        </svg>;
+      },
+      plus(s=16) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>;
+      },
+    };
+
+    const MODES = [
+      { id: 'workflow',  label: 'Workflow',  icon: 'workflow' },
+      { id: 'templates', label: 'Templates', icon: 'gitBranch' },
+      { id: 'agents',    label: 'Agents',    icon: 'bot' },
+      { id: 'single',    label: 'Single',    icon: 'message' },
+      { id: 'settings',  label: 'Settings',  icon: 'settings' },
+    ];
+
+    /* ─── ModeRail ─── */
+    function ModeRail({ active, onChange }) {
+      return (
+        <nav className="w-[72px] h-full flex flex-col items-center py-5 shrink-0 relative z-10"
+          style={{
+            background: 'rgba(21, 23, 26, 0.75)',
+            backdropFilter: 'blur(16px) saturate(1.2)',
+            WebkitBackdropFilter: 'blur(16px) saturate(1.2)',
+            borderRight: '1px solid rgba(37, 40, 48, 0.5)',
+          }}
+        >
+          {/* 印章 */}
+          <div className="seal" style={{ animation: 'inScale 0.5s ease-out forwards' }}>墨</div>
+
+          {/* 金线 */}
+          <div className="gold-line w-10 mt-5 mb-5" />
+
+          {/* 模式按钮 */}
+          <div className="flex-1 flex flex-col gap-1 w-full px-2.5">
+            {MODES.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => onChange(m.id)}
+                className={`mode-btn ${active === m.id ? 'active' : ''}`}
+                title={m.label}
+              >
+                <span className="p-2 rounded-xl transition-all duration-300">
+                  {Icons[m.icon](20)}
+                </span>
+                <span className={`text-[8px] font-medium tracking-widest transition-colors duration-300 ${active === m.id ? 'text-jade' : 'text-muted'}`}>
+                  {m.label.slice(0, 4)}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* 底部 */}
+          <div className="mt-auto pt-4">
+            <div className="gold-line w-8 mb-4 mx-auto" />
+            <button className="w-full aspect-square rounded-xl flex items-center justify-center text-muted hover:text-text transition-all"
+              style={{ background: 'transparent' }}
+              title="帮助"
+            >
+              {Icons.help(18)}
+            </button>
+          </div>
+        </nav>
+      );
+    }
+
+    /* ─── StatusChip ─── */
+    function StatusChip({ pulse, icon, label, value }) {
+      return (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '3px 10px',
+          borderRadius: '10px',
+          fontSize: '11px',
+          color: '#888480',
+          background: 'rgba(28, 31, 36, 0.6)',
+          border: '1px solid rgba(37, 40, 48, 0.4)',
+          lineHeight: 1,
+        }}>
+          {pulse && (
+            <span className="relative flex w-2 h-2">
+              <span className="animate-ping absolute inline-flex w-full h-full rounded-full bg-jade opacity-40" />
+              <span className="relative inline-flex w-2 h-2 rounded-full" style={{ background: '#5A8E6A' }} />
+            </span>
+          )}
+          {icon && <span className="opacity-50">{icon}</span>}
+          {label && <span>{label}</span>}
+          {value && <span style={{ color: '#E0DCD0', fontWeight: 500 }}>{value}</span>}
+        </div>
+      );
+    }
+
+    /* ─── Header ─── */
+    function Header() {
+      return (
+        <header style={{
+          height: '52px',
+          background: 'rgba(21, 23, 26, 0.82)',
+          backdropFilter: 'blur(16px) saturate(1.2)',
+          WebkitBackdropFilter: 'blur(16px) saturate(1.2)',
+          borderBottom: '1px solid rgba(37, 40, 48, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 20px',
+          flexShrink: 0,
+          position: 'relative',
+          zIndex: 10,
+        }}>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-0.5">
+              <span style={{
+                fontFamily: '"Noto Serif SC", serif',
+                fontSize: '18px',
+                fontWeight: 600,
+                color: '#C5A55A',
+                letterSpacing: '0.05em',
+              }}>
+                Agent Studio
+              </span>
+            </div>
+            <span style={{
+              width: '1px', height: '14px',
+              background: 'linear-gradient(180deg, rgba(37,40,48,0.6), rgba(37,40,48,0.2))',
+            }} />
+            <span style={{
+              fontSize: '11px', color: '#888480',
+              fontFamily: '"Noto Serif SC", serif',
+              fontStyle: 'italic',
+            }}>
+              玉润
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <StatusChip pulse label="Claude CLI" value="就绪" />
+            <span style={{ width: '1px', height: '16px', background: 'rgba(37,40,48,0.4)' }} />
+            <StatusChip icon={Icons.cpu(13)} value="12" label="runs" />
+            <StatusChip icon={Icons.coins(13)} value="$2.41" />
+
+            <span style={{ width: '1px', height: '16px', background: 'rgba(37,40,48,0.4)' }} />
+
+            <button style={{
+              width: '32px', height: '32px', borderRadius: '10px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#888480', transition: 'all 0.3s',
+              position: 'relative',
+            }}
+              className="hover:bg-float/60 hover:text-text"
+            >
+              {Icons.bell(18)}
+              <span style={{
+                position: 'absolute', top: '6px', right: '6px',
+                width: '5px', height: '5px', borderRadius: '50%',
+                background: '#B84C45',
+                boxShadow: '0 0 6px rgba(184,76,69,0.4)',
+              }} />
+            </button>
+
+            <div style={{
+              width: '32px', height: '32px', borderRadius: '10px',
+              background: 'linear-gradient(135deg, rgba(90,142,106,0.25), rgba(197,165,90,0.1))',
+              border: '1px solid rgba(90,142,106,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '11px', fontFamily: '"Noto Serif SC", serif',
+              color: 'rgba(90,142,106,0.75)',
+              transition: 'all 0.3s',
+            }}
+              className="hover:border-jade/50 hover:text-jade cursor-pointer"
+            >
+              Z
+            </div>
+          </div>
+        </header>
+      );
+    }
+
+    /* ─── EmptyWorkspace ─── */
+    function EmptyWorkspace({ mode }) {
+      const labels = {
+        workflow:  '工作流运行',
+        templates: '工作流模板',
+        agents:    'Agent 管理',
+        single:    '单次对话',
+        settings:  '系统设置',
+      };
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden"
+          style={{ background: '#0A0C0D' }}
+        >
+          {/* 玉色背景光晕 */}
+          <div className="aura-jade" style={{
+            width: '400px', height: '400px',
+            background: 'radial-gradient(circle, rgba(90,142,106,0.06), transparent)',
+            top: '10%', left: '25%',
+          }} />
+          <div className="aura-jade" style={{
+            width: '300px', height: '300px',
+            background: 'radial-gradient(circle, rgba(197,165,90,0.04), transparent)',
+            bottom: '15%', right: '20%',
+          }} />
+
+          {/* 玉絮纹理 */}
+          <div className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='400' height='400' viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.02' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23f)' opacity='0.012'/%3E%3C/svg%3E")`,
+              backgroundSize: '800px 800px',
+              opacity: 0.6,
+            }}
+          />
+
+          {/* 装饰：玉环 */}
+          <div className="relative mb-10" style={{ animation: 'inScale 0.6s ease-out' }}>
+            <svg width="180" height="120" viewBox="0 0 180 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="jadeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#5A8E6A" stopOpacity="0.15"/>
+                  <stop offset="50%" stopColor="#7BAA88" stopOpacity="0.10"/>
+                  <stop offset="100%" stopColor="#9DC4A0" stopOpacity="0.05"/>
+                </linearGradient>
+              </defs>
+              {/* 玉环 */}
+              <ellipse cx="90" cy="60" rx="74" ry="44" fill="url(#jadeGrad)" stroke="#5A8E6A" strokeWidth="0.6" strokeOpacity="0.15"/>
+              <ellipse cx="90" cy="60" rx="56" ry="32" fill="none" stroke="#5A8E6A" strokeWidth="0.4" strokeOpacity="0.10"/>
+              {/* 中心点 */}
+              <circle cx="90" cy="60" r="4" fill="#5A8E6A" fillOpacity="0.12"/>
+              {/* 内圈光晕 */}
+              <ellipse cx="90" cy="60" rx="44" ry="24" fill="#5A8E6A" fillOpacity="0.03"/>
+            </svg>
+          </div>
+
+          <h2 style={{
+            fontFamily: '"Noto Serif SC", serif',
+            fontSize: '22px',
+            color: '#E0DCD0',
+            marginBottom: '6px',
+            letterSpacing: '0.03em',
+          }}>
+            {labels[mode]}
+          </h2>
+          <p style={{
+            fontSize: '13px', color: 'rgba(136, 132, 128, 0.7)',
+            marginBottom: '28px', letterSpacing: '0.02em',
+          }}>
+            从左侧导航选择工作区，或创建一个新的运行
+          </p>
+
+          <button style={{
+            padding: '10px 22px',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: 500,
+            color: '#E0DCD0',
+            background: 'linear-gradient(135deg, rgba(90,142,106,0.12), rgba(90,142,106,0.06))',
+            border: '1px solid rgba(90,142,106,0.2)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(90,142,106,0.04)',
+          }}
+            className="hover:bg-jade/15 hover:border-jade/40 hover:shadow-[0_4px_16px_rgba(90,142,106,0.12)] active:scale-[0.98]"
+          >
+            {Icons.plus(16)}
+            创建 {labels[mode]}
+          </button>
+
+          <p style={{
+            position: 'absolute', bottom: '32px',
+            fontSize: '10px', color: 'rgba(136, 132, 128, 0.25)',
+            letterSpacing: '0.08em',
+          }}>
+            选择模式导航开始工作
+          </p>
+        </div>
+      );
+    }
+
+    /* ─── App ─── */
+    function App() {
+      const [mode, setMode] = useState('workflow');
+      return (
+        <div style={{
+          width: '100vw', height: '100vh',
+          display: 'flex', flexDirection: 'column',
+          background: '#0A0C0D',
+          overflow: 'hidden',
+          userSelect: 'none',
+        }}>
+          <Header />
+          <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            <ModeRail active={mode} onChange={setMode} />
+            <main style={{ flex: 1, position: 'relative', overflow: 'hidden', background: '#0A0C0D' }}>
+              <EmptyWorkspace mode={mode} />
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

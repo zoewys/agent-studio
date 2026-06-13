@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — Agent Editor — 息壤</title>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'xr-bg': '#F5F2ED',
+            'xr-surface': '#FFFFFF',
+            'xr-float': '#FAF9F6',
+            'xr-border': '#E5E0D8',
+            'xr-green': '#5B8C5A',
+            'xr-green-light': '#6FA36E',
+            'xr-brown': '#8B6F47',
+            'xr-orange': '#D4956B',
+            'xr-text': '#2C2C2A',
+            'xr-muted': '#8C8A84',
+            'xr-error': '#C4705A'
+          },
+          fontFamily: {
+            'display': ['Newsreader', 'serif'],
+            'sans': ['Inter', 'system-ui', 'sans-serif'],
+            'mono': ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background: #F5F2ED; color: #2C2C2A; font-family: 'Inter', sans-serif; }
+    .organic-bg {
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(91, 140, 90, 0.04) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(212, 149, 107, 0.04) 0%, transparent 40%);
+    }
+    .soft-shadow { box-shadow: 0 2px 12px rgba(44, 44, 42, 0.06), 0 1px 3px rgba(44, 44, 42, 0.04); }
+    .memory-bar { background: linear-gradient(90deg, #5B8C5A 0%, #D4956B 100%); }
+    .xr-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238C8A84' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; padding-right: 2.25rem; appearance: none; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #E5E0D8; border-radius: 3px; }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden">
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const Icon = ({ name, size = 16, className = '' }) => {
+      const icons = {
+        bot: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M9 8V6a3 3 0 016 0v2"/><circle cx="9" cy="14" r="1.5" fill="currentColor"/><circle cx="15" cy="14" r="1.5" fill="currentColor"/></svg>,
+        workflow: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M10 6.5h4M10 6.5v4M17.5 10v4M6.5 10v7H10"/></svg>,
+        search: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>,
+        plus: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M12 5v14M5 12h14"/></svg>,
+        trash: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
+        save: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
+        chevronDown: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M6 9l6 6 6-6"/></svg>,
+        brain: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M9.5 2A2.5 2.5 0 0112 4.5v15a2.5 2.5 0 01-4.96.44 2.5 2.5 0 01-2.96-3.08 3 3 0 01-.34-5.58 2.5 2.5 0 01-1.32-4.24A2.5 2.5 0 019.5 2z"/><path d="M14.5 2A2.5 2.5 0 0012 4.5v15a2.5 2.5 0 004.96.44 2.5 2.5 0 002.96-3.08 3 3 0 00.34-5.58 2.5 2.5 0 001.32-4.24A2.5 2.5 0 0014.5 2z"/></svg>,
+        gitBranch: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>,
+        settings: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      };
+      return icons[name] || null;
+    };
+
+    const agents = [
+      { id: 'a1', name: 'Architect', role: '架构师', vendor: 'claude', model: 'Sonnet 4.6', color: 'xr-green' },
+      { id: 'a2', name: 'Coder', role: '编码者', vendor: 'codex', model: 'codex-1', color: 'xr-brown', active: true },
+      { id: 'a3', name: 'Reviewer', role: '审查员', vendor: 'claude', model: 'Haiku 4.5', color: 'xr-orange' },
+      { id: 'a4', name: 'Tester', role: '测试员', vendor: 'api', model: 'DeepSeek-V3', color: 'xr-info' },
+      { id: 'a5', name: 'DocWriter', role: '文档员', vendor: 'claude', model: 'Sonnet 4.6', color: 'xr-green' }
+    ];
+
+    const memories = [
+      { id: 1, type: 'preference', content: '偏好使用 TypeScript 严格模式', strength: 0.92, time: '3天前', scope: 'global' },
+      { id: 2, type: 'knowledge', content: '项目使用 pnpm workspace', strength: 0.78, time: '1周前', scope: 'project' },
+      { id: 3, type: 'avoidance', content: '避免在 utils 中引入业务模型', strength: 0.85, time: '2周前', scope: 'global' },
+      { id: 4, type: 'method', content: '先写测试再实现接口', strength: 0.66, time: '3周前', scope: 'project' }
+    ];
+
+    function ModeRail() {
+      const modes = [
+        { id: 'workflow', icon: 'workflow' },
+        { id: 'templates', icon: 'gitBranch' },
+        { id: 'agents', icon: 'bot', active: true },
+        { id: 'single', icon: 'workflow' },
+        { id: 'settings', icon: 'settings' }
+      ];
+      return (
+        <nav className="w-16 h-full bg-xr-surface border-r border-xr-border flex flex-col items-center py-5 soft-shadow">
+          <div className="w-8 h-8 rounded-2xl bg-gradient-to-br from-xr-green to-xr-green-light flex items-center justify-center text-white text-xs font-display mb-6 soft-shadow">息</div>
+          <div className="flex-1 flex flex-col gap-2 w-full px-2">
+            {modes.map(m => (
+              <button key={m.id} className={`w-full aspect-square rounded-2xl flex items-center justify-center transition-all ${m.active ? 'text-xr-green bg-xr-green/10 border-r-2 border-xr-green' : 'text-xr-muted hover:text-xr-text hover:bg-xr-float'}`}>
+                <Icon name={m.icon} size={20}/>
+              </button>
+            ))}
+          </div>
+        </nav>
+      );
+    }
+
+    function AgentList({ selected, onSelect }) {
+      return (
+        <aside className="w-60 bg-xr-surface border-r border-xr-border flex flex-col shrink-0 soft-shadow">
+          <div className="p-3 border-b border-xr-border flex items-center justify-between">
+            <span className="text-xs font-semibold text-xr-muted uppercase tracking-wider">Agents</span>
+            <button className="text-xr-green hover:text-xr-green-light"><Icon name="plus" size={14}/></button>
+          </div>
+          <div className="p-2">
+            <div className="relative">
+              <Icon name="search" size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-xr-muted"/>
+              <input type="text" placeholder="搜索..." className="w-full bg-xr-bg border border-xr-border rounded-xl pl-7 pr-2 py-1 text-xs text-xr-text placeholder:text-xr-muted outline-none focus:border-xr-green"/>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {agents.map(a => (
+              <div
+                key={a.id}
+                onClick={() => onSelect(a.id)}
+                className={`p-2.5 rounded-2xl border cursor-pointer transition-all ${selected === a.id ? 'bg-xr-float border-xr-green soft-shadow' : 'bg-xr-bg border-xr-border hover:border-xr-green/40'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-xl bg-xr-float border border-xr-border flex items-center justify-center ${a.color === 'xr-green' ? 'text-xr-green' : a.color === 'xr-brown' ? 'text-xr-brown' : a.color === 'xr-orange' ? 'text-xr-orange' : 'text-xr-info'}`}
+                  ><Icon name="bot" size={15}/></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-xr-text truncate">{a.name}</div>
+                    <div className="text-[10px] text-xr-muted truncate">{a.role}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+      );
+    }
+
+    function MemoryPanel() {
+      const [cat, setCat] = useState('all');
+      const cats = [
+        { id: 'all', label: '全部' },
+        { id: 'method', label: '方法' },
+        { id: 'knowledge', label: '知识' },
+        { id: 'preference', label: '偏好' },
+        { id: 'avoidance', label: '规避' }
+      ];
+      return (
+        <div className="rounded-2xl border border-xr-border bg-xr-surface overflow-hidden soft-shadow">
+          <div className="px-4 py-3 border-b border-xr-border flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Icon name="brain" size={16} className="text-xr-green"/>
+              <span className="text-sm font-medium text-xr-text">Memory Panel</span>
+            </div>
+            <span className="text-xs text-xr-muted">{memories.length} 条记忆</span>
+          </div>
+          <div className="px-4 py-2 border-b border-xr-border flex gap-1 overflow-x-auto">
+            {cats.map(c => (
+              <button
+                key={c.id}
+                onClick={() => setCat(c.id)}
+                className={`px-2.5 py-1 rounded-xl text-[11px] transition-colors ${cat === c.id ? 'text-xr-green bg-xr-green/10' : 'text-xr-muted hover:text-xr-text hover:bg-xr-float'}`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+          <div className="p-3 space-y-2 max-h-60 overflow-y-auto">
+            {memories.map(m => (
+              <div key={m.id} className="p-3 rounded-2xl bg-xr-bg border border-xr-border hover:border-xr-green/40 transition-colors">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <span className="text-xs text-xr-text">{m.content}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-lg border shrink-0 ${m.scope === 'global' ? 'border-xr-green/40 text-xr-green' : 'border-xr-brown/40 text-xr-brown'}`}>
+                    {m.scope === 'global' ? '全局' : '项目'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-xr-border rounded-full overflow-hidden">
+                    <div className="h-full memory-bar rounded-full" style={{ width: `${m.strength * 100}%` }} />
+                  </div>
+                  <span className="text-[10px] text-xr-muted w-10 text-right">{Math.round(m.strength * 100)}%</span>
+                  <span className="text-[10px] text-xr-muted">{m.time}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function AgentEditor() {
+      return (
+        <div className="flex-1 overflow-y-auto p-6 organic-bg">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-xl text-xr-green">编辑 Agent</h2>
+            <div className="flex items-center gap-2">
+              <button className="p-2 rounded-xl border border-xr-error/40 text-xr-error hover:bg-xr-error/10"><Icon name="trash" size={16}/></button>
+              <button className="px-4 py-2 rounded-xl bg-xr-green text-white text-sm font-medium hover:bg-xr-green-light transition-colors flex items-center gap-2 soft-shadow">
+                <Icon name="save" size={16}/> 保存
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { label: 'Name', defaultValue: 'Coder', type: 'text' },
+              { label: 'Role', defaultValue: '编码者', type: 'text' }
+            ].map(f => (
+              <div key={f.label} className="space-y-1">
+                <label className="text-[10px] text-xr-muted uppercase">{f.label}</label>
+                <input type={f.type} defaultValue={f.defaultValue} className="w-full bg-xr-bg border border-xr-border rounded-xl px-3 py-2 text-sm text-xr-text outline-none focus:border-xr-green"/>
+              </div>
+            ))}
+            <div className="space-y-1">
+              <label className="text-[10px] text-xr-muted uppercase">Vendor</label>
+              <select className="xr-select w-full bg-xr-bg border border-xr-border rounded-xl px-3 py-2 text-sm text-xr-text outline-none focus:border-xr-green">
+                <option>claude</option>
+                <option>codex</option>
+                <option>api</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-xr-muted uppercase">Model</label>
+              <select className="xr-select w-full bg-xr-bg border border-xr-border rounded-xl px-3 py-2 text-sm text-xr-text outline-none focus:border-xr-green">
+                <option>Sonnet 4.6</option>
+                <option>Opus 4.8</option>
+                <option>Haiku 4.5</option>
+              </select>
+            </div>
+            <div className="space-y-1 col-span-2">
+              <label className="text-[10px] text-xr-muted uppercase">Permission Mode</label>
+              <select className="xr-select w-full bg-xr-bg border border-xr-border rounded-xl px-3 py-2 text-sm text-xr-text outline-none focus:border-xr-green">
+                <option>default</option>
+                <option>acceptEdits</option>
+                <option>bypassPermissions</option>
+                <option>plan</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] text-xr-muted uppercase">System Prompt</label>
+            <textarea
+              className="w-full h-40 bg-xr-bg border border-xr-border rounded-xl px-3 py-2 text-xs text-xr-text font-mono outline-none focus:border-xr-green resize-none"
+              defaultValue={`你是一名资深全栈工程师，擅长 TypeScript 与 React。\n\n原则：\n1. 优先保持现有代码风格\n2. 修改前说明意图\n3. 每次编辑后运行相关测试\n4. 遇到不确定的 API 设计先询问用户`}
+            />
+          </div>
+
+          <div className="rounded-2xl border border-xr-border bg-xr-surface overflow-hidden soft-shadow">
+            <button className="w-full flex items-center justify-between px-4 py-3 hover:bg-xr-float/50">
+              <span className="text-sm font-medium text-xr-text">Codex Options</span>
+              <Icon name="chevronDown" size={16} className="text-xr-muted"/>
+            </button>
+            <div className="px-4 pb-4 grid grid-cols-2 gap-4 border-t border-xr-border">
+              <div className="space-y-1 pt-3">
+                <label className="text-[10px] text-xr-muted uppercase">Reasoning</label>
+                <select className="xr-select w-full bg-xr-bg border border-xr-border rounded-xl px-3 py-2 text-sm text-xr-text outline-none focus:border-xr-green">
+                  <option>Medium</option>
+                  <option>Low</option>
+                  <option>High</option>
+                </select>
+              </div>
+              <div className="space-y-1 pt-3">
+                <label className="text-[10px] text-xr-muted uppercase">Tier</label>
+                <select className="xr-select w-full bg-xr-bg border border-xr-border rounded-xl px-3 py-2 text-sm text-xr-text outline-none focus:border-xr-green">
+                  <option>Default</option>
+                  <option>Flex</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-xr-border bg-xr-surface overflow-hidden soft-shadow">
+            <button className="w-full flex items-center justify-between px-4 py-3 hover:bg-xr-float/50">
+              <span className="text-sm font-medium text-xr-text">Reflection Settings</span>
+              <Icon name="chevronDown" size={16} className="text-xr-muted"/>
+            </button>
+            <div className="px-4 pb-4 border-t border-xr-border">
+              <div className="flex items-center justify-between py-3">
+                <span className="text-sm text-xr-text">启用记忆学习</span>
+                <button className="w-9 h-5 rounded-full bg-xr-green relative">
+                  <span className="absolute right-0.5 top-0.5 w-4 h-4 rounded-full bg-xr-surface shadow"/>
+                </button>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-xr-muted uppercase">反思模型</label>
+                <select className="xr-select w-full bg-xr-bg border border-xr-border rounded-xl px-3 py-2 text-sm text-xr-text outline-none focus:border-xr-green">
+                  <option>Haiku 4.5</option>
+                  <option>Sonnet 4.6</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <MemoryPanel />
+        </div>
+      );
+    }
+
+    function App() {
+      const [selected, setSelected] = useState('a2');
+      return (
+        <div className="h-screen w-screen flex flex-col bg-xr-bg">
+          <div className="h-12 bg-xr-surface border-b border-xr-border flex items-center justify-between px-4 shrink-0 soft-shadow">
+            <div className="flex items-center gap-3">
+              <span className="font-display text-lg font-semibold text-xr-text">Agent Studio</span>
+              <span className="text-xs text-xr-muted italic">息壤</span>
+            </div>
+          </div>
+          <div className="flex-1 flex overflow-hidden">
+            <ModeRail />
+            <AgentList selected={selected} onSelect={setSelected} />
+            <AgentEditor />
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

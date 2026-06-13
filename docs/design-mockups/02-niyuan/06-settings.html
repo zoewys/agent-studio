@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — Settings — 霓渊</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'ny-bg': '#0A0A0F',
+            'ny-surface': '#12121A',
+            'ny-float': '#1A1A2E',
+            'ny-border': '#2A2A40',
+            'ny-pink': '#FF006E',
+            'ny-cyan': '#00F0FF',
+            'ny-purple': '#B367FF',
+            'ny-green': '#00FF88',
+            'ny-text': '#E0E0F0',
+            'ny-muted': '#7B7B9A',
+            'ny-error': '#FF3355'
+          },
+          fontFamily: {
+            'display': ['Orbitron', 'sans-serif'],
+            'sans': ['Inter', 'system-ui', 'sans-serif'],
+            'mono': ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background: #0A0A0F; color: #E0E0F0; font-family: 'Inter', sans-serif; }
+    .crt-grid {
+      background-image:
+        linear-gradient(rgba(0, 240, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .scanline {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.1), transparent);
+      animation: scan 5s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100vh); } }
+    .clip-corner { clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px)); }
+    .clip-corner-sm { clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px)); }
+    .ny-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237B7B9A' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.5rem center; padding-right: 2rem; appearance: none; }
+    .toggle-on { background-color: #FF006E; }
+    .toggle-off { background-color: #2A2A40; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #2A2A40; border-radius: 0; }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden">
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const Icon = ({ name, size = 16, className = '' }) => {
+      const icons = {
+        bot: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M9 8V6a3 3 0 016 0v2"/><circle cx="9" cy="14" r="1.5" fill="currentColor"/><circle cx="15" cy="14" r="1.5" fill="currentColor"/></svg>,
+        workflow: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><path d="M10 6.5h4M10 6.5v4M17.5 10v4M6.5 10v7H10"/></svg>,
+        terminal: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>,
+        key: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>,
+        database: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
+        brain: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M9.5 2A2.5 2.5 0 0112 4.5v15a2.5 2.5 0 01-4.96.44 2.5 2.5 0 01-2.96-3.08 3 3 0 01-.34-5.58 2.5 2.5 0 01-1.32-4.24A2.5 2.5 0 019.5 2z"/><path d="M14.5 2A2.5 2.5 0 0012 4.5v15a2.5 2.5 0 004.96.44 2.5 2.5 0 002.96-3.08 3 3 0 00.34-5.58 2.5 2.5 0 001.32-4.24A2.5 2.5 0 0014.5 2z"/></svg>,
+        moon: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>,
+        message: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,
+        check: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><polyline points="20 6 9 17 4 12"/></svg>,
+        alert: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+        plus: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M12 5v14M5 12h14"/></svg>,
+        trash: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
+        gitBranch: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 01-9 9"/></svg>,
+        settings: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      };
+      return icons[name] || null;
+    };
+
+    const settingsMenu = [
+      { id: 'cli', label: 'CLI Management', icon: 'terminal' },
+      { id: 'api', label: 'API Providers', icon: 'key', active: true },
+      { id: 'data', label: 'Data Management', icon: 'database' },
+      { id: 'memory', label: 'Memory System', icon: 'brain' },
+      { id: 'background', label: 'Background Run', icon: 'moon' },
+      { id: 'feishu', label: 'Feishu Bot', icon: 'message' }
+    ];
+
+    const providers = [
+      { id: 1, name: 'Anthropic', type: 'Anthropic', base: 'https://api.anthropic.com', status: 'connected' },
+      { id: 2, name: 'DeepSeek', type: 'OpenAI-compatible', base: 'https://api.deepseek.com', status: 'error' },
+      { id: 3, name: 'Kimi', type: 'OpenAI-compatible', base: 'https://api.moonshot.cn', status: 'idle' }
+    ];
+
+    function ModeRail() {
+      const modes = [
+        { id: 'workflow', icon: 'workflow' },
+        { id: 'templates', icon: 'gitBranch' },
+        { id: 'agents', icon: 'bot' },
+        { id: 'single', icon: 'workflow' },
+        { id: 'settings', icon: 'settings', active: true }
+      ];
+      return (
+        <nav className="w-16 h-full bg-ny-surface border-r border-ny-border flex flex-col items-center py-5 shrink-0">
+          <div className="w-9 h-9 bg-ny-bg border border-ny-pink flex items-center justify-center text-[10px] font-display text-ny-pink mb-6 clip-corner-sm animate-pulse"
+          >NY</div>
+          <div className="flex-1 flex flex-col gap-2 w-full px-2">
+            {modes.map(m => (
+              <button key={m.id} className={`w-full aspect-square flex items-center justify-center transition-all clip-corner-sm ${m.active ? 'text-ny-pink bg-ny-pink/10 border-r-2 border-ny-pink shadow-[0_0_15px_rgba(255,0,110,0.2)]' : 'text-ny-muted hover:text-ny-text hover:bg-ny-float'}`}
+              >
+                <Icon name={m.icon} size={20}/>
+              </button>
+            ))}
+          </div>
+        </nav>
+      );
+    }
+
+    function SettingsMenu({ active, onChange }) {
+      return (
+        <aside className="w-56 bg-ny-surface border-r border-ny-border flex flex-col shrink-0 relative">
+          <div className="scanline" />
+          <div className="p-4 border-b border-ny-border">
+            <h2 className="font-display text-lg text-ny-pink tracking-widest">SETTINGS</h2>
+          </div>
+          <div className="p-2 space-y-1">
+            {settingsMenu.map(item => (
+              <button
+                key={item.id}
+                onClick={() => onChange(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-display tracking-wider transition-all clip-corner-sm ${active === item.id ? 'text-ny-pink bg-ny-pink/10 border-r-2 border-ny-pink' : 'text-ny-muted hover:text-ny-text hover:bg-ny-float'}`}
+              >
+                <Icon name={item.icon} size={16}/>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </aside>
+      );
+    }
+
+    function Toggle({ defaultOn = false }) {
+      const [on, setOn] = useState(defaultOn);
+      return (
+        <button
+          onClick={() => setOn(!on)}
+          className={`w-9 h-5 relative transition-colors clip-corner-sm ${on ? 'toggle-on' : 'toggle-off'}`}
+        >
+          <span className={`absolute top-0.5 w-4 h-4 bg-ny-surface shadow transition-all ${on ? 'right-0.5' : 'left-0.5'}`} />
+        </button>
+      );
+    }
+
+    function ProviderCard({ provider }) {
+      const [showKey, setShowKey] = useState(false);
+      const statusColors = {
+        connected: 'text-ny-green border-ny-green/50 bg-ny-green/10',
+        error: 'text-ny-error border-ny-error/50 bg-ny-error/10',
+        idle: 'text-ny-muted border-ny-border bg-ny-bg'
+      };
+      return (
+        <div className="border border-ny-border bg-ny-surface overflow-hidden clip-corner"
+003e
+          <div className="px-4 py-3 border-b border-ny-border flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-ny-bg border border-ny-border flex items-center justify-center text-ny-cyan shadow-[0_0_10px_rgba(0,240,255,0.15)]"
+              ><Icon name="key" size={18}/></div>
+              <div>
+                <div className="text-sm font-display text-ny-text tracking-wider">{provider.name.toUpperCase()}</div>
+                <div className="text-[10px] text-ny-muted font-mono">{provider.type} · {provider.base}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] px-2 py-0.5 border font-display ${statusColors[provider.status]}`}
+              >
+                {provider.status === 'connected' ? 'ONLINE' : provider.status === 'error' ? 'ERROR' : 'IDLE'}
+              </span>
+              <button className="p-1.5 text-ny-muted hover:text-ny-error hover:bg-ny-error/10"><Icon name="trash" size={14}/></button>
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            <div className="space-y-1">
+              <label className="text-[10px] text-ny-muted font-display">PROVIDER NAME</label>
+              <input type="text" defaultValue={provider.name} className="w-full bg-ny-bg border border-ny-border px-3 py-2 text-sm text-ny-text outline-none focus:border-ny-pink clip-corner-sm"/>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-ny-muted font-display">API BASE URL</label>
+              <input type="text" defaultValue={provider.base} className="w-full bg-ny-bg border border-ny-border px-3 py-2 text-sm text-ny-text outline-none focus:border-ny-pink font-mono clip-corner-sm"/>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-ny-muted font-display">API KEY</label>
+              <div className="relative">
+                <input
+                  type={showKey ? 'text' : 'password'}
+                  defaultValue={provider.status === 'connected' ? 'sk-ant-api03-••••••••••••••••••••••••' : ''}
+                  placeholder={provider.status === 'idle' ? '输入 API Key...' : ''}
+                  className="w-full bg-ny-bg border border-ny-border pl-3 pr-20 py-2 text-sm text-ny-text outline-none focus:border-ny-pink font-mono clip-corner-sm"
+                />
+                <button
+                  onClick={() => setShowKey(!showKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-ny-muted hover:text-ny-text px-2 py-1 bg-ny-float clip-corner-sm"
+                >
+                  {showKey ? 'HIDE' : 'SHOW'}
+                </button>
+              </div>
+            </div>
+            <{provider.status === 'error' && (
+              <div className="flex items-start gap-2 p-2.5 bg-ny-error/10 border border-ny-error/30 clip-corner-sm"
+              >
+                <Icon name="alert" size={14} className="text-ny-error mt-0.5"/>
+                <span className="text-xs text-ny-error">连接超时：请检查 Base URL 与 API Key 是否有效</span>
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button className="px-3 py-1.5 border border-ny-border text-xs text-ny-muted hover:text-ny-text hover:bg-ny-float clip-corner-sm">取消</button>
+              <button className="px-3 py-1.5 border border-ny-green/50 text-ny-green text-xs hover:bg-ny-green/10 flex items-center gap-1.5 clip-corner-sm"
+              >
+                <Icon name="check" size={13}/> TEST
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function Presets() {
+      const presets = ['DeepSeek', 'Kimi', 'SiliconFlow', 'OpenAI'];
+      return (
+        <div className="border border-ny-border bg-ny-surface p-4 clip-corner">
+          <span className="text-[10px] font-display text-ny-muted tracking-widest block mb-3">QUICK PRESETS</span>
+          <div className="flex flex-wrap gap-2">
+            {presets.map(p => (
+              <button key={p} className="px-3 py-1.5 bg-ny-bg border border-ny-border text-xs text-ny-text hover:border-ny-cyan hover:text-ny-cyan transition-colors clip-corner-sm font-display"
+              >
+                + {p.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function SettingsPanel() {
+      return (
+        <div className="flex-1 overflow-y-auto p-6 crt-grid relative">
+          <div className="scanline" style={{ animationDelay: '3s' }} />
+          <div className="max-w-2xl mx-auto space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-display text-xl text-ny-pink tracking-widest">API PROVIDERS</h2>
+                <p className="text-xs text-ny-muted mt-1 font-mono">管理 API 提供商配置，密钥将加密存储在本地</p>
+              </div>
+              <button className="px-4 py-2 bg-ny-pink/10 border border-ny-pink text-ny-pink text-sm font-display tracking-wider hover:bg-ny-pink/20 flex items-center gap-2 clip-corner-sm"
+              >
+                <Icon name="plus" size={16}/> ADD PROVIDER
+              </button>
+            </div>
+
+            {providers.map(p => <ProviderCard key={p.id} provider={p} />)}
+
+            <Presets />
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [active, setActive] = useState('api');
+      return (
+        <div className="h-screen w-screen flex flex-col bg-ny-bg">
+          <div className="h-12 bg-ny-surface border-b border-ny-border flex items-center justify-between px-4 shrink-0">
+            <div className="flex items-center gap-3">
+              <span className="font-display text-sm font-semibold text-ny-pink tracking-widest">AGENT STUDIO</span>
+              <span className="text-[10px] text-ny-cyan font-display tracking-widest">霓渊</span>
+            </div>
+          </div>
+          <div className="flex-1 flex overflow-hidden">
+            <ModeRail />
+            <SettingsMenu active={active} onChange={setActive} />
+            <SettingsPanel />
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

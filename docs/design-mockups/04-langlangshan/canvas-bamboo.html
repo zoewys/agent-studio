@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — Canvas — 竹居</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            /* 宣纸底色 */
+            base:  '#F3EFE6',
+            surface: '#FFFFFF',
+            float: '#FAF7F2',
+            border: '#E5DDD0',
+            'border-light': '#EDE8DC',
+            /* 竹色系 */
+            bamboo: '#5A8A5A',
+            'bamboo-light': '#7AAA7A',
+            'bamboo-soft': '#EEF5EC',
+            'bamboo-yellow': '#C8B080',
+            'bamboo-yellow-light': '#F0E8D8',
+            /* 暖色点缀（浪浪山保留） */
+            earth: '#B87A4A',
+            clay: '#C4705A',
+            'clay-soft': '#F5ECE6',
+            /* 文字 */
+            text: '#2A2724',
+            muted: '#7A7268',
+            faint: '#B0A898',
+          },
+          fontFamily: {
+            display: ['"Noto Serif SC"', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          animation: {
+            'bamboo-sway': 'bambooSway 6s ease-in-out infinite',
+            'fade-in-up': 'fadeInUp 0.6s ease-out',
+          },
+          keyframes: {
+            bambooSway: {
+              '0%, 100%': { transform: 'rotate(0deg)' },
+              '50%': { transform: 'rotate(0.3deg)' },
+            },
+            fadeInUp: {
+              '0%': { opacity: 0, transform: 'translateY(12px)' },
+              '100%': { opacity: 1, transform: 'translateY(0)' },
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #F3EFE6; color: #2A2724;
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── 宣纸底纹 ── */
+    .paper-bg {
+      background: #F3EFE6;
+      position: relative;
+    }
+    .paper-bg::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 30% 25%, rgba(90, 138, 90, 0.025) 0%, transparent 45%),
+        radial-gradient(ellipse at 70% 75%, rgba(200, 176, 128, 0.02) 0%, transparent 40%);
+      pointer-events: none;
+    }
+
+    /* ── 极淡竹影纹理（不仔细看看不见） ── */
+    .bamboo-shadow {
+      position: relative;
+    }
+    .bamboo-shadow::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg width='600' height='400' viewBox='0 0 600 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M120 0 C 118 50 122 100 119 150 C 116 200 121 250 118 300 C 115 350 120 380 119 400' stroke='%235A8A5A' stroke-width='0.8' fill='none' opacity='0.025'/%3E%3Cpath d='M280 0 C 277 60 283 120 278 180 C 273 240 279 300 276 360 C 273 380 277 390 275 400' stroke='%235A8A5A' stroke-width='0.6' fill='none' opacity='0.02'/%3E%3Cpath d='M450 0 C 447 45 452 90 448 135 C 444 180 449 225 445 270 C 441 315 446 360 443 400' stroke='%235A8A5A' stroke-width='0.5' fill='none' opacity='0.015'/%3E%3C/svg%3E");
+      background-size: 600px 400px;
+      background-repeat: repeat;
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    /* ── 画布网格（极淡竹篾纹理感） ── */
+    .canvas-grid {
+      background-image:
+        linear-gradient(rgba(180, 170, 155, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(180, 170, 155, 0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* ── 节点卡片 ── */
+    .node-card {
+      border-radius: 14px;
+      background: #FFFFFF;
+      border: 1.5px solid #E5DDD0;
+      cursor: pointer;
+      transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+    }
+    .node-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(42,39,36,0.07);
+      border-color: #D5CBB8;
+    }
+    .node-card.selected {
+      border-color: #5A8A5A;
+      box-shadow: 0 0 0 1.5px rgba(90,138,90,0.15), 0 12px 40px rgba(90,138,90,0.06);
+    }
+    /* 竹节式顶部高光 */
+    .node-card::before {
+      content: '';
+      position: absolute; top: 0; left: 20%; right: 20%;
+      height: 2px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(90,138,90,0.08) 20%,
+        rgba(90,138,90,0.12) 50%,
+        rgba(90,138,90,0.08) 80%,
+        transparent 100%
+      );
+      border-radius: 0 0 2px 2px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .node-card.selected::before { opacity: 1; }
+
+    .shadow-card {
+      box-shadow: 0 1px 3px rgba(42,39,36,0.03), 0 4px 16px rgba(42,39,36,0.03);
+    }
+
+    .shadow-float {
+      box-shadow: 0 2px 8px rgba(42,39,36,0.04), 0 8px 32px rgba(42,39,36,0.04);
+    }
+
+    /* ── 竹节分割线 ── */
+    .bamboo-divider {
+      height: 1px;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        #E5DDD0 15%,
+        #E5DDD0 85%,
+        transparent 100%
+      );
+      position: relative;
+    }
+    .bamboo-divider::after {
+      content: '';
+      position: absolute;
+      left: 48%; top: -2px;
+      width: 6px; height: 5px;
+      background: #D5CBB8;
+      border-radius: 1px;
+      opacity: 0.3;
+    }
+
+    /* ── 竹节竖线（ModeRail 选中态） ── */
+    .bamboo-indicator {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 40px;
+    }
+    .bamboo-indicator span {
+      display: block;
+      width: 2.5px;
+      border-radius: 1px;
+      background: #5A8A5A;
+      transition: all 0.4s;
+    }
+    .bamboo-indicator span:nth-child(1) { flex: 1; height: 35%; opacity: 0.9; }
+    .bamboo-indicator span:nth-child(2) { height: 3px; width: 4px; opacity: 0.5; }
+    .bamboo-indicator span:nth-child(3) { flex: 1; height: 35%; opacity: 0.3; }
+
+    /* ── 按钮 ── */
+    .btn-ghost {
+      padding: 6px 12px; border-radius: 10px; font-size: 12px;
+      color: #7A7268; cursor: pointer; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-ghost:hover { background: rgba(180,170,155,0.12); color: #2A2724; }
+
+    .btn-primary {
+      padding: 7px 18px; border-radius: 10px; font-size: 12px; font-weight: 500;
+      background: #5A8A5A; color: #FFFFFF; border: none; cursor: pointer;
+      transition: all 0.25s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary:hover { background: #6A9A6A; }
+    .btn-primary:active { transform: scale(0.97); }
+
+    .connector-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      border: 2.5px solid #F3EFE6;
+      position: absolute;
+      box-shadow: 0 1px 3px rgba(42,39,36,0.06);
+    }
+
+    /* ── 角落竹枝装饰（极简） ── */
+    .bamboo-corner {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0.15;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #E5DDD0; border-radius: 2px; }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const I = {
+      branch(s=16) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9 a9 9 0 0 1 -9 9"/></svg>; },
+      save(s=15) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>; },
+      bot(s=17) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M9 8 v-2 a3 3 0 0 1 6 0 v2"/><circle cx="9" cy="14" r="1.5" fill="currentColor" opacity="0.6"/><circle cx="15" cy="14" r="1.5" fill="currentColor" opacity="0.6"/></svg>; },
+      search(s=13) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21 l-4.35-4.35"/></svg>; },
+      plus(s=14) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>; },
+      undo(s=14) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0 -9 -9 9 9 0 0 0 -6 2.3 L3 13"/></svg>; },
+      zoomin(s=13) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6M21 21l-4.35-4.35"/></svg>; },
+      zoomout(s=13) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M21 21l-4.35-4.35"/></svg>; },
+      cd(s=11) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>; },
+      layout(s=14) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>; },
+      play(s=14) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>; },
+      leaf(s=12) { return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"><path d="M11 2 Q 6 10 10 20 Q 14 12 12 2" opacity="0.6"/></svg>; },
+    };
+
+    const AGENTS = [
+      { id: 'architect', name: 'Architect', role: '架构师', vendor: 'claude', model: 'Sonnet 4.6', color: '#5A8A5A', x: 80, y: 80 },
+      { id: 'coder',     name: 'Coder',     role: '编码者', vendor: 'codex',  model: 'codex-1',    color: '#B87A4A', x: 320, y: 80 },
+      { id: 'reviewer',  name: 'Reviewer',  role: '审查员', vendor: 'claude', model: 'Haiku 4.5',  color: '#C4705A', x: 320, y: 220 },
+      { id: 'tester',    name: 'Tester',    role: '测试员', vendor: 'api',    model: 'DeepSeek',   color: '#7A8A7A', x: 320, y: 360 },
+      { id: 'docwriter', name: 'DocWriter', role: '文档员', vendor: 'claude', model: 'Sonnet 4.6', color: '#C8B080', x: 580, y: 220 },
+    ];
+
+    /* ─── 工具栏 ─── */
+    function Toolbar() {
+      return (
+        <div style={{
+          height: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 16px', flexShrink: 0,
+          background: '#FFFFFF', borderBottom: '1px solid #E5DDD0',
+          position: 'relative',
+        }}>
+          {/* 极淡竹影 */}
+          <div style={{ position: 'absolute', right: 60, top: 0, height: '100%', width: 120, pointerEvents: 'none', overflow: 'hidden', opacity: 0.04, transform: 'rotate(180deg)' }}>
+            <svg viewBox="0 0 120 48" width="120" height="48">
+              <path d="M30 48 Q 28 36 31 24 Q 34 12 30 0" stroke="#5A8A5A" strokeWidth="0.6" fill="none"/>
+              <path d="M80 48 Q 78 30 81 18 Q 84 6 80 0" stroke="#5A8A5A" strokeWidth="0.5" fill="none"/>
+            </svg>
+          </div>
+          <div className="flex items-center gap-3">
+            <div style={{ fontFamily: '"Noto Serif SC", serif', fontSize: 14, fontWeight: 600, color: '#5A8A5A', letterSpacing: '0.03em' }}>Agent Studio</div>
+            <div style={{ width: 1, height: 18, background: '#E5DDD0' }} />
+            <div className="flex items-center gap-1.5">
+              <span className="btn-ghost">{I.save(15)}</span>
+              <span className="btn-ghost">{I.undo(14)}</span>
+              <span className="btn-ghost">{I.layout(14)}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <span className="btn-ghost">{I.zoomout(13)}</span>
+            <span style={{ fontSize: 11, color: '#B0A898', width: 36, textAlign: 'center' }}>100%</span>
+            <span className="btn-ghost">{I.zoomin(13)}</span>
+            <div style={{ width: 1, height: 18, background: '#E5DDD0' }} />
+            <button className="btn-primary">{I.play(14)} 执行</button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── 侧边栏 ─── */
+    function Sidebar({ selected, onSelect }) {
+      return (
+        <aside className="paper-bg" style={{
+          width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column',
+          borderRight: '1px solid #E5DDD0', position: 'relative',
+        }}>
+          <div className="bamboo-shadow" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '14px 14px 10px', borderBottom: '1px solid #E5DDD0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontSize: 10, fontWeight: 600, color: '#7A7268', letterSpacing: '0.08em' }}>AGENTS</span>
+                <button style={{ color: '#7A7268', cursor: 'pointer', padding: 2 }} className="hover:text-text">{I.plus(14)}</button>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#B0A898' }}>{I.search(13)}</div>
+                <input placeholder="搜索 Agent..." style={{
+                  width: '100%', padding: '7px 10px 7px 28px',
+                  background: '#FFFFFF', border: '1px solid #E5DDD0', borderRadius: 10,
+                  fontSize: 12, color: '#2A2724', outline: 'none',
+                  transition: 'border-color 0.2s',
+                }} className="focus:border-bamboo" />
+              </div>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', padding: '6px 8px' }}>
+              {AGENTS.map(a => {
+                const isActive = selected === 'n' + a.id;
+                return (
+                  <div key={a.id} onClick={() => onSelect('n' + a.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '9px 10px', borderRadius: 12, marginBottom: 2,
+                      cursor: 'pointer',
+                      background: isActive ? '#FFFFFF' : 'transparent',
+                      border: `1px solid ${isActive ? 'rgba(90,138,90,0.12)' : 'transparent'}`,
+                      boxShadow: isActive ? '0 1px 4px rgba(42,39,36,0.03)' : 'none',
+                      transition: 'all 0.25s',
+                    }}
+                    className={isActive ? '' : 'hover:bg-white/40'}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 10,
+                      background: a.color + '10', border: '1px solid ' + a.color + '15',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: a.color,
+                    }}>{I.bot(17)}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: '#2A2724' }}>{a.name}</div>
+                      <div style={{ fontSize: 10, color: '#7A7268', marginTop: 1 }}>{a.role} · {a.model}</div>
+                    </div>
+                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: a.color, opacity: isActive ? 0.6 : 0.2 }} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </aside>
+      );
+    }
+
+    /* ─── 节点 ─── */
+    function NodeCard({ id, agent, selected, onClick }) {
+      return (
+        <div onClick={() => onClick(id)} className={`node-card ${selected === id ? 'selected' : ''}`}
+          style={{ position: 'absolute', left: agent.x, top: agent.y, width: 190, zIndex: 2 }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 14px 10px', borderBottom: '1px solid rgba(229,221,208,0.4)' }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: agent.color + '10',
+              border: '1px solid ' + agent.color + '18',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: agent.color,
+            }}>{I.bot(16)}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#2A2724', lineHeight: 1.3 }}>{agent.name}</div>
+              <div style={{ fontSize: 10, color: '#7A7268', marginTop: 1 }}>{agent.model}</div>
+            </div>
+          </div>
+          <div style={{ padding: '8px 14px 10px', fontSize: 11, color: '#9A9288', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ background: agent.color + '12', padding: '1px 6px', borderRadius: 4, color: agent.color, fontSize: 9, fontWeight: 500 }}>
+              {agent.vendor}
+            </span>
+            {agent.role}
+          </div>
+          <div className="connector-dot" style={{ right: -6, top: '50%', transform: 'translateY(-50%)', background: agent.color }} />
+          <div className="connector-dot" style={{ left: -6, top: '50%', transform: 'translateY(-50%)', background: agent.color }} />
+        </div>
+      );
+    }
+
+    /* ─── 画布 ─── */
+    function Canvas({ selected, onSelect }) {
+      return (
+        <div className="flex-1 relative overflow-hidden paper-bg canvas-grid">
+          {/* 竹角装饰 */}
+          <div className="bamboo-corner" style={{ bottom: 60, right: 150, opacity: 0.08 }}>
+            <svg width="80" height="120" viewBox="0 0 80 120" fill="none">
+              <path d="M40 120 Q 38 90 42 60 Q 46 30 40 0" stroke="#5A8A5A" strokeWidth="0.8" opacity="0.6"/>
+              <path d="M28 80 Q 34 78 42 82" stroke="#5A8A5A" strokeWidth="0.6" opacity="0.5"/>
+              <path d="M52 50 Q 46 48 40 52" stroke="#5A8A5A" strokeWidth="0.6" opacity="0.5"/>
+            </svg>
+          </div>
+
+          {/* SVG 连线 */}
+          <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1, pointerEvents: 'none' }}>
+            <defs>
+              {[
+                ['#5A8A5A', '#B87A4A'], ['#5A8A5A', '#C4705A'], ['#5A8A5A', '#7A8A7A'],
+                ['#B87A4A', '#C8B080'], ['#C4705A', '#C8B080'], ['#7A8A7A', '#C8B080'],
+              ].map(([c1, c2], i) => (
+                <linearGradient key={i} id={`eg${i}`} x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor={c1} stopOpacity="0.35"/>
+                  <stop offset="100%" stopColor={c2} stopOpacity="0.35"/>
+                </linearGradient>
+              ))}
+            </defs>
+            {[
+              ['architect', 'coder', 0], ['architect', 'reviewer', 1], ['architect', 'tester', 2],
+              ['coder', 'docwriter', 3], ['reviewer', 'docwriter', 4], ['tester', 'docwriter', 5],
+            ].map(([f, t, i]) => {
+              const from = AGENTS.find(a => a.id === f); const to = AGENTS.find(a => a.id === t);
+              if (!from || !to) return null;
+              const x1 = from.x + 190, y1 = from.y + 48, x2 = to.x, y2 = to.y + 48;
+              return (
+                <path key={i} d={`M ${x1} ${y1} C ${(x1+x2)/2} ${y1}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}`}
+                  fill="none" stroke={`url(#eg${i})`} strokeWidth="1.8" strokeLinecap="round" />
+              );
+            })}
+          </svg>
+
+          {/* 并行组 */}
+          <div style={{
+            position: 'absolute', left: 290, top: 150, width: 250, height: 290, zIndex: 0,
+            border: '2px dashed rgba(180,170,155,0.2)', borderRadius: 16,
+            background: 'rgba(180,170,155,0.02)',
+          }}>
+            <div style={{
+              position: 'absolute', top: -9, left: 16, padding: '0 10px',
+              background: '#F3EFE6', fontSize: 10, color: '#B0A898',
+            }}>并行执行</div>
+          </div>
+
+          {/* 节点 */}
+          {AGENTS.map(a => (
+            <NodeCard key={'n' + a.id} id={'n' + a.id} agent={a} selected={selected} onClick={onSelect} />
+          ))}
+
+          {/* 小地图 */}
+          <div className="shadow-card" style={{
+            position: 'absolute', bottom: 16, right: 16, zIndex: 5,
+            width: 136, background: '#FFFFFF',
+            border: '1px solid #E5DDD0', borderRadius: 12, padding: 10,
+          }}>
+            <div style={{ fontSize: 8, color: '#B0A898', letterSpacing: '0.1em', marginBottom: 6 }}>MINIMAP</div>
+            <div style={{ position: 'relative', height: 48, background: 'rgba(243,239,230,0.5)', borderRadius: 6 }}>
+              {AGENTS.map(a => (
+                <div key={a.id} style={{
+                  position: 'absolute', left: a.x * 0.14 + 8, top: a.y * 0.09 + 6,
+                  width: 14, height: 10, borderRadius: 3,
+                  background: a.color,
+                  opacity: selected === 'n' + a.id ? 0.7 : 0.2,
+                  transition: 'opacity 0.3s',
+                }} />
+              ))}
+            </div>
+          </div>
+
+          {/* 底部提示 */}
+          <div style={{
+            position: 'absolute', bottom: 18, left: '50%', transform: 'translateX(-50%)',
+            fontSize: 10, color: '#C4B8A8', letterSpacing: '0.12em', zIndex: 5,
+          }}>
+            拖拽 Agent 到画布 · 连线编排工作流
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── 属性面板 ─── */
+    function PropertyPanel({ selected }) {
+      const agent = selected ? AGENTS.find(a => 'n' + a.id === selected) : null;
+      return (
+        <aside className="paper-bg" style={{
+          width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column',
+          borderLeft: '1px solid #E5DDD0',
+        }}>
+          <div style={{ padding: '16px 16px 14px', borderBottom: '1px solid #E5DDD0' }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: '#7A7268', letterSpacing: '0.08em' }}>PROPERTIES</span>
+          </div>
+          {agent ? (
+            <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid #E5DDD0' }}>
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: agent.color + '10', border: '1px solid ' + agent.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: agent.color }}>{I.bot(19)}</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#2A2724' }}>{agent.name}</div>
+                  <div style={{ fontSize: 10, color: '#7A7268', marginTop: 1 }}>{agent.role}</div>
+                </div>
+              </div>
+              {[
+                { label: 'Agent', value: agent.name },
+                { label: '步骤名称', value: agent.role },
+                { label: '模型覆盖', value: agent.model },
+              ].map(f => (
+                <div key={f.label} style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, color: '#7A7268', marginBottom: 4 }}>{f.label}</div>
+                  <div style={{
+                    padding: '7px 10px', borderRadius: 10,
+                    background: '#FFFFFF', border: '1px solid #E5DDD0',
+                    fontSize: 12, color: '#2A2724',
+                  }}>{f.value}</div>
+                </div>
+              ))}
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #E5DDD0' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#7A7268', letterSpacing: '0.08em', marginBottom: 12 }}>步骤规则</div>
+                {['On Error', 'On Done'].map(label => (
+                  <div key={label} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 10, color: '#7A7268', marginBottom: 3 }}>{label}</div>
+                    <div style={{
+                      padding: '6px 10px', borderRadius: 10,
+                      background: '#FFFFFF', border: '1px solid #E5DDD0',
+                      fontSize: 12, color: '#2A2724',
+                    }}>{label === 'On Error' ? 'stop' : 'continue'}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #E5DDD0' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#7A7268', letterSpacing: '0.08em', marginBottom: 6 }}>PROMPT 模板</div>
+                <textarea defaultValue={`你正在执行 ${agent.role} 步骤。\n\n上下文：{{memory}}`}
+                  style={{
+                    width: '100%', height: 80, padding: 10, borderRadius: 10,
+                    background: '#FFFFFF', border: '1px solid #E5DDD0',
+                    fontSize: 11, fontFamily: '"JetBrains Mono", monospace',
+                    color: '#2A2724', outline: 'none', resize: 'none',
+                  }} className="focus:border-bamboo" />
+              </div>
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#B0A898', padding: 20 }}>
+              <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.2 }}>◌</div>
+              <div style={{ fontSize: 11 }}>选择一个节点以编辑属性</div>
+            </div>
+          )}
+        </aside>
+      );
+    }
+
+    /* ─── ModeRail ─── */
+    function ModeRail() {
+      const modes = ['workflow', 'templates', 'agents', 'single', 'settings'];
+      return (
+        <nav style={{
+          width: 56, background: '#FAF7F2', display: 'flex', flexDirection: 'column', alignItems: 'center',
+          paddingTop: 20, flexShrink: 0, borderRight: '1px solid #E5DDD0', position: 'relative',
+        }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: '#5A8A5A', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontFamily: '"Noto Serif SC", serif', fontWeight: 700, marginBottom: 24 }}>竹</div>
+          {modes.map((m, i) => (
+            <button key={m} style={{
+              width: 36, height: 36, borderRadius: 10, marginBottom: 4,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative',
+              color: i === 1 ? '#5A8A5A' : '#B0A898',
+              background: i === 1 ? 'rgba(90,138,90,0.06)' : 'transparent',
+              border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+            }} className={i === 1 ? '' : 'hover:bg-white/60 hover:text-muted'}>
+              {i === 1 && (
+                <div className="bamboo-indicator">
+                  <span /><span /><span />
+                </div>
+              )}
+              {I.bot(18)}
+            </button>
+          ))}
+          {/* 底部竹叶暗纹 */}
+          <div style={{ marginTop: 'auto', marginBottom: 12, opacity: 0.04 }}>
+            <svg width="20" height="30" viewBox="0 0 20 30">
+              <path d="M10 30 Q 8 20 12 10 Q 16 5 12 0" stroke="#5A8A5A" strokeWidth="0.6" fill="none"/>
+            </svg>
+          </div>
+        </nav>
+      );
+    }
+
+    /* ─── App ─── */
+    function App() {
+      const [selected, setSelected] = useState('n2');
+      return (
+        <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: '#F3EFE6', overflow: 'hidden' }}>
+          <Toolbar />
+          <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            <ModeRail />
+            <Sidebar selected={selected} onSelect={setSelected} />
+            <Canvas selected={selected} onSelect={setSelected} />
+            <PropertyPanel selected={selected} />
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

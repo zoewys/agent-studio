@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>浪浪山 · 小妖怪工作流</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Inter:wght@300;400;500;600&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper: '#F5F0E8',
+            paper2: '#EDE6D8',
+            ink: '#2C2A28',
+            ink2: '#6B6560',
+            ink3: '#9E9488',
+            border: '#D4C9B8',
+            border2: '#C4B5A0',
+            /* 小妖怪色 */
+            xiaohong: '#C23B22',
+            xiaolv: '#5A7A5A',
+            xiaohuang: '#C49A4A',
+            xiaolan: '#4A5A7A',
+            xiaozi: '#7A5A7A',
+          },
+          fontFamily: {
+            display: ['"Noto Serif SC"', 'serif'],
+            cute: ['"ZCOOL KuaiLe"', 'sans-serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          animation: {
+            'bounce-soft': 'bounceSoft 3s ease-in-out infinite',
+            'wiggle': 'wiggle 4s ease-in-out infinite',
+            'sway': 'sway 5s ease-in-out infinite',
+            'float-up': 'floatUp 6s ease-in-out infinite',
+            'dash-flow': 'dashFlow 1s linear infinite',
+          },
+          keyframes: {
+            bounceSoft: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-3px)' },
+            },
+            wiggle: {
+              '0%, 100%': { transform: 'rotate(0deg)' },
+              '25%': { transform: 'rotate(1deg)' },
+              '75%': { transform: 'rotate(-1deg)' },
+            },
+            sway: {
+              '0%, 100%': { transform: 'rotate(0deg) translateX(0)' },
+              '33%': { transform: 'rotate(0.5deg) translateX(2px)' },
+              '66%': { transform: 'rotate(-0.5deg) translateX(-1px)' },
+            },
+            floatUp: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-6px)' },
+            },
+            dashFlow: {
+              '0%': { strokeDashoffset: '20' },
+              '100%': { strokeDashoffset: '0' },
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ── 宣纸背景 ── */
+    .paper-bg {
+      background-color: #F5F0E8;
+      background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(180, 160, 140, 0.04) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 30%, rgba(140, 160, 140, 0.03) 0%, transparent 50%);
+      position: relative;
+    }
+    .paper-bg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg width='300' height='300' viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='4'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23paper)' opacity='0.03'/%3E%3C/svg%3E");
+      background-size: 600px 600px;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    /* ── 画布网格（模仿古画绢本纹理） ── */
+    .canvas-grid {
+      background-image:
+        linear-gradient(rgba(180, 160, 140, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(180, 160, 140, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    /* ── 竹简工具栏 ── */
+    .bamboo-bar {
+      background: linear-gradient(180deg, #E8DFD0, #DED5C0);
+      border-bottom: 2px solid #C4B5A0;
+      box-shadow: 0 4px 12px rgba(44, 42, 40, 0.06);
+      position: relative;
+    }
+    .bamboo-bar::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 32px,
+        rgba(180, 160, 140, 0.06) 32px,
+        rgba(180, 160, 140, 0.06) 33px
+      );
+      pointer-events: none;
+    }
+
+    /* ── 小妖怪节点 ── */
+    .youkai-node {
+      position: relative;
+      border-radius: 18px;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .youkai-node:hover {
+      transform: translateY(-3px) rotate(-0.5deg);
+      box-shadow: 0 12px 32px rgba(44, 42, 40, 0.12);
+    }
+    .youkai-node.selected {
+      transform: translateY(-4px) rotate(-0.5deg);
+      box-shadow: 0 16px 40px rgba(44, 42, 40, 0.15);
+    }
+    /* 小角 */
+    .horn {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 12px solid;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+    }
+    /* 小妖的脸 */
+    .youkai-face {
+      display: flex;
+      gap: 5px;
+      margin-top: 4px;
+    }
+    .youkai-eye {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #2C2A28;
+    }
+
+    /* ── 手绘感边框（用 SVG 滤镜抖动） ── */
+    .hand-drawn {
+      border: 2px solid #C4B5A0;
+      filter: url(#handDrawn);
+    }
+
+    /* ── 藤蔓连线 ── */
+    .vine-path {
+      fill: none;
+      stroke-linecap: round;
+    }
+
+    /* ── 山洞并行组 ── */
+    .cave-box {
+      border: 2.5px dashed #A89A88;
+      border-radius: 24px;
+      background: rgba(180, 160, 140, 0.04);
+      position: relative;
+    }
+    .cave-box::before {
+      content: '⛰ 小妖集会';
+      position: absolute;
+      top: -11px;
+      left: 20px;
+      padding: 0 10px;
+      font-family: '"Noto Serif SC", serif';
+      font-size: 11px;
+      color: #8A7A6A;
+      background: #F5F0E8;
+    }
+
+    /* ── 古卷小地图 ── */
+    .scroll-map {
+      background: #EDE6D8;
+      border: 1px solid #C4B5A0;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    .scroll-map::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #C4B5A0, #D4C9B8, #C4B5A0);
+      border-radius: 12px 12px 0 0;
+    }
+    .scroll-map::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #C4B5A0, #D4C9B8, #C4B5A0);
+      border-radius: 0 0 12px 12px;
+    }
+
+    /* ── 属性面板卷轴 ── */
+    .scroll-panel {
+      background: linear-gradient(180deg, #F0EBE0, #E8E0D0);
+      border-left: 2px solid #C4B5A0;
+      position: relative;
+    }
+    .scroll-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(180, 160, 140, 0.3), transparent);
+    }
+
+    /* ── 底部卷轴轴头 ── */
+    .scroll-end {
+      height: 8px;
+      background: linear-gradient(180deg, #D4C9B8, #B8A898);
+      border-radius: 4px;
+    }
+
+    /* ── 侧边栏名录 ── */
+    .roster-sidebar {
+      background: linear-gradient(180deg, #F0EBE0 0%, #E8DFD0 100%);
+      border-right: 2px solid #C4B5A0;
+    }
+
+    /* ── 工具栏按钮 ── */
+    .tool-btn {
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      color: #6B6560;
+      transition: all 0.3s;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tool-btn:hover {
+      background: rgba(180, 160, 140, 0.15);
+      color: #2C2A28;
+    }
+
+    /* ── 印章 ── */
+    .chop {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      border: 1.5px solid #C23B22;
+      color: #C23B22;
+      font-family: '"Noto Serif SC", serif';
+      font-size: 10px;
+      border-radius: 4px;
+      transform: rotate(-2deg);
+      letter-spacing: 0.1em;
+    }
+
+    /* ── 滚动条 ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: #D4C9B8; border-radius: 3px; }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    /* ─── 手绘 SVG 滤镜（让矩形边缘有抖动） ─── */
+    const HandDrawnFilter = () => (
+      <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+        <defs>
+          <filter id="handDrawn" x="-5%" y="-5%" width="110%" height="110%">
+            <feTurbulence type="turbulence" baseFrequency="0.04" numOctaves="3" result="turbulence" />
+            <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="2" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+      </svg>
+    );
+
+    /* ─── 小妖怪颜色方案 ─── */
+    const YOUKAI_COLORS = {
+      architect:  { bg: '#FFF5EE', border: '#E8C8B0', horn: '#C23B22', face: '#C23B22', name: '山龟长老' },
+      coder:      { bg: '#F0F5EC', border: '#B8D0B0', horn: '#5A7A5A', face: '#5A7A5A', name: '蘑菇小精' },
+      reviewer:   { bg: '#FFF8E8', border: '#E0CFA0', horn: '#C49A4A', face: '#C49A4A', name: '黄鼠狼公' },
+      tester:     { bg: '#EEF0F5', border: '#A8B8D0', horn: '#4A5A7A', face: '#4A5A7A', name: '山魈老怪' },
+      docwriter:  { bg: '#F5EEF5', border: '#D0B8D0', horn: '#7A5A7A', face: '#7A5A7A', name: '狐媚娘子' },
+    };
+
+    /* ─── 图标（手绘感 SVG） ─── */
+    const Icons = {
+      brush(s=18) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="#6B6560" strokeWidth="1.8" strokeLinecap="round">
+          <path d="M18 3 L21 6 L11 16 L8 16 L8 13 Z" opacity="0.8"/>
+          <path d="M6 17 Q 4 18 4 21 Q 7 21 8 19" opacity="0.7"/>
+        </svg>;
+      },
+      mountain(s=16) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="#6B6560" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 20 L8 8 L14 16 L18 4 L22 20 Z" opacity="0.7"/>
+        </svg>;
+      },
+      leaf(s=14) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="#6B6560" strokeWidth="1.6" strokeLinecap="round">
+          <path d="M12 2 C 8 8 6 14 12 22 C 18 14 16 8 12 2 Z" opacity="0.7"/>
+          <line x1="12" y1="2" x2="12" y2="12" opacity="0.5"/>
+        </svg>;
+      },
+      search(s=14) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="#6B6560" strokeWidth="1.6" strokeLinecap="round">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="M21 21 L16.65 16.65"/>
+        </svg>;
+      },
+      plus(s=14) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="#6B6560" strokeWidth="1.6" strokeLinecap="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>;
+      },
+      save(s=15) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="#6B6560" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>;
+      },
+      branch(s=15) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="#6B6560" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+          <path d="M18 9 a9 9 0 0 1 -9 9"/>
+        </svg>;
+      },
+      botFace(s=18) {
+        return <svg width={s} height={s} viewBox="0 0 28 28" fill="none" stroke="#6B6560" strokeWidth="1.5" strokeLinecap="round">
+          <rect x="5" y="9" width="18" height="13" rx="4"/>
+          <path d="M10 9 V6 a4 4 0 0 1 8 0 v3"/>
+          <circle cx="11" cy="16" r="2" fill="#6B6560" fillOpacity="0.6"/>
+          <circle cx="17" cy="16" r="2" fill="#6B6560" fillOpacity="0.6"/>
+          <line x1="14" y1="19" x2="14" y2="20.5" strokeWidth="1.5"/>
+        </svg>;
+      },
+      run(s=16) {
+        return <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="#C23B22" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="6 3 20 12 6 21 6 3"/>
+        </svg>;
+      },
+    };
+
+    /* ─── 小妖怪节点 ─── */
+    function YoukaiNode({ id, agent, color, selected, onClick }) {
+      const c = YOUKAI_COLORS[agent.id];
+      return (
+        <div
+          onClick={() => onClick(id)}
+          className={`youkai-node ${selected === id ? 'selected' : ''}`}
+          style={{
+            position: 'absolute',
+            left: agent.x, top: agent.y,
+            width: 180,
+            background: c.bg,
+            border: `${selected === id ? '2.5px' : '2px'} solid ${selected === id ? c.horn : c.border}`,
+            padding: '14px',
+            zIndex: selected === id ? 10 : 2,
+          }}
+        >
+          {/* 小角 */}
+          <div className="horn" style={{ borderBottomColor: c.horn }} />
+
+          {/* 内容 */}
+          <div className="flex items-start gap-3">
+            <div style={{
+              width: 36, height: 36, borderRadius: 12,
+              background: c.horn + '15',
+              border: '1.5px solid ' + c.horn + '30',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 16, flexShrink: 0,
+            }}>
+              <span style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.05))' }}>
+                {agent.emoji}
+              </span>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontFamily: '"Noto Serif SC", serif',
+                fontSize: 14, fontWeight: 600,
+                color: '#2C2A28',
+                lineHeight: 1.3,
+              }}>
+                {agent.name}
+              </div>
+              <div style={{
+                fontSize: 11, color: '#8A7A6A',
+                marginTop: 1, fontFamily: '"Noto Serif SC", serif',
+              }}>
+                {c.name}
+              </div>
+              <div style={{
+                fontSize: 9, color: '#A89888',
+                marginTop: 4, display: 'flex', alignItems: 'center', gap: 4,
+              }}>
+                <span>{agent.model}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 小妖的眼睛 */}
+          <div className="youkai-face" style={{ justifyContent: 'center', marginTop: 8 }}>
+            <div className="youkai-eye" style={{ background: c.horn, transform: 'rotate(0deg)' }} />
+            <div className="youkai-eye" style={{ background: c.horn, transform: 'rotate(0deg)' }} />
+          </div>
+
+          {/* 连接端点 */}
+          <div style={{
+            position: 'absolute', right: -8, top: '50%', transform: 'translateY(-50%)',
+            width: 16, height: 16, borderRadius: '50%',
+            background: c.horn, border: '3px solid #F5F0E8',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          }} />
+          <div style={{
+            position: 'absolute', left: -8, top: '50%', transform: 'translateY(-50%)',
+            width: 16, height: 16, borderRadius: '50%',
+            background: c.horn, border: '3px solid #F5F0E8',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          }} />
+        </div>
+      );
+    }
+
+    /* ─── 工具栏 ─── */
+    function Toolbar() {
+      return (
+        <div className="bamboo-bar" style={{
+          height: 44, display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', padding: '0 16px', flexShrink: 0,
+        }}>
+          <div className="flex items-center gap-3">
+            <div className="chop">浪浪山</div>
+            <span style={{ width: 1, height: 18, background: '#C4B5A0' }} />
+            <div className="flex items-center gap-1.5">
+              <button className="tool-btn">{Icons.branch(15)} 小妖名录</button>
+              <button className="tool-btn">{Icons.save(15)} 存起来</button>
+              <button className="tool-btn">{Icons.brush(18)}</button>
+              <button className="tool-btn">{Icons.brush(18)}</button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="tool-btn" style={{ fontSize: 11 }}>— 缩小</button>
+            <span style={{ fontSize: 12, color: '#6B6560', fontWeight: 500, minWidth: 40, textAlign: 'center' }}>100%</span>
+            <button className="tool-btn" style={{ fontSize: 11 }}>放大 +</button>
+            <span style={{ width: 1, height: 18, background: '#C4B5A0' }} />
+            <button style={{
+              padding: '6px 16px', borderRadius: 10,
+              background: '#C23B22', color: '#F5F0E8', fontSize: 12, fontWeight: 600,
+              fontFamily: '"Noto Serif SC", serif',
+              border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+              boxShadow: '0 2px 8px rgba(194,59,34,0.2)',
+            }}
+              className="hover:brightness-110 active:scale-95 transition-all"
+            >
+              {Icons.run(14)} 开跑
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── 侧边栏 ─── */
+    function Sidebar({ agents, selected, onSelect }) {
+      return (
+        <aside className="roster-sidebar" style={{
+          width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column',
+          overflow: 'hidden',
+        }}>
+          <div style={{ padding: '14px 14px 10px', borderBottom: '1.5px solid #C4B5A0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontFamily: '"Noto Serif SC", serif', fontSize: 13, color: '#6B6560' }}>
+                山中精怪
+              </span>
+              <button style={{ color: '#8A7A6A', cursor: 'pointer' }}>{Icons.plus(14)}</button>
+            </div>
+            <div style={{ position: 'relative' }}>
+              {Icons.search(13)}
+              <input placeholder="寻妖..." style={{
+                width: '100%', padding: '5px 8px 5px 24px',
+                background: 'rgba(255,255,255,0.5)',
+                border: '1px solid #C4B5A0', borderRadius: 10,
+                fontSize: 12, color: '#2C2A28', outline: 'none',
+              }} />
+            </div>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', padding: 8 }}>
+            {agents.map((a) => {
+              const c = YOUKAI_COLORS[a.id];
+              return (
+                <div
+                  key={a.id}
+                  onClick={() => onSelect(a.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '8px 10px', borderRadius: 14, marginBottom: 4,
+                    cursor: 'pointer',
+                    background: selected === a.id ? 'rgba(255,255,255,0.6)' : 'transparent',
+                    border: selected === a.id ? '1.5px solid ' + c.horn + '40' : '1.5px solid transparent',
+                    transition: 'all 0.3s',
+                  }}
+                >
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 10,
+                    background: c.horn + '15',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 14,
+                  }}>
+                    {a.emoji}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: '"Noto Serif SC", serif', fontSize: 12, fontWeight: 600, color: '#2C2A28' }}>
+                      {a.name}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#8A7A6A' }}>{c.name}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+      );
+    }
+
+    /* ─── 画布 ─── */
+    function Canvas({ agents, selected, onSelect }) {
+      return (
+        <div className="flex-1 relative overflow-hidden paper-bg canvas-grid"
+        >
+          {/* SVG 连线（藤蔓） */}
+          <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1, pointerEvents: 'none' }}>
+            <defs>
+              <linearGradient id="vine1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#5A7A5A" stopOpacity="0.4"/>
+                <stop offset="100%" stopColor="#4A5A7A" stopOpacity="0.3"/>
+              </linearGradient>
+            </defs>
+
+            {/* Architect -> Coder */}
+            <path d="M 232 96 C 280 80, 310 80, 352 96"
+                  className="vine-path" stroke="url(#vine1)" strokeWidth="2.5" markerEnd="url(#dot1)"/>
+            {/* Architect -> Reviewer */}
+            <path d="M 232 124 C 290 140, 310 196, 352 212"
+                  className="vine-path" stroke="url(#vine1)" strokeWidth="2" opacity="0.7"/>
+            {/* Architect -> Tester */}
+            <path d="M 232 152 C 290 180, 310 300, 352 328"
+                  className="vine-path" stroke="url(#vine1)" strokeWidth="2" opacity="0.6"/>
+            {/* Coder -> DocWriter */}
+            <path d="M 488 96 C 530 120, 560 196, 600 212"
+                  className="vine-path" stroke="#8A7A5A" strokeWidth="2" opacity="0.5"/>
+            {/* Reviewer -> DocWriter */}
+            <path d="M 488 212 C 530 212, 560 212, 600 212"
+                  className="vine-path" stroke="#C49A4A" strokeWidth="2" opacity="0.5"/>
+            {/* Tester -> DocWriter */}
+            <path d="M 488 328 C 530 280, 560 220, 600 212"
+                  className="vine-path" stroke="#4A5A7A" strokeWidth="2" opacity="0.5"/>
+
+            {/* 端点小蘑菇装饰 */}
+            {[
+              [232, 96], [232, 124], [232, 152],
+              [488, 96], [488, 212], [488, 328],
+              [352, 96], [352, 212], [352, 328],
+              [600, 212],
+            ].map(([x, y], i) => (
+              <g key={i}>
+                <circle cx={x} cy={y} r={5} fill="#D4C9B8" opacity="0.6"/>
+                <circle cx={x} cy={y} r={2.5} fill="#8A7A6A" opacity="0.4"/>
+              </g>
+            ))}
+
+            {/* 装饰小叶子 */}
+            <text x="290" y="70" fontSize="14" fill="#5A7A5A" opacity="0.25">🌿</text>
+            <text x="510" y="150" fontSize="12" fill="#5A7A5A" opacity="0.2">🍃</text>
+            <text x="560" y="280" fontSize="11" fill="#C49A4A" opacity="0.2">🍂</text>
+          </svg>
+
+          {/* 山洞并行组 */}
+          <div className="cave-box" style={{
+            position: 'absolute', left: 310, top: 170, width: 230, height: 200, zIndex: 0,
+          }}>
+            <div style={{ position: 'absolute', bottom: -8, right: 12, fontSize: 18, opacity: 0.3 }}>🌿</div>
+          </div>
+
+          {/* 小妖怪节点 */}
+          {agents.map((a) => (
+            <YoukaiNode
+              key={'n' + a.id}
+              id={'n' + a.id}
+              agent={a}
+              selected={selected}
+              onClick={onSelect}
+            />
+          ))}
+
+          {/* 古卷小地图 */}
+          <div className="scroll-map" style={{
+            position: 'absolute', bottom: 16, right: 16,
+            width: 140, height: 100, zIndex: 5,
+          }}>
+            <div style={{ padding: '12px 10px 8px' }}>
+              <div style={{ fontSize: 9, color: '#8A7A6A', fontFamily: '"Noto Serif SC", serif', textAlign: 'center', marginBottom: 6 }}>
+                山 川 图
+              </div>
+              <div style={{ position: 'relative', height: 50, background: 'rgba(255,255,255,0.3)', borderRadius: 6 }}>
+                {agents.map((a, i) => (
+                  <div key={i} style={{
+                    position: 'absolute',
+                    left: a.x * 0.16 + 12, top: a.y * 0.1 + 8,
+                    width: 12, height: 10, borderRadius: 3,
+                    background: YOUKAI_COLORS[a.id].horn,
+                    opacity: selected === 'n' + a.id ? 0.8 : 0.4,
+                  }} />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 画布遮罩提示 */}
+          <div style={{
+            position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
+            fontSize: 10, color: '#B8A898',
+            fontFamily: '"Noto Serif SC", serif',
+            letterSpacing: '0.15em',
+            zIndex: 5,
+          }}>
+            —— 拽动小妖编排工作流 ——
+          </div>
+        </div>
+      );
+    }
+
+    /* ─── 属性面板 ─── */
+    function PropertyPanel({ selected, agents }) {
+      const agent = selected ? agents.find(a => 'n' + a.id === selected) : null;
+      const c = agent ? YOUKAI_COLORS[agent.id] : null;
+      return (
+        <aside className="scroll-panel" style={{
+          width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column',
+          overflow: 'hidden',
+        }}>
+          <div style={{ padding: '16px 14px', borderBottom: '1.5px solid #C4B5A0' }}>
+            <span style={{ fontFamily: '"Noto Serif SC", serif', fontSize: 12, color: '#6B6560' }}>
+              小妖详情
+            </span>
+          </div>
+
+          {agent && c ? (
+            <div style={{ flex: 1, overflow: 'auto', padding: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 14,
+                  background: c.horn + '15', border: '1.5px solid ' + c.horn + '30',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                }}>
+                  {agent.emoji}
+                </div>
+                <div>
+                  <div style={{ fontFamily: '"Noto Serif SC", serif', fontSize: 15, fontWeight: 600, color: '#2C2A28' }}>
+                    {agent.name}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#8A7A6A' }}>{c.name}</div>
+                </div>
+              </div>
+
+              {[
+                { label: '名号', value: agent.name },
+                { label: '本事', value: agent.role },
+                { label: '师承', value: agent.vendor },
+                { label: '法器', value: agent.model },
+              ].map(f => (
+                <div key={f.label} style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 9, color: '#8A7A6A', marginBottom: 2, fontFamily: '"Noto Serif SC", serif' }}>{f.label}</div>
+                  <div style={{
+                    padding: '7px 10px', borderRadius: 10,
+                    background: 'rgba(255,255,255,0.4)',
+                    border: '1px solid #D4C9B8',
+                    fontSize: 12, color: '#2C2A28',
+                  }}>{f.value}</div>
+                </div>
+              ))}
+
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1.5px dashed #D4C9B8' }}>
+                <div style={{ fontSize: 9, color: '#8A7A6A', marginBottom: 6, fontFamily: '"Noto Serif SC", serif' }}>
+                  行事规则
+                </div>
+                {['失手咋办', '完事咋办', '要人帮忙不'].map(label => (
+                  <div key={label} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '6px 0', borderBottom: '1px solid rgba(196,181,160,0.3)',
+                  }}>
+                    <span style={{ fontSize: 11, color: '#8A7A6A' }}>{label}</span>
+                    <span style={{ fontSize: 11, color: '#6B6560' }}>✗ 停下</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#B8A898', padding: 20 }}>
+              <div style={{ fontSize: 32, marginBottom: 8, opacity: 0.4 }}>👻</div>
+              <div style={{ fontSize: 11, fontFamily: '"Noto Serif SC", serif' }}>点一只小妖看看</div>
+            </div>
+          )}
+
+          <div className="scroll-end" style={{ margin: '0 8px 8px' }} />
+        </aside>
+      );
+    }
+
+    /* ─── 主应用 ─── */
+    function App() {
+      const [selected, setSelected] = useState('n2');
+
+      const agents = [
+        { id: 'architect',  name: 'Architect',  role: '架构师',  vendor: 'claude', model: 'Sonnet 4.6', emoji: '🐢', x: 60,  y: 80 },
+        { id: 'coder',      name: 'Coder',      role: '编码者',  vendor: 'codex',  model: 'codex-1',    emoji: '🍄', x: 300, y: 80 },
+        { id: 'reviewer',   name: 'Reviewer',   role: '审查员',  vendor: 'claude', model: 'Haiku 4.5',  emoji: '🦊', x: 300, y: 200 },
+        { id: 'tester',     name: 'Tester',     role: '测试员',  vendor: 'api',    model: 'DeepSeek',   emoji: '👹', x: 300, y: 320 },
+        { id: 'docwriter',  name: 'DocWriter',  role: '文档员',  vendor: 'claude', model: 'Sonnet 4.6',  emoji: '🦊', x: 540, y: 200 },
+      ];
+
+      return (
+        <div className="h-screen w-screen flex flex-col" style={{ background: '#F5F0E8' }}>
+          <HandDrawnFilter />
+          <Toolbar />
+          <div className="flex-1 flex overflow-hidden">
+            <Sidebar agents={agents} selected={selected} onSelect={setSelected} />
+            <Canvas agents={agents} selected={selected} onSelect={setSelected} />
+            <PropertyPanel selected={selected} agents={agents} />
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
