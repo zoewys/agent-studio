@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>经纶 · 综合方案预览</title>
+  <style>
+    /* ============================================================
+       综合色板 — 高饱和 + 降紫 + 氛围融合
+       ============================================================ */
+    :root {
+      --bg-primary: #ebede8;
+      --bg-secondary: #e0e4de;
+      --bg-tertiary: #d5dad4;
+      --bg-panel: rgba(255, 255, 255, 0.22);
+
+      --text-primary: #252a28;
+      --text-secondary: #5e6a64;
+      --text-tertiary: #8a968e;
+
+      /* 高饱和重点色（紫已降） */
+      --accent: #1a8a9e;
+      --accent-soft: rgba(26, 138, 158, 0.12);
+      --accent-warm: #c84850;
+      --accent-warm-soft: rgba(200, 72, 80, 0.14);
+      --accent-gold: #c8a820;
+      --accent-gold-soft: rgba(200, 168, 32, 0.16);
+      /* 紫色降饱和：从 #b040c0 → 雾紫 */
+      --accent-neon: #9068a0;
+      --accent-neon-soft: rgba(144, 104, 160, 0.14);
+
+      --accent-mist: #6a9a9a;
+      --accent-mist-soft: rgba(106, 154, 154, 0.10);
+
+      --border: rgba(37, 42, 40, 0.07);
+      --shadow: rgba(37, 42, 40, 0.04);
+      --glow-running: rgba(26, 138, 158, 0.18);
+      --glow-confirm: rgba(200, 72, 80, 0.18);
+      --glow-done: rgba(80, 180, 130, 0.16);
+      --glow-neon: rgba(144, 104, 160, 0.18);
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #101412;
+      --bg-secondary: #181c1a;
+      --bg-tertiary: #202422;
+      --bg-panel: rgba(255, 255, 255, 0.05);
+
+      --text-primary: #dce2de;
+      --text-secondary: #8a968e;
+      --text-tertiary: #5e6a64;
+
+      --accent: #40d0e8;
+      --accent-soft: rgba(64, 208, 232, 0.16);
+      --accent-warm: #f06870;
+      --accent-warm-soft: rgba(240, 104, 112, 0.16);
+      --accent-gold: #f0d040;
+      --accent-gold-soft: rgba(240, 208, 64, 0.18);
+      --accent-neon: #c090d0;
+      --accent-neon-soft: rgba(192, 144, 208, 0.16);
+
+      --accent-mist: #8ababa;
+      --accent-mist-soft: rgba(138, 186, 186, 0.12);
+
+      --border: rgba(220, 226, 222, 0.06);
+      --shadow: rgba(0, 0, 0, 0.35);
+      --glow-running: rgba(64, 208, 232, 0.22);
+      --glow-confirm: rgba(240, 104, 112, 0.22);
+      --glow-done: rgba(100, 220, 160, 0.18);
+      --glow-neon: rgba(192, 144, 208, 0.20);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background 0.6s ease, color 0.4s ease;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ============================================================
+       方案一：沉浸式背景氛围 — 极低透明度场景图
+       ============================================================ */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      /* 多层雾气渐变 */
+      background-image:
+        radial-gradient(ellipse 100% 80% at -5% 100%, rgba(26, 138, 158, 0.06) 0%, transparent 55%),
+        radial-gradient(ellipse 80% 60% at 105% 90%, rgba(26, 138, 158, 0.04) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 50% -5%, rgba(26, 138, 158, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse 120% 100% at 50% 50%, rgba(26, 138, 158, 0.03) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+      transition: all 0.6s ease;
+    }
+
+    /* 场景图背景层（仅 Light 模式） */
+    .scene-bg {
+      position: fixed;
+      inset: 0;
+      background:
+        url('keyframe_0009.png') no-repeat center center / cover,
+        url('keyframe_0017.png') no-repeat right top / 60%;
+      background-blend-mode: soft-light;
+      opacity: 0;
+      filter: saturate(0.7) blur(1px);
+      pointer-events: none;
+      z-index: 0;
+      transition: opacity 0.6s ease;
+    }
+    [data-theme="dark"] .scene-bg { opacity: 0; }
+
+    [data-theme="dark"] body::before {
+      background-image:
+        radial-gradient(ellipse 100% 80% at -5% 100%, rgba(64, 208, 232, 0.08) 0%, transparent 55%),
+        radial-gradient(ellipse 80% 60% at 105% 90%, rgba(64, 208, 232, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 50% -5%, rgba(64, 208, 232, 0.04) 0%, transparent 50%),
+        radial-gradient(ellipse 120% 100% at 50% 50%, rgba(64, 208, 232, 0.04) 0%, transparent 60%);
+    }
+
+    /* ============================================================
+       装饰 — 彩色山影轮廓
+       ============================================================ */
+    .mountain-deco {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 140px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+      transition: opacity 0.5s ease;
+    }
+    .mountain-deco svg { width: 100%; height: 100%; }
+    .mountain-deco path {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .mountain-deco .ridge-far { stroke: var(--accent-mist); stroke-width: 1.2; opacity: 0.18; }
+    .mountain-deco .ridge-mid { stroke: var(--accent-mist); stroke-width: 1.5; opacity: 0.25; }
+    .mountain-deco .ridge-near { stroke: var(--accent-mist); stroke-width: 2; opacity: 0.32; }
+
+    /* ============================================================
+       App 布局
+       ============================================================ */
+    .app {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+    }
+
+    .top-accent-line {
+      height: 2px;
+      background: linear-gradient(90deg,
+        rgba(26,138,158,0) 0%,
+        var(--accent) 30%,
+        var(--accent) 70%,
+        rgba(26,138,158,0) 100%);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+    .top-accent-line::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-soft) 40%, transparent);
+    }
+
+    .topbar {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 16px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(2px) saturate(1.15);
+      -webkit-backdrop-filter: blur(2px) saturate(1.15);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      animation: slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--text-primary);
+    }
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 35%, rgba(255,255,255,0.35), transparent 50%),
+        conic-gradient(from 0deg, var(--accent), #1a98ad, var(--accent), #157889, var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #fff;
+      font-weight: 800;
+      box-shadow: 0 0 16px var(--accent-gold-soft), inset 0 1px 2px rgba(255,255,255,0.25);
+      animation: rotateMark 24s linear infinite;
+    }
+    .brand-mark span { animation: rotateMark 24s linear infinite reverse; }
+    @keyframes rotateMark {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .nav {
+      display: flex;
+      gap: 2px;
+      margin-left: 20px;
+    }
+    .nav-item {
+      padding: 6px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .nav-item:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .nav-item.active {
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 25%;
+      width: 50%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      border-radius: 1px;
+    }
+
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .theme-toggle {
+      width: 44px;
+      height: 24px;
+      border-radius: 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      position: relative;
+      cursor: pointer;
+      transition: all 0.4s ease;
+    }
+    .theme-toggle .theme-icon {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 1px 3px var(--shadow);
+    }
+    .theme-toggle .theme-icon svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--text-secondary);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+    .theme-toggle .moon-icon {
+      opacity: 0;
+      transform: translateX(0) scale(0.8);
+    }
+    [data-theme="dark"] .theme-toggle .sun-icon {
+      opacity: 0;
+      transform: translateX(20px) scale(0.8);
+    }
+    [data-theme="dark"] .theme-toggle .moon-icon {
+      opacity: 1;
+      transform: translateX(20px) scale(1);
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: var(--accent-soft);
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      padding: 14px;
+      gap: 14px;
+    }
+
+    /* ============================================================
+       Panel — 纯白透明玻璃，底纹透出
+       ============================================================ */
+    .panel {
+      background: var(--bg-panel);
+      /* 低 blur，让底纹透出 */
+      backdrop-filter: blur(2px) saturate(1.1);
+      -webkit-backdrop-filter: blur(2px) saturate(1.1);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: all 0.4s ease;
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      box-shadow: 0 4px 20px var(--shadow);
+      position: relative;
+    }
+    .panel:hover {
+      box-shadow: 0 8px 32px var(--shadow);
+      border-color: rgba(26, 138, 158, 0.14);
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .panel-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-tertiary);
+    }
+    .panel-body {
+      flex: 1;
+      overflow: auto;
+      padding: 8px;
+    }
+
+    .col-left { width: 260px; flex-shrink: 0; animation-delay: 0.08s; }
+    .col-center { flex: 1; min-width: 0; animation-delay: 0.16s; }
+    .col-right {
+      width: 280px;
+      flex-shrink: 0;
+      animation-delay: 0.24s;
+      position: relative;
+      overflow: hidden;
+    }
+    .col-right::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse 60% 40% at 70% 30%, rgba(26, 138, 158, 0.05) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    [data-theme="dark"] .col-right::before {
+      background: radial-gradient(ellipse 60% 40% at 70% 30%, rgba(64, 208, 232, 0.07) 0%, transparent 60%);
+    }
+    .col-right > * { position: relative; z-index: 1; }
+
+    /* Run items */
+    .run-item {
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+    .run-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 0;
+      border-radius: 0 2px 2px 0;
+      background: linear-gradient(to bottom, var(--accent), rgba(26,138,158,0.3));
+      transition: height 0.3s ease;
+    }
+    .run-item:hover {
+      background: var(--accent-soft);
+      transform: translateX(2px);
+    }
+    .run-item.active {
+      background: var(--accent-soft);
+      border-color: var(--accent-soft);
+    }
+    .run-item.active::before { height: 60%; }
+    .run-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .run-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    .run-badge {
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+    .badge-awaiting {
+      background: var(--accent-warm-soft);
+      color: var(--accent-warm);
+      box-shadow: 0 0 10px var(--glow-confirm);
+    }
+    .badge-running {
+      background: var(--accent-soft);
+      color: var(--accent);
+      box-shadow: 0 0 10px var(--glow-running);
+    }
+    .badge-done {
+      background: var(--glow-done);
+      color: #3a9a6e;
+    }
+    .badge-neon {
+      background: var(--accent-neon-soft);
+      color: var(--accent-neon);
+      box-shadow: 0 0 10px var(--glow-neon);
+    }
+
+    /* ============================================================
+       Steps — 方案三：水流连接线
+       ============================================================ */
+    .steps-scroll {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .steps-scroll::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 5%;
+      right: 5%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--accent-soft) 50%, transparent 100%);
+      opacity: 0.6;
+    }
+    .step-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 90px;
+      position: relative;
+    }
+    .step-seal {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      border: 2px solid transparent;
+    }
+    .step-seal.done {
+      background: var(--glow-done);
+      color: #3a9a6e;
+      border-color: rgba(80, 180, 130, 0.3);
+    }
+    .step-seal.current {
+      background: var(--accent-warm-soft);
+      color: var(--accent-warm);
+      border-color: var(--accent-warm);
+      box-shadow: 0 0 16px var(--accent-warm-soft);
+      animation: sealPulse 2.5s ease-in-out infinite;
+      border-radius: 50%;
+    }
+    @keyframes sealPulse {
+      0%, 100% { box-shadow: 0 0 10px var(--accent-warm-soft); }
+      50% { box-shadow: 0 0 22px var(--accent-warm-soft); }
+    }
+    .step-seal.pending {
+      background: var(--bg-tertiary);
+      color: var(--text-tertiary);
+      border-color: var(--border);
+    }
+
+    /* 方案三：水流效果连接线 */
+    .step-connector {
+      width: 36px;
+      height: 2px;
+      background: var(--border);
+      border-radius: 1px;
+      margin-top: -26px;
+      position: relative;
+      overflow: hidden;
+    }
+    .step-connector::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    .step-connector.done {
+      background: linear-gradient(90deg, var(--glow-done), rgba(80,180,130,0.2));
+    }
+    /* 流动动画 */
+    .step-connector.flowing {
+      background: linear-gradient(90deg, var(--accent-soft), rgba(26,138,158,0.28), var(--accent-soft));
+      background-size: 200% 100%;
+      animation: flowMove 2s linear infinite;
+    }
+    @keyframes flowMove {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .step-name {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      text-align: center;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    /* Transcript */
+    .transcript {
+      flex: 1;
+      overflow: auto;
+      padding: 18px 22px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .msg { margin-bottom: 14px; animation: fadeInUp 0.5s ease backwards; }
+    .msg-user { display: flex; justify-content: flex-end; }
+    .msg-user .bubble {
+      max-width: 70%;
+      padding: 10px 16px;
+      border-radius: 16px 16px 4px 16px;
+      background: linear-gradient(135deg, var(--accent), #2090a8);
+      color: #fff;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .msg-assistant { display: flex; gap: 10px; }
+    .msg-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--bg-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      border: 1.5px solid var(--border);
+    }
+    .msg-content { flex: 1; max-width: 80%; }
+    .msg-content .bubble {
+      padding: 10px 16px;
+      border-radius: 4px 16px 16px 16px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 13px;
+      margin-bottom: 4px;
+      border: 1px solid var(--border);
+    }
+    .msg-thinking {
+      margin: 8px 0;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--accent-gold-soft);
+      color: #907810;
+      font-size: 11px;
+      border-left: 2px solid var(--accent-gold);
+      font-style: italic;
+    }
+    [data-theme="dark"] .msg-thinking { color: var(--accent-gold); }
+    .msg-tool {
+      margin: 6px 0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 11px;
+      font-family: "SF Mono", ui-monospace, monospace;
+    }
+    .msg-handoff {
+      margin: 16px 0;
+      padding: 16px 18px;
+      border-radius: 12px;
+      background: var(--accent-gold-soft);
+      border: 1px solid var(--accent-gold-soft);
+      animation: fadeInUp 0.6s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .msg-handoff::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--accent-gold), transparent);
+    }
+    .msg-handoff-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #907810;
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+    [data-theme="dark"] .msg-handoff-title { color: var(--accent-gold); }
+    .msg-handoff-body { font-size: 12px; color: var(--text-secondary); }
+
+    /* Composer */
+    .composer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      background: var(--bg-panel);
+      backdrop-filter: blur(2px) saturate(1.1);
+      -webkit-backdrop-filter: blur(2px) saturate(1.1);
+      animation: fadeInUp 0.4s ease 0.2s backwards;
+    }
+    .composer-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: none;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: inherit;
+      letter-spacing: 0.02em;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #2090a8);
+      color: #fff;
+      box-shadow: 0 2px 8px var(--glow-running);
+    }
+    .btn-primary:hover { box-shadow: 0 4px 16px var(--glow-running); }
+    .btn-warm {
+      background: linear-gradient(135deg, var(--accent-warm), #d06060);
+      color: #fff;
+      box-shadow: 0 2px 8px var(--glow-confirm);
+    }
+    .btn-warm:hover { box-shadow: 0 4px 16px var(--glow-confirm); }
+    .btn-ghost {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .btn-gold {
+      background: var(--accent-gold-soft);
+      color: #907810;
+      border: 1.5px solid var(--accent-gold-soft);
+    }
+    [data-theme="dark"] .btn-gold { color: var(--accent-gold); }
+    .btn-gold:hover {
+      border-color: var(--accent-gold);
+      box-shadow: 0 2px 8px var(--accent-gold-soft);
+    }
+    .btn-neon {
+      background: linear-gradient(135deg, var(--accent-neon), #a078b0);
+      color: #fff;
+      box-shadow: 0 2px 8px var(--glow-neon);
+    }
+    .btn-neon:hover {
+      box-shadow: 0 4px 20px var(--glow-neon);
+      transform: translateY(-1px);
+    }
+    .composer-input-wrap {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .composer-input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+    .composer-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .composer-send {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), #2090a8);
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px var(--glow-running);
+    }
+    .composer-send:hover {
+      transform: scale(1.08);
+      box-shadow: 0 4px 20px var(--glow-running);
+    }
+
+    /* Right column */
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .detail-label { color: var(--text-tertiary); font-weight: 500; }
+    .detail-value {
+      color: var(--text-primary);
+      font-weight: 700;
+      font-family: "SF Mono", ui-monospace, monospace;
+      font-size: 11px;
+    }
+    .budget-bar {
+      height: 5px;
+      background: var(--bg-tertiary);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .budget-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), #2090a8);
+      transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+      width: 42%;
+    }
+    .artifact-card {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .artifact-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px var(--shadow);
+      border-color: var(--accent-gold-soft);
+    }
+    .artifact-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--accent-gold), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .artifact-card:hover::before { opacity: 1; }
+    .artifact-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+      font-family: "SF Mono", ui-monospace, monospace;
+    }
+    .artifact-desc { font-size: 11px; color: var(--text-tertiary); }
+    .artifact-tag {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 800;
+    }
+    .memory-block {
+      padding: 12px;
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      position: relative;
+      overflow: hidden;
+    }
+    .memory-block::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--accent-gold), transparent);
+    }
+
+    /* ============================================================
+       色板展示条
+       ============================================================ */
+    .color-strip {
+      display: flex;
+      gap: 2px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+      flex-shrink: 0;
+    }
+    .color-chip {
+      flex: 1;
+      height: 32px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      letter-spacing: 0.02em;
+    }
+
+    /* ============================================================
+       方案三局部场景化 — 场景卡片
+       ============================================================ */
+    .scene-card {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(26,138,158,0.06), rgba(26,138,158,0.02));
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.4s ease;
+    }
+    .scene-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px var(--shadow);
+      border-color: rgba(26, 138, 158, 0.15);
+    }
+    .scene-card::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      right: -20%;
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, rgba(26,138,158,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .scene-card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      position: relative;
+    }
+    .scene-card-desc {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      position: relative;
+    }
+    .scene-card-tag {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      background: var(--accent-neon-soft);
+      color: var(--accent-neon);
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      flex-shrink: 0;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .icon-sm { width: 14px; height: 14px; stroke-width: 1.5; }
+    .icon-xs { width: 12px; height: 12px; stroke-width: 1.5; }
+  </style>
+</head>
+<body data-theme="light">
+
+  <!-- 方案一：沉浸式场景背景 -->
+  <div class="scene-bg"></div>
+
+  <div class="mountain-deco">
+    <svg viewBox="0 0 1440 140" preserveAspectRatio="none">
+      <path class="ridge-far" d="M0,55 Q180,35 360,50 T720,40 T1080,52 L1440,45" />
+      <path class="ridge-far" d="M0,68 Q220,48 440,62 T820,52 T1180,64 L1440,58" />
+      <path class="ridge-far" d="M0,80 Q260,60 480,74 T880,64 T1240,76 L1440,70" />
+      <path class="ridge-mid" d="M0,92 Q200,68 420,84 T820,72 T1200,88 L1440,80" />
+      <path class="ridge-mid" d="M0,104 Q280,82 520,98 T940,86 T1300,100 L1440,94" />
+      <path class="ridge-mid" d="M0,114 Q320,94 580,108 T1000,98 T1340,110 L1440,104" />
+      <path class="ridge-near" d="M0,124 Q260,106 540,120 T980,110 T1360,122 L1440,116" />
+      <path class="ridge-near" d="M0,132 Q360,116 660,128 T1080,120 L1440,126" />
+    </svg>
+  </div>
+
+  <div class="app">
+    <div class="top-accent-line"></div>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark"><span>纶</span></div>
+        <span>经纶</span>
+      </div>
+      <nav class="nav">
+        <a class="nav-item active">经纶</a>
+        <a class="nav-item">模板</a>
+        <a class="nav-item">智能体</a>
+        <a class="nav-item">单次</a>
+        <a class="nav-item">设置</a>
+      </nav>
+      <div class="topbar-right">
+        <div class="status-pill">
+          <span class="status-dot"></span>
+          2 运行中 · 1 待确认
+        </div>
+        <div class="theme-toggle" id="themeToggle" title="切换亮暗主题">
+          <div class="theme-icon sun-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div>
+          <div class="theme-icon moon-icon"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="main">
+      <!-- 左栏 -->
+      <div class="panel col-left" style="animation-delay:0.08s">
+        <div class="panel-header">
+          <span class="panel-title">运行队列</span>
+        </div>
+        <div class="panel-body">
+          <div class="run-item active">
+            <div class="run-title">需求分析 → 设计 → 开发</div>
+            <div class="run-meta">
+              <span class="run-badge badge-awaiting">待确认</span>
+              <span>Step 2/5</span>
+            </div>
+          </div>
+          <div class="run-item">
+            <div class="run-title">后端 API 重构</div>
+            <div class="run-meta">
+              <span class="run-badge badge-running">运行中</span>
+              <span>Step 1/3</span>
+            </div>
+          </div>
+          <div class="run-item">
+            <div class="run-title">传送门数据同步</div>
+            <div class="run-meta">
+              <span class="run-badge badge-neon">高优先级</span>
+              <span>Step 1/2</span>
+            </div>
+          </div>
+          <div class="run-item">
+            <div class="run-title">定时数据清洗</div>
+            <div class="run-meta">
+              <span class="run-badge badge-done">已完成</span>
+              <span>Step 4/4</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 中栏 -->
+      <div class="panel col-center" style="animation-delay:0.16s">
+        <div class="color-strip">
+          <div class="color-chip" style="background: var(--accent);">青绿</div>
+          <div class="color-chip" style="background: var(--accent-gold);">金黄</div>
+          <div class="color-chip" style="background: var(--accent-warm);">暖红</div>
+          <div class="color-chip" style="background: var(--accent-neon);">雾紫</div>
+          <div class="color-chip" style="background: var(--accent-mist);">烟青</div>
+        </div>
+
+        <div class="steps-scroll">
+          <div class="step-node">
+            <div class="step-seal done"><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="step-name">需求分析</div>
+          </div>
+          <div class="step-connector done"></div>
+          <div class="step-node">
+            <div class="step-seal current"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></svg></div>
+            <div class="step-name">技术设计</div>
+          </div>
+          <!-- 方案三：水流连接线 -->
+          <div class="step-connector flowing"></div>
+          <div class="step-node">
+            <div class="step-seal pending"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></div>
+            <div class="step-name">后端开发</div>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-node">
+            <div class="step-seal pending"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></div>
+            <div class="step-name">测试验收</div>
+          </div>
+        </div>
+
+        <div class="transcript">
+          <div class="msg msg-user">
+            <div class="bubble">为 acme-web 添加 RBAC 鉴权，支持角色继承</div>
+          </div>
+          <div class="msg msg-assistant">
+            <div class="msg-avatar"></div>
+            <div class="msg-content">
+              <div class="bubble">
+                已分析现有鉴权逻辑。建议引入 RBAC，支持角色继承。请确认以下范围：
+                <br/><br/>
+                1. 是否支持 OAuth2 登录<br/>
+                2. 角色粒度到菜单还是按钮级别
+              </div>
+              <div class="msg-thinking">思考中：用户是否允许引入第三方 auth 库？</div>
+              <div class="msg-tool">file_read src/auth.ts (312 lines)</div>
+            </div>
+          </div>
+          <div class="msg-handoff">
+            <div class="msg-handoff-title">Handoff · 步骤 2 完成</div>
+            <div class="msg-handoff-body">产出鉴权设计文档和修改后的入口文件，等待确认后继续下一步。</div>
+          </div>
+        </div>
+
+        <div class="composer">
+          <div class="composer-actions">
+            <button class="btn btn-primary">确认继续</button>
+            <button class="btn btn-warm">重跑此步</button>
+            <button class="btn btn-ghost">跳过下一步</button>
+            <button class="btn btn-gold">采纳建议</button>
+            <button class="btn btn-neon">紧急中断</button>
+          </div>
+          <div class="composer-input-wrap">
+            <input class="composer-input" placeholder="回复 Agent 或输入指令..." />
+            <button class="composer-send"><svg class="icon" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右栏 -->
+      <div class="panel col-right" style="animation-delay:0.24s">
+        <div class="panel-header">
+          <span class="panel-title">运行参数</span>
+        </div>
+        <div class="panel-body" style="padding:14px;">
+          <div class="detail-row"><span class="detail-label">状态</span><span class="detail-value" style="color:var(--accent);">运行中</span></div>
+          <div class="detail-row"><span class="detail-label">Agent</span><span class="detail-value">Architect</span></div>
+          <div class="detail-row"><span class="detail-label">模型</span><span class="detail-value">claude-sonnet-4-6</span></div>
+          <div class="detail-row"><span class="detail-label">耗时</span><span class="detail-value">2m 14s</span></div>
+          <div class="detail-row"><span class="detail-label">Tokens</span><span class="detail-value">4,200 → 1,890</span></div>
+          <div style="margin-top:14px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:6px;color:var(--text-tertiary);font-weight:600;">
+              <span>预算使用</span>
+              <span style="color:var(--text-primary);">$0.0084 / $0.50</span>
+            </div>
+            <div class="budget-bar"><div class="budget-fill" style="width:18%;"></div></div>
+          </div>
+
+          <div style="margin-top:20px;">
+            <div class="panel-title" style="margin-bottom:10px;text-transform:none;letter-spacing:0;font-size:12px;">产物</div>
+            <div class="artifact-card">
+              <div class="artifact-name">design/auth-rbac.md</div>
+              <div class="artifact-desc">鉴权模块 RBAC 设计文档</div>
+              <span class="artifact-tag">doc</span>
+            </div>
+            <div class="artifact-card">
+              <div class="artifact-name">src/auth.ts</div>
+              <div class="artifact-desc">修改后的鉴权入口文件</div>
+              <span class="artifact-tag">code</span>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;">
+            <div class="panel-title" style="margin-bottom:10px;text-transform:none;letter-spacing:0;font-size:12px;">记忆注入</div>
+            <div class="memory-block">
+              已注入 <strong>3</strong> 条记忆：<br/>
+              · auth-pattern （强度 0.92）<br/>
+              · rbac-rules （强度 0.85）<br/>
+              · error-handling （强度 0.78）
+            </div>
+          </div>
+
+          <!-- 方案三局部场景化 — 场景卡片 -->
+          <div class="scene-card">
+            <div class="scene-card-title">仙境工作区</div>
+            <div class="scene-card-desc">当前处于"山水"主题。背景氛围来自竹筏水面与樱花仙境的融合。</div>
+            <span class="scene-card-tag">场景主题</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
+    themeToggle.addEventListener('click', () => {
+      const current = body.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      body.setAttribute('data-theme', next);
+    });
+  </script>
+</body>
+</html>

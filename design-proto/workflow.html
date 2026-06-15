@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>经纶 · 智能体工作台</title>
+  <style>
+    :root {
+      --bg-primary: #f5f2ea;
+      --bg-secondary: #edeae2;
+      --bg-tertiary: #e5e2da;
+      --bg-panel: rgba(255, 254, 250, 0.60);
+      --text-primary: #2a2720;
+      --text-secondary: #6b665d;
+      --text-tertiary: #9a958d;
+      --accent: #2e5c6e;
+      --accent-soft: rgba(46, 92, 110, 0.10);
+      --accent-warm: #a84a3f;
+      --accent-warm-soft: rgba(168, 74, 63, 0.12);
+      --accent-gold: #a88a3a;
+      --accent-gold-soft: rgba(168, 138, 58, 0.14);
+      --border: rgba(42, 39, 32, 0.08);
+      --shadow: rgba(42, 39, 32, 0.05);
+      --divider: rgba(42, 39, 32, 0.07);
+      --glow-running: rgba(46, 92, 110, 0.15);
+      --glow-confirm: rgba(168, 74, 63, 0.15);
+      --glow-done: rgba(80, 140, 100, 0.14);
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #121410;
+      --bg-secondary: #1a1916;
+      --bg-tertiary: #22211e;
+      --bg-panel: rgba(26, 25, 22, 0.55);
+      --text-primary: #e8e4dc;
+      --text-secondary: #9a958d;
+      --text-tertiary: #6a6560;
+      --accent: #6a9db0;
+      --accent-soft: rgba(106, 157, 176, 0.15);
+      --accent-warm: #c97b73;
+      --accent-warm-soft: rgba(201, 123, 115, 0.15);
+      --accent-gold: #c4a35a;
+      --accent-gold-soft: rgba(196, 163, 90, 0.16);
+      --border: rgba(232, 228, 220, 0.07);
+      --shadow: rgba(0, 0, 0, 0.3);
+      --divider: rgba(232, 228, 220, 0.08);
+      --glow-running: rgba(106, 157, 176, 0.2);
+      --glow-confirm: rgba(201, 123, 115, 0.2);
+      --glow-done: rgba(120, 200, 150, 0.16);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background 0.5s ease, color 0.4s ease;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* 水墨角落装饰 */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(ellipse 120% 80% at -10% 110%, rgba(46, 92, 110, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 100% 60% at 5% 100%, rgba(46, 92, 110, 0.05) 0%, transparent 40%),
+        radial-gradient(ellipse 80% 100% at 105% 90%, rgba(46, 92, 110, 0.06) 0%, transparent 45%),
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(46, 92, 110, 0.04) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+      transition: all 0.5s ease;
+    }
+
+    [data-theme="dark"] body::before {
+      background-image:
+        radial-gradient(ellipse 120% 80% at -10% 110%, rgba(106, 157, 176, 0.10) 0%, transparent 50%),
+        radial-gradient(ellipse 100% 60% at 5% 100%, rgba(106, 157, 176, 0.07) 0%, transparent 40%),
+        radial-gradient(ellipse 80% 100% at 105% 90%, rgba(106, 157, 176, 0.08) 0%, transparent 45%),
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(106, 157, 176, 0.05) 0%, transparent 50%);
+    }
+
+    .ink-bamboo {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 180px;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.7;
+      transition: opacity 0.5s ease;
+    }
+    .ink-bamboo svg { width: 100%; height: 100%; }
+    .ink-bamboo path {
+      fill: none;
+      stroke: var(--accent);
+      stroke-linecap: round;
+      opacity: 0.4;
+      transition: stroke 0.5s ease;
+    }
+    .ink-bamboo .bamboo-stem { stroke-width: 2.5; }
+    .ink-bamboo .bamboo-joint { stroke-width: 2; }
+    .ink-bamboo .bamboo-leaf { stroke-width: 1.2; opacity: 0.35; }
+
+    .ink-bamboo-tr {
+      position: fixed;
+      top: 50px;
+      right: 0;
+      width: 150px;
+      height: 200px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+    }
+    .ink-bamboo-tr svg { width: 100%; height: 100%; }
+    .ink-bamboo-tr path {
+      fill: none;
+      stroke: var(--accent-gold);
+      stroke-linecap: round;
+      opacity: 0.4;
+    }
+    .ink-bamboo-tr .bamboo-leaf { stroke-width: 1; }
+
+    .app {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+    }
+
+    .top-accent-line {
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-gold) 35%, var(--accent-warm) 70%, var(--accent-gold) 100%);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+    .top-accent-line::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-gold-soft) 30%, var(--accent-gold-soft) 70%, transparent);
+    }
+
+    .topbar {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 16px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(20px) saturate(1.2);
+      -webkit-backdrop-filter: blur(20px) saturate(1.2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      animation: slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--text-primary);
+    }
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, var(--accent-gold), var(--accent), var(--accent-warm), var(--accent-gold));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #fff;
+      font-weight: 800;
+      box-shadow: 0 0 14px var(--accent-gold-soft);
+      animation: rotateMark 24s linear infinite;
+    }
+    .brand-mark span { animation: rotateMark 24s linear infinite reverse; }
+    @keyframes rotateMark {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .nav {
+      display: flex;
+      gap: 2px;
+      margin-left: 20px;
+    }
+    .nav-item {
+      padding: 6px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .nav-item:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .nav-item.active {
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 25%;
+      width: 50%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+      border-radius: 1px;
+    }
+
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .theme-toggle {
+      width: 44px;
+      height: 24px;
+      border-radius: 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      position: relative;
+      cursor: pointer;
+      transition: all 0.4s ease;
+    }
+    .theme-toggle .theme-icon {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 1px 3px var(--shadow);
+    }
+    .theme-toggle .theme-icon svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--text-secondary);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+    .theme-toggle .moon-icon {
+      opacity: 0;
+      transform: translateX(0) scale(0.8);
+    }
+    [data-theme="dark"] .theme-toggle .sun-icon {
+      opacity: 0;
+      transform: translateX(20px) scale(0.8);
+    }
+    [data-theme="dark"] .theme-toggle .moon-icon {
+      opacity: 1;
+      transform: translateX(20px) scale(1);
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: var(--accent-soft);
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      padding: 14px;
+      gap: 14px;
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      backdrop-filter: blur(28px) saturate(1.3);
+      -webkit-backdrop-filter: blur(28px) saturate(1.3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: all 0.4s ease;
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.5),
+        0 4px 24px var(--shadow);
+    }
+    [data-theme="dark"] .panel {
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.03),
+        0 4px 24px var(--shadow);
+    }
+    .panel:hover {
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.5),
+        0 8px 40px var(--shadow);
+    }
+    [data-theme="dark"] .panel:hover {
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.03),
+        0 8px 40px var(--shadow);
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .panel-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-tertiary);
+    }
+    .panel-body {
+      flex: 1;
+      overflow: auto;
+      padding: 8px;
+    }
+
+    /* 左栏 */
+    .col-left {
+      width: 260px;
+      flex-shrink: 0;
+      animation-delay: 0.08s;
+    }
+    .run-item {
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+    .run-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 0;
+      border-radius: 0 2px 2px 0;
+      background: linear-gradient(to bottom, var(--accent-gold), var(--accent));
+      transition: height 0.3s ease;
+    }
+    .run-item:hover {
+      background: var(--accent-soft);
+      transform: translateX(2px);
+    }
+    .run-item.active {
+      background: var(--accent-soft);
+      border-color: var(--accent-soft);
+    }
+    .run-item.active::before { height: 60%; }
+    .run-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .run-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    .run-badge {
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+    .badge-awaiting {
+      background: var(--accent-warm-soft);
+      color: var(--accent-warm);
+      box-shadow: 0 0 10px var(--glow-confirm);
+    }
+    .badge-running {
+      background: var(--accent-soft);
+      color: var(--accent);
+      box-shadow: 0 0 10px var(--glow-running);
+    }
+    .badge-done {
+      background: var(--glow-done);
+      color: #4a8a5e;
+    }
+    .badge-error {
+      background: var(--accent-warm-soft);
+      color: var(--accent-warm);
+    }
+
+    /* 中栏 */
+    .col-center {
+      flex: 1;
+      min-width: 0;
+      animation-delay: 0.16s;
+    }
+    .steps-scroll {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .steps-scroll::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 5%;
+      right: 5%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--accent-soft) 20%, var(--accent-gold-soft) 50%, var(--accent-soft) 80%, transparent 100%);
+      opacity: 0.6;
+    }
+    .step-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 90px;
+      position: relative;
+    }
+    .step-seal {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      border: 2px solid transparent;
+    }
+    .step-seal.done {
+      background: var(--glow-done);
+      color: #4a8a5e;
+      border-color: rgba(80, 140, 100, 0.3);
+    }
+    .step-seal.current {
+      background: var(--accent-warm-soft);
+      color: var(--accent-warm);
+      border-color: var(--accent-warm);
+      box-shadow: 0 0 16px var(--accent-warm-soft);
+      animation: sealPulse 2.5s ease-in-out infinite;
+      border-radius: 50%;
+    }
+    @keyframes sealPulse {
+      0%, 100% { box-shadow: 0 0 10px var(--accent-warm-soft); }
+      50% { box-shadow: 0 0 22px var(--accent-warm-soft); }
+    }
+    .step-seal.pending {
+      background: var(--bg-tertiary);
+      color: var(--text-tertiary);
+      border-color: var(--border);
+    }
+    .step-connector {
+      width: 36px;
+      height: 2px;
+      background: var(--border);
+      border-radius: 1px;
+      margin-top: -26px;
+      position: relative;
+    }
+    .step-connector.done {
+      background: linear-gradient(90deg, var(--glow-done), var(--accent-gold-soft));
+    }
+    .step-name {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      text-align: center;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .transcript {
+      flex: 1;
+      overflow: auto;
+      padding: 18px 22px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .msg { margin-bottom: 14px; animation: fadeInUp 0.5s ease backwards; }
+    .msg-user { display: flex; justify-content: flex-end; }
+    .msg-user .bubble {
+      max-width: 70%;
+      padding: 10px 16px;
+      border-radius: 16px 16px 4px 16px;
+      background: linear-gradient(135deg, var(--accent), #3d7080);
+      color: #fff;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .msg-assistant { display: flex; gap: 10px; }
+    .msg-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--bg-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      border: 1.5px solid var(--border);
+    }
+    .msg-content { flex: 1; max-width: 80%; }
+    .msg-content .bubble {
+      padding: 10px 16px;
+      border-radius: 4px 16px 16px 16px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 13px;
+      margin-bottom: 4px;
+      border: 1px solid var(--border);
+    }
+    .msg-thinking {
+      margin: 8px 0;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--accent-gold-soft);
+      color: var(--accent-gold);
+      font-size: 11px;
+      border-left: 2px solid var(--accent-gold);
+      font-style: italic;
+    }
+    .msg-tool {
+      margin: 6px 0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 11px;
+      font-family: "SF Mono", ui-monospace, monospace;
+    }
+    .msg-usage { text-align: center; margin: 12px 0; }
+    .msg-usage span {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      padding: 4px 14px;
+      border-radius: 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+    }
+    .msg-handoff {
+      margin: 16px 0;
+      padding: 16px 18px;
+      border-radius: 12px;
+      background: var(--accent-gold-soft);
+      border: 1px solid var(--accent-gold-soft);
+      animation: fadeInUp 0.6s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .msg-handoff::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--accent-gold), transparent);
+    }
+    .msg-handoff-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--accent-gold);
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+    .msg-handoff-body { font-size: 12px; color: var(--text-secondary); }
+
+    .composer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      background: var(--bg-panel);
+      backdrop-filter: blur(20px);
+      animation: fadeInUp 0.4s ease 0.2s backwards;
+    }
+    .composer-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: none;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: inherit;
+      letter-spacing: 0.02em;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #3d7080);
+      color: #fff;
+      box-shadow: 0 2px 8px var(--glow-running);
+    }
+    .btn-primary:hover { box-shadow: 0 4px 16px var(--glow-running); }
+    .btn-warm {
+      background: linear-gradient(135deg, var(--accent-warm), #c06050);
+      color: #fff;
+      box-shadow: 0 2px 8px var(--glow-confirm);
+    }
+    .btn-warm:hover { box-shadow: 0 4px 16px var(--glow-confirm); }
+    .btn-ghost {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .btn-gold {
+      background: var(--accent-gold-soft);
+      color: var(--accent-gold);
+      border: 1.5px solid var(--accent-gold-soft);
+    }
+    .btn-gold:hover {
+      border-color: var(--accent-gold);
+      box-shadow: 0 2px 8px var(--accent-gold-soft);
+    }
+    .composer-input-wrap {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .composer-input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+    .composer-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .composer-send {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-gold));
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px var(--glow-running);
+    }
+    .composer-send:hover {
+      transform: scale(1.08);
+      box-shadow: 0 4px 20px var(--glow-running);
+    }
+
+    /* 右栏 */
+    .col-right {
+      width: 280px;
+      flex-shrink: 0;
+      animation-delay: 0.24s;
+      position: relative;
+      overflow: hidden;
+    }
+    .col-right::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse 60% 40% at 70% 30%, rgba(46, 92, 110, 0.06) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    [data-theme="dark"] .col-right::before {
+      background: radial-gradient(ellipse 60% 40% at 70% 30%, rgba(106, 157, 176, 0.08) 0%, transparent 60%);
+    }
+    .col-right > * { position: relative; z-index: 1; }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .detail-label { color: var(--text-tertiary); font-weight: 500; }
+    .detail-value {
+      color: var(--text-primary);
+      font-weight: 700;
+      font-family: "SF Mono", ui-monospace, monospace;
+      font-size: 11px;
+    }
+    .budget-bar {
+      height: 5px;
+      background: var(--bg-tertiary);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .budget-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-gold));
+      transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+      width: 42%;
+    }
+    .artifact-card {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .artifact-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px var(--shadow);
+      border-color: var(--accent-gold-soft);
+    }
+    .artifact-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--accent-gold), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .artifact-card:hover::before { opacity: 1; }
+    .artifact-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+      font-family: "SF Mono", ui-monospace, monospace;
+    }
+    .artifact-desc { font-size: 11px; color: var(--text-tertiary); }
+    .artifact-tag {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 800;
+    }
+    .memory-block {
+      padding: 12px;
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      position: relative;
+      overflow: hidden;
+    }
+    .memory-block::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--accent-gold), transparent);
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* 搜索过滤 */
+    .search-box {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .search-box input {
+      width: 100%;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 12px;
+      outline: none;
+      font-family: inherit;
+      transition: all 0.25s ease;
+    }
+    .search-box input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-tertiary);
+      transition: all 0.2s ease;
+    }
+    .filter-chip:hover, .filter-chip.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: var(--accent-soft);
+    }
+
+    /* Prompt 折叠区 */
+    .prompt-section {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+      flex-shrink: 0;
+    }
+    .prompt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .prompt-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .prompt-toggle {
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 700;
+      transition: transform 0.3s ease;
+    }
+    .prompt-body {
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      font-family: "SF Mono", ui-monospace, monospace;
+      max-height: 160px;
+      overflow: auto;
+      display: none;
+    }
+    .prompt-body.open { display: block; animation: fadeInUp 0.3s ease; }
+
+    /* 并行步骤组 */
+    .step-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1.5px dashed var(--border);
+      background: var(--accent-soft);
+      position: relative;
+    }
+    .step-group-label {
+      position: absolute;
+      top: -7px;
+      left: 8px;
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--accent);
+      background: var(--bg-panel);
+      padding: 0 4px;
+      letter-spacing: 0.04em;
+    }
+    .step-group .step-seal {
+      width: 28px;
+      height: 28px;
+      font-size: 11px;
+    }
+    .step-group .step-name {
+      font-size: 9px;
+      max-width: 60px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* File Preview Panel */
+    .tab-bar {
+      display: flex;
+      gap: 2px;
+      padding: 4px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+    .tab-item {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .tab-item:hover { color: var(--accent); background: var(--accent-soft); }
+    .tab-item.active { color: var(--accent); background: var(--accent-soft); }
+    .code-preview {
+      padding: 14px;
+      font-size: 12px;
+      line-height: 1.6;
+      font-family: "SF Mono", ui-monospace, monospace;
+      overflow: auto;
+      flex: 1;
+    }
+    .code-line {
+      display: flex;
+      gap: 10px;
+      padding: 1px 0;
+    }
+    .line-num {
+      color: var(--text-tertiary);
+      font-size: 11px;
+      min-width: 24px;
+      text-align: right;
+      user-select: none;
+    }
+    .line-content { color: var(--text-primary); }
+    .line-content .kw { color: var(--accent); font-weight: 700; }
+    .line-content .str { color: var(--accent-warm); }
+    .line-content .cm { color: var(--text-tertiary); font-style: italic; }
+    .line-content .fn { color: var(--accent-gold); }
+
+    /* Composer 上下文提示 */
+    .composer-context {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+      padding-left: 2px;
+    }
+    .composer-context strong {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* 状态 badge 补充 */
+    .badge-skipped {
+      background: var(--bg-tertiary);
+      color: var(--text-tertiary);
+    }
+    .badge-aborted {
+      background: rgba(120,120,120,0.12);
+      color: #888;
+    }
+    .badge-input {
+      background: var(--accent-gold-soft);
+      color: var(--accent-gold);
+    }
+
+    @media (max-width: 1100px) { .col-right { display: none; } }
+
+    /* SVG Icons */
+    .icon {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      flex-shrink: 0;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .icon-lg { width: 20px; height: 20px; }
+    .icon-sm { width: 14px; height: 14px; stroke-width: 1.5; }
+    .icon-xs { width: 12px; height: 12px; stroke-width: 1.5; }
+  </style>
+</head>
+<body data-theme="light">
+  <div class="ink-bamboo">
+    <svg viewBox="0 0 400 250" preserveAspectRatio="xMinYMax slice">
+      <path class="bamboo-stem" d="M-20,180 Q30,120 80,140 T160,100 T240,130 T320,90 L400,110 L400,270 L-20,270 Z" />
+      <path class="bamboo-stem" d="M-20,200 Q40,150 100,170 T200,130 T300,160 L400,140 L400,270 L-20,270 Z" opacity="0.6"/>
+      <path class="bamboo-stem" d="M-20,190 Q50,160 90,175 T180,150 T260,170 T360,155" opacity="0.4"/>
+      <path class="bamboo-joint" d="M60,145 Q65,110 70,145 M65,125 Q55,115 65,125 M65,125 Q75,115 65,125" opacity="0.3"/>
+      <path class="bamboo-joint" d="M140,105 Q145,75 150,105 M145,90 Q135,80 145,90 M145,90 Q155,80 145,90" opacity="0.25"/>
+    </svg>
+  </div>
+  <div class="ink-bamboo-tr">
+    <svg viewBox="0 0 200 150" preserveAspectRatio="xMaxYMin slice">
+      <path class="bamboo-leaf" d="M200,0 Q150,20 180,60 T140,120 T160,150" />
+      <path class="bamboo-leaf" d="M200,30 Q160,50 170,90 T130,140" opacity="0.6"/>
+      <path class="bamboo-leaf" d="M180,0 Q140,15 150,50" opacity="0.4"/>
+    </svg>
+  </div>
+
+  <div class="app">
+    <div class="top-accent-line"></div>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark"><span>纶</span></div>
+        <span>经纶</span>
+      </div>
+      <nav class="nav">
+        <a href="workflow.html" class="nav-item active">经纶</a>
+        <a href="templates.html" class="nav-item">模板</a>
+        <a href="agents.html" class="nav-item">智能体</a>
+        <a href="single.html" class="nav-item">单次</a>
+        <a href="settings.html" class="nav-item">设置</a>
+      </nav>
+      <div class="topbar-right">
+        <div class="status-pill">
+          <span class="status-dot"></span>
+          2 运行中 · 1 待确认
+        </div>
+        <div class="theme-toggle" id="themeToggle" title="切换亮暗主题">
+          <div class="theme-icon sun-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div>
+          <div class="theme-icon moon-icon"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="main">
+      <!-- 左栏 -->
+      <div class="panel col-left" style="animation-delay:0.08s">
+        <div class="panel-header">
+          <span class="panel-title">运行队列</span>
+          <span style="font-size:11px;color:var(--text-tertiary);cursor:pointer;font-weight:600;display:flex;align-items:center;gap:4px;"><svg class="icon icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建</span>
+        </div>
+        <div class="search-box">
+          <input placeholder="搜索运行名称..." />
+          <div class="filter-row">
+            <span class="filter-chip active">全部</span>
+            <span class="filter-chip">运行中</span>
+            <span class="filter-chip">待确认</span>
+            <span class="filter-chip">已完成</span>
+            <span class="filter-chip">错误</span>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="run-item active">
+            <div class="run-title">
+              需求分析 → 设计 → 开发
+              <span style="font-size:10px;color:var(--text-tertiary);">2分钟前</span>
+            </div>
+            <div class="run-meta">
+              <span class="run-badge badge-awaiting">待确认</span>
+              <span>Step 2/5</span>
+            </div>
+          </div>
+          <div class="run-item">
+            <div class="run-title">
+              后端 API 重构
+              <span style="font-size:10px;color:var(--text-tertiary);">5分钟前</span>
+            </div>
+            <div class="run-meta">
+              <span class="run-badge badge-running">运行中</span>
+              <span>Step 1/3</span>
+            </div>
+          </div>
+          <div class="run-item">
+            <div class="run-title">
+              定时数据清洗
+              <span style="font-size:10px;color:var(--text-tertiary);">1小时前</span>
+            </div>
+            <div class="run-meta">
+              <span class="run-badge badge-done">已完成</span>
+              <span>Step 4/4</span>
+            </div>
+          </div>
+          <div class="run-item">
+            <div class="run-title">
+              移动端适配 review
+              <span style="font-size:10px;color:var(--text-tertiary);">3小时前</span>
+            </div>
+            <div class="run-meta">
+              <span class="run-badge badge-error">错误</span>
+              <span>Step 2/3</span>
+            </div>
+          </div>
+          <div class="run-item">
+            <div class="run-title">
+              数据库迁移检查
+              <span style="font-size:10px;color:var(--text-tertiary);">5小时前</span>
+            </div>
+            <div class="run-meta">
+              <span class="run-badge badge-input">等待输入</span>
+              <span>Step 3/4</span>
+            </div>
+          </div>
+          <div class="run-item">
+            <div class="run-title">
+              日志分析流水线
+              <span style="font-size:10px;color:var(--text-tertiary);">昨天</span>
+            </div>
+            <div class="run-meta">
+              <span class="run-badge badge-skipped">已跳过</span>
+              <span>Step 2/5</span>
+            </div>
+          </div>
+          <div class="run-item">
+            <div class="run-title">
+              安全审计扫描
+              <span style="font-size:10px;color:var(--text-tertiary);">2天前</span>
+            </div>
+            <div class="run-meta">
+              <span class="run-badge badge-aborted">已中止</span>
+              <span>Step 1/3</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 中栏 -->
+      <div class="panel col-center" style="animation-delay:0.16s">
+        <div class="steps-scroll">
+          <div class="step-node">
+            <div class="step-seal done"><svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div class="step-name">需求分析</div>
+          </div>
+          <div class="step-connector done"></div>
+          <div class="step-node">
+            <div class="step-seal current"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></svg></div>
+            <div class="step-name">技术设计</div>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-group">
+            <span class="step-group-label">并行组</span>
+            <div style="display:flex;gap:10px;">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                <div class="step-seal pending"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></div>
+                <div class="step-name">后端开发</div>
+              </div>
+              <div style="font-size:11px;color:var(--text-tertiary);padding-top:8px;">∥</div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+                <div class="step-seal pending"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></div>
+                <div class="step-name">前端开发</div>
+              </div>
+            </div>
+          </div>
+          <div class="step-connector"></div>
+          <div class="step-node">
+            <div class="step-seal pending"><svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></div>
+            <div class="step-name">测试验收</div>
+          </div>
+        </div>
+
+        <div class="prompt-section">
+          <div class="prompt-header" onclick="this.nextElementSibling.classList.toggle('open')">
+            <span class="prompt-title"><svg class="icon icon-xs" viewBox="0 0 24 24" style="margin-right:4px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="9.01" y2="12"/><line x1="13" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="9.01" y2="16"/><line x1="13" y1="16" x2="15" y2="16"/></svg>当前步骤 Prompt</span>
+            <span class="prompt-toggle">展开 ▼</span>
+          </div>
+          <div class="prompt-body">
+            <span class="cm">// 注入记忆: auth-pattern, rbac-rules</span><br/>
+            <span class="kw">你是一位架构师</span>，负责为 acme-web 项目设计 RBAC 鉴权模块。<br/><br/>
+            需求背景：<br/>
+            · 支持角色继承（admin → editor → viewer）<br/>
+            · OAuth2 登录集成<br/>
+            · 权限粒度到按钮级别<br/><br/>
+            请分析现有代码后给出设计方案。
+          </div>
+        </div>
+
+        <div class="transcript">
+          <div class="msg msg-user" style="animation-delay:0.1s">
+            <div class="bubble">为 acme-web 添加 RBAC 鉴权，支持角色继承</div>
+          </div>
+          <div class="msg msg-assistant" style="animation-delay:0.15s">
+            <div class="msg-avatar"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg></div>
+            <div class="msg-content">
+              <div class="bubble">
+                已分析现有鉴权逻辑。建议引入 RBAC，支持角色继承。请确认以下范围：
+                <br/><br/>
+                1. 是否支持 OAuth2 登录<br/>
+                2. 角色粒度到菜单还是按钮级别
+              </div>
+              <div class="msg-thinking">
+                🤔 思考中：用户是否允许引入第三方 auth 库？
+              </div>
+              <div class="msg-tool">
+                🔧 file_read src/auth.ts (312 lines)
+              </div>
+              <div class="msg-tool" style="margin-left:12px;opacity:0.8;">
+                ✓ exit 0
+              </div>
+              <div class="msg-tool">
+                📝 M src/auth.ts (+45, -12)
+              </div>
+            </div>
+          </div>
+          <div class="msg-handoff" style="animation-delay:0.3s">
+            <div class="msg-handoff-title"><svg class="icon icon-xs" viewBox="0 0 24 24" style="margin-right:4px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="9.01" y2="12"/><line x1="13" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="9.01" y2="16"/><line x1="13" y1="16" x2="15" y2="16"/></svg>Handoff · 步骤 2 完成</div>
+            <div class="msg-handoff-body">
+              产出鉴权设计文档和修改后的入口文件，等待确认后继续下一步。
+            </div>
+          </div>
+          <div class="msg-usage" style="animation-delay:0.35s">
+            <span>2,400 → 890 tokens · $0.0042</span>
+          </div>
+        </div>
+
+        <div class="composer">
+          <div class="composer-context">
+            💬 当前输入将发送给 <strong>Architect Agent</strong> · 状态：<span style="color:var(--accent-warm);">等待确认</span>
+          </div>
+          <div class="composer-actions">
+            <button class="btn btn-primary"><svg class="icon icon-xs" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> 确认继续</button>
+            <button class="btn btn-warm"><svg class="icon icon-xs" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> 重跑此步</button>
+            <button class="btn btn-ghost"><svg class="icon icon-xs" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg> 跳过下一步</button>
+            <button class="btn btn-gold"><svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg> 采纳建议</button>
+            <button class="btn btn-ghost" style="margin-left:auto;color:var(--accent-warm);"><svg class="icon icon-xs" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> 停止</button>
+          </div>
+          <div class="composer-input-wrap">
+            <input class="composer-input" placeholder="回复 Agent 或输入指令..." />
+            <button class="composer-send"><svg class="icon" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右栏 -->
+      <div class="panel col-right" style="animation-delay:0.24s">
+        <div class="panel-header">
+          <span class="panel-title">文件预览</span>
+          <span style="font-size:11px;color:var(--text-tertiary);cursor:pointer;font-weight:600;display:flex;align-items:center;gap:4px;"><svg class="icon icon-xs" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>关闭</span>
+        </div>
+        <div class="tab-bar">
+          <span class="tab-item active">Code</span>
+          <span class="tab-item">Preview</span>
+          <span class="tab-item">Diff</span>
+        </div>
+        <div class="panel-body" style="padding:0;display:flex;flex-direction:column;">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text-primary);display:flex;justify-content:space-between;align-items:center;">
+            <span>src/auth.ts</span>
+            <span style="font-size:10px;color:var(--text-tertiary);font-weight:500;">TypeScript · 312 lines</span>
+          </div>
+          <div class="code-preview">
+            <div class="code-line"><span class="line-num">1</span><span class="line-content"><span class="cm">// RBAC Auth Module</span></span></div>
+            <div class="code-line"><span class="line-num">2</span><span class="line-content"><span class="kw">import</span> { <span class="fn">verifyToken</span> } <span class="kw">from</span> <span class="str">'./jwt'</span>;</span></div>
+            <div class="code-line"><span class="line-num">3</span><span class="line-content"><span class="kw">import</span> { <span class="fn">RoleHierarchy</span> } <span class="kw">from</span> <span class="str">'./roles'</span>;</span></div>
+            <div class="code-line"><span class="line-num">4</span><span class="line-content"></span></div>
+            <div class="code-line"><span class="line-num">5</span><span class="line-content"><span class="kw">export async function</span> <span class="fn">authorize</span>(<span class="fn">userId</span>: <span class="kw">string</span>, <span class="fn">requiredRole</span>: <span class="kw">string</span>) {</span></div>
+            <div class="code-line"><span class="line-num">6</span><span class="line-content">  <span class="kw">const</span> token = <span class="kw">await</span> <span class="fn">verifyToken</span>(userId);</span></div>
+            <div class="code-line"><span class="line-num">7</span><span class="line-content">  <span class="kw">if</span> (!<span class="fn">RoleHierarchy</span>.<span class="fn">hasAccess</span>(token.role, requiredRole)) {</span></div>
+            <div class="code-line"><span class="line-num">8</span><span class="line-content">    <span class="kw">throw new</span> <span class="fn">AuthError</span>(<span class="str">'Insufficient permissions'</span>);</span></div>
+            <div class="code-line"><span class="line-num">9</span><span class="line-content">  }</span></div>
+            <div class="code-line"><span class="line-num">10</span><span class="line-content">}</span></div>
+          </div>
+          <div style="padding:12px 14px;border-top:1px solid var(--border);">
+            <div class="panel-title" style="margin-bottom:10px;text-transform:none;letter-spacing:0;font-size:12px;">产物</div>
+            <div class="artifact-card" style="margin-bottom:6px;">
+              <div class="artifact-name">design/auth-rbac.md</div>
+              <div class="artifact-desc">鉴权模块 RBAC 设计文档</div>
+              <span class="artifact-tag"><svg class="icon icon-xs" viewBox="0 0 24 24" style="margin-right:2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>doc</span>
+            </div>
+            <div class="artifact-card">
+              <div class="artifact-name">src/auth.ts</div>
+              <div class="artifact-desc">修改后的鉴权入口文件</div>
+              <span class="artifact-tag"><svg class="icon icon-xs" viewBox="0 0 24 24" style="margin-right:2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 13 11 15 9 17"/><polyline points="15 13 13 15 15 17"/></svg>code</span>
+            </div>
+          </div>
+          <div style="padding:12px 14px;border-top:1px solid var(--border);">
+            <div class="panel-title" style="margin-bottom:10px;text-transform:none;letter-spacing:0;font-size:12px;">记忆注入</div>
+            <div class="memory-block">
+              已注入 <strong>3</strong> 条记忆：<br/>
+              · auth-pattern （强度 0.92）<br/>
+              · rbac-rules （强度 0.85）<br/>
+              · error-handling （强度 0.78）
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
+    themeToggle.addEventListener('click', () => {
+      const current = body.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      body.setAttribute('data-theme', next);
+      localStorage.setItem('jinglun-theme', next);
+    });
+    const saved = localStorage.getItem('jinglun-theme');
+    if (saved) body.setAttribute('data-theme', saved);
+
+    document.querySelectorAll('.run-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.run-item').forEach((i) => i.classList.remove('active'));
+        item.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

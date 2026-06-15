@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>模板库 · 经纶</title>
+  <style>
+    :root {
+      --bg-primary: #f5f2ea;
+      --bg-secondary: #edeae2;
+      --bg-tertiary: #e5e2da;
+      --bg-panel: rgba(255, 254, 250, 0.60);
+      --text-primary: #2a2720;
+      --text-secondary: #6b665d;
+      --text-tertiary: #9a958d;
+      --accent: #2e5c6e;
+      --accent-soft: rgba(46, 92, 110, 0.10);
+      --accent-warm: #a84a3f;
+      --accent-warm-soft: rgba(168, 74, 63, 0.12);
+      --accent-gold: #a88a3a;
+      --accent-gold-soft: rgba(168, 138, 58, 0.14);
+      --border: rgba(42, 39, 32, 0.08);
+      --shadow: rgba(42, 39, 32, 0.05);
+      --divider: rgba(42, 39, 32, 0.07);
+      --glow-running: rgba(46, 92, 110, 0.15);
+      --glow-confirm: rgba(168, 74, 63, 0.15);
+      --glow-done: rgba(80, 140, 100, 0.14);
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #121410;
+      --bg-secondary: #1a1916;
+      --bg-tertiary: #22211e;
+      --bg-panel: rgba(26, 25, 22, 0.55);
+      --text-primary: #e8e4dc;
+      --text-secondary: #9a958d;
+      --text-tertiary: #6a6560;
+      --accent: #6a9db0;
+      --accent-soft: rgba(106, 157, 176, 0.15);
+      --accent-warm: #c97b73;
+      --accent-warm-soft: rgba(201, 123, 115, 0.15);
+      --accent-gold: #c4a35a;
+      --accent-gold-soft: rgba(196, 163, 90, 0.16);
+      --border: rgba(232, 228, 220, 0.07);
+      --shadow: rgba(0, 0, 0, 0.3);
+      --divider: rgba(232, 228, 220, 0.08);
+      --glow-running: rgba(106, 157, 176, 0.2);
+      --glow-confirm: rgba(201, 123, 115, 0.2);
+      --glow-done: rgba(120, 200, 150, 0.16);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background 0.5s ease, color 0.4s ease;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* 水墨角落装饰 */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(ellipse 120% 80% at -10% 110%, rgba(46, 92, 110, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 100% 60% at 5% 100%, rgba(46, 92, 110, 0.05) 0%, transparent 40%),
+        radial-gradient(ellipse 80% 100% at 105% 90%, rgba(46, 92, 110, 0.06) 0%, transparent 45%),
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(46, 92, 110, 0.04) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+      transition: all 0.5s ease;
+    }
+
+    [data-theme="dark"] body::before {
+      background-image:
+        radial-gradient(ellipse 120% 80% at -10% 110%, rgba(106, 157, 176, 0.10) 0%, transparent 50%),
+        radial-gradient(ellipse 100% 60% at 5% 100%, rgba(106, 157, 176, 0.07) 0%, transparent 40%),
+        radial-gradient(ellipse 80% 100% at 105% 90%, rgba(106, 157, 176, 0.08) 0%, transparent 45%),
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(106, 157, 176, 0.05) 0%, transparent 50%);
+    }
+
+    .ink-bamboo {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 180px;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.7;
+      transition: opacity 0.5s ease;
+    }
+    .ink-bamboo svg { width: 100%; height: 100%; }
+    .ink-bamboo path {
+      fill: none;
+      stroke: var(--accent);
+      stroke-linecap: round;
+      opacity: 0.4;
+      transition: stroke 0.5s ease;
+    }
+    .ink-bamboo .bamboo-stem { stroke-width: 2.5; }
+    .ink-bamboo .bamboo-joint { stroke-width: 2; }
+    .ink-bamboo .bamboo-leaf { stroke-width: 1.2; opacity: 0.35; }
+
+    .ink-bamboo-tr {
+      position: fixed;
+      top: 50px;
+      right: 0;
+      width: 150px;
+      height: 200px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+    }
+    .ink-bamboo-tr svg { width: 100%; height: 100%; }
+    .ink-bamboo-tr path {
+      fill: none;
+      stroke: var(--accent-gold);
+      stroke-linecap: round;
+      opacity: 0.4;
+    }
+    .ink-bamboo-tr .bamboo-leaf { stroke-width: 1; }
+
+    .app {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+    }
+
+    .top-accent-line {
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-gold) 35%, var(--accent-warm) 70%, var(--accent-gold) 100%);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+    .top-accent-line::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-gold-soft) 30%, var(--accent-gold-soft) 70%, transparent);
+    }
+
+    .topbar {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 16px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(20px) saturate(1.2);
+      -webkit-backdrop-filter: blur(20px) saturate(1.2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      animation: slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      color: var(--text-primary);
+    }
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, var(--accent-gold), var(--accent), var(--accent-warm), var(--accent-gold));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: #fff;
+      font-weight: 800;
+      box-shadow: 0 0 14px var(--accent-gold-soft);
+      animation: rotateMark 24s linear infinite;
+    }
+    .brand-mark span { animation: rotateMark 24s linear infinite reverse; }
+    @keyframes rotateMark {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .nav {
+      display: flex;
+      gap: 2px;
+      margin-left: 20px;
+    }
+    .nav-item {
+      padding: 6px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .nav-item:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .nav-item.active {
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 25%;
+      width: 50%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+      border-radius: 1px;
+    }
+
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .theme-toggle {
+      width: 44px;
+      height: 24px;
+      border-radius: 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      position: relative;
+      cursor: pointer;
+      transition: all 0.4s ease;
+    }
+    .theme-toggle .theme-icon {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 1px 3px var(--shadow);
+    }
+    .theme-toggle .theme-icon svg {
+      width: 12px;
+      height: 12px;
+      stroke: var(--text-secondary);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+    .theme-toggle .moon-icon {
+      opacity: 0;
+      transform: translateX(0) scale(0.8);
+    }
+    [data-theme="dark"] .theme-toggle .sun-icon {
+      opacity: 0;
+      transform: translateX(20px) scale(0.8);
+    }
+    [data-theme="dark"] .theme-toggle .moon-icon {
+      opacity: 1;
+      transform: translateX(20px) scale(1);
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: var(--accent-soft);
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      padding: 14px;
+      gap: 14px;
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      backdrop-filter: blur(28px) saturate(1.3);
+      -webkit-backdrop-filter: blur(28px) saturate(1.3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: all 0.4s ease;
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.5),
+        0 4px 24px var(--shadow);
+    }
+    [data-theme="dark"] .panel {
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.03),
+        0 4px 24px var(--shadow);
+    }
+    .panel:hover {
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.5),
+        0 8px 40px var(--shadow);
+    }
+    [data-theme="dark"] .panel:hover {
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.03),
+        0 8px 40px var(--shadow);
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .panel-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-tertiary);
+    }
+    .panel-body {
+      flex: 1;
+      overflow: auto;
+      padding: 8px;
+    }
+
+    /* 左栏 */
+    .col-left {
+      width: 260px;
+      flex-shrink: 0;
+      animation-delay: 0.08s;
+    }
+    .run-item {
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+    .run-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 0;
+      border-radius: 0 2px 2px 0;
+      background: linear-gradient(to bottom, var(--accent-gold), var(--accent));
+      transition: height 0.3s ease;
+    }
+    .run-item:hover {
+      background: var(--accent-soft);
+      transform: translateX(2px);
+    }
+    .run-item.active {
+      background: var(--accent-soft);
+      border-color: var(--accent-soft);
+    }
+    .run-item.active::before { height: 60%; }
+    .run-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .run-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    .run-badge {
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+    .badge-awaiting {
+      background: var(--accent-warm-soft);
+      color: var(--accent-warm);
+      box-shadow: 0 0 10px var(--glow-confirm);
+    }
+    .badge-running {
+      background: var(--accent-soft);
+      color: var(--accent);
+      box-shadow: 0 0 10px var(--glow-running);
+    }
+    .badge-done {
+      background: var(--glow-done);
+      color: #4a8a5e;
+    }
+    .badge-error {
+      background: var(--accent-warm-soft);
+      color: var(--accent-warm);
+    }
+
+    /* 中栏 */
+    .col-center {
+      flex: 1;
+      min-width: 0;
+      animation-delay: 0.16s;
+    }
+    .steps-scroll {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .steps-scroll::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 5%;
+      right: 5%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--accent-soft) 20%, var(--accent-gold-soft) 50%, var(--accent-soft) 80%, transparent 100%);
+      opacity: 0.6;
+    }
+    .step-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 90px;
+      position: relative;
+    }
+    .step-seal {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      border: 2px solid transparent;
+    }
+    .step-seal.done {
+      background: var(--glow-done);
+      color: #4a8a5e;
+      border-color: rgba(80, 140, 100, 0.3);
+    }
+    .step-seal.current {
+      background: var(--accent-warm-soft);
+      color: var(--accent-warm);
+      border-color: var(--accent-warm);
+      box-shadow: 0 0 16px var(--accent-warm-soft);
+      animation: sealPulse 2.5s ease-in-out infinite;
+      border-radius: 50%;
+    }
+    @keyframes sealPulse {
+      0%, 100% { box-shadow: 0 0 10px var(--accent-warm-soft); }
+      50% { box-shadow: 0 0 22px var(--accent-warm-soft); }
+    }
+    .step-seal.pending {
+      background: var(--bg-tertiary);
+      color: var(--text-tertiary);
+      border-color: var(--border);
+    }
+    .step-connector {
+      width: 36px;
+      height: 2px;
+      background: var(--border);
+      border-radius: 1px;
+      margin-top: -26px;
+      position: relative;
+    }
+    .step-connector.done {
+      background: linear-gradient(90deg, var(--glow-done), var(--accent-gold-soft));
+    }
+    .step-name {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      text-align: center;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .transcript {
+      flex: 1;
+      overflow: auto;
+      padding: 18px 22px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .msg { margin-bottom: 14px; animation: fadeInUp 0.5s ease backwards; }
+    .msg-user { display: flex; justify-content: flex-end; }
+    .msg-user .bubble {
+      max-width: 70%;
+      padding: 10px 16px;
+      border-radius: 16px 16px 4px 16px;
+      background: linear-gradient(135deg, var(--accent), #3d7080);
+      color: #fff;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .msg-assistant { display: flex; gap: 10px; }
+    .msg-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--bg-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      border: 1.5px solid var(--border);
+    }
+    .msg-content { flex: 1; max-width: 80%; }
+    .msg-content .bubble {
+      padding: 10px 16px;
+      border-radius: 4px 16px 16px 16px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 13px;
+      margin-bottom: 4px;
+      border: 1px solid var(--border);
+    }
+    .msg-thinking {
+      margin: 8px 0;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--accent-gold-soft);
+      color: var(--accent-gold);
+      font-size: 11px;
+      border-left: 2px solid var(--accent-gold);
+      font-style: italic;
+    }
+    .msg-tool {
+      margin: 6px 0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 11px;
+      font-family: "SF Mono", ui-monospace, monospace;
+    }
+    .msg-usage { text-align: center; margin: 12px 0; }
+    .msg-usage span {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      padding: 4px 14px;
+      border-radius: 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+    }
+    .msg-handoff {
+      margin: 16px 0;
+      padding: 16px 18px;
+      border-radius: 12px;
+      background: var(--accent-gold-soft);
+      border: 1px solid var(--accent-gold-soft);
+      animation: fadeInUp 0.6s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .msg-handoff::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--accent-gold), transparent);
+    }
+    .msg-handoff-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--accent-gold);
+      margin-bottom: 6px;
+      letter-spacing: 0.04em;
+    }
+    .msg-handoff-body { font-size: 12px; color: var(--text-secondary); }
+
+    .composer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      background: var(--bg-panel);
+      backdrop-filter: blur(20px);
+      animation: fadeInUp 0.4s ease 0.2s backwards;
+    }
+    .composer-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: none;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: inherit;
+      letter-spacing: 0.02em;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #3d7080);
+      color: #fff;
+      box-shadow: 0 2px 8px var(--glow-running);
+    }
+    .btn-primary:hover { box-shadow: 0 4px 16px var(--glow-running); }
+    .btn-warm {
+      background: linear-gradient(135deg, var(--accent-warm), #c06050);
+      color: #fff;
+      box-shadow: 0 2px 8px var(--glow-confirm);
+    }
+    .btn-warm:hover { box-shadow: 0 4px 16px var(--glow-confirm); }
+    .btn-ghost {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .btn-gold {
+      background: var(--accent-gold-soft);
+      color: var(--accent-gold);
+      border: 1.5px solid var(--accent-gold-soft);
+    }
+    .btn-gold:hover {
+      border-color: var(--accent-gold);
+      box-shadow: 0 2px 8px var(--accent-gold-soft);
+    }
+    .composer-input-wrap {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .composer-input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+    .composer-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .composer-send {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-gold));
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px var(--glow-running);
+    }
+    .composer-send:hover {
+      transform: scale(1.08);
+      box-shadow: 0 4px 20px var(--glow-running);
+    }
+
+    /* 右栏 */
+    .col-right {
+      width: 280px;
+      flex-shrink: 0;
+      animation-delay: 0.24s;
+      position: relative;
+      overflow: hidden;
+    }
+    .col-right::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse 60% 40% at 70% 30%, rgba(46, 92, 110, 0.06) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    [data-theme="dark"] .col-right::before {
+      background: radial-gradient(ellipse 60% 40% at 70% 30%, rgba(106, 157, 176, 0.08) 0%, transparent 60%);
+    }
+    .col-right > * { position: relative; z-index: 1; }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .detail-label { color: var(--text-tertiary); font-weight: 500; }
+    .detail-value {
+      color: var(--text-primary);
+      font-weight: 700;
+      font-family: "SF Mono", ui-monospace, monospace;
+      font-size: 11px;
+    }
+    .budget-bar {
+      height: 5px;
+      background: var(--bg-tertiary);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .budget-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-gold));
+      transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+      width: 42%;
+    }
+    .artifact-card {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .artifact-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px var(--shadow);
+      border-color: var(--accent-gold-soft);
+    }
+    .artifact-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--accent-gold), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .artifact-card:hover::before { opacity: 1; }
+    .artifact-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+      font-family: "SF Mono", ui-monospace, monospace;
+    }
+    .artifact-desc { font-size: 11px; color: var(--text-tertiary); }
+    .artifact-tag {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 800;
+    }
+    .memory-block {
+      padding: 12px;
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      position: relative;
+      overflow: hidden;
+    }
+    .memory-block::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+      background: linear-gradient(to bottom, var(--accent-gold), transparent);
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .dag-sidebar { width: 240px; flex-shrink: 0; }
+    .dag-main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+    .dag-canvas {
+      flex: 1;
+      position: relative;
+      overflow: auto;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 40%, rgba(46,92,110,0.04) 0%, transparent 60%),
+        var(--bg-secondary);
+      background-image:
+        radial-gradient(circle, var(--border) 1px, transparent 1px),
+        radial-gradient(ellipse 80% 50% at 50% 40%, rgba(46,92,110,0.04) 0%, transparent 60%);
+      background-size: 24px 24px, 100% 100%;
+      border-radius: 12px;
+      margin: 0 14px 14px;
+      border: 1px solid var(--border);
+      min-height: 400px;
+    }
+    .dag-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1200px;
+      height: 400px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .dag-path {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 2;
+      stroke-linecap: round;
+      transition: stroke 0.4s ease;
+    }
+    .dag-path.active {
+      stroke: url(#lineGradient);
+      stroke-width: 2.5;
+      filter: drop-shadow(0 0 3px var(--accent-gold-soft));
+    }
+    .dag-path-flow {
+      fill: none;
+      stroke: var(--accent-gold);
+      stroke-width: 2.5;
+      stroke-dasharray: 4 10;
+      stroke-linecap: round;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    .dag-path.active + .dag-path-flow {
+      opacity: 0.7;
+      animation: flowDash 0.8s linear infinite;
+    }
+    @keyframes flowDash {
+      to { stroke-dashoffset: -14; }
+    }
+    .dag-node {
+      position: absolute;
+      cursor: grab;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 2;
+      animation: nodeEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    }
+    @keyframes nodeEnter {
+      from { opacity: 0; transform: scale(0.9) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .dag-node:hover {
+      transform: translateY(-4px) scale(1.03);
+      z-index: 3;
+    }
+    .dag-node:active { cursor: grabbing; }
+    .dag-node.start, .dag-node.end {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      border: 2px solid;
+      box-shadow: 0 4px 16px var(--shadow);
+    }
+    .dag-node.start {
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 20px var(--glow-running), 0 4px 16px var(--shadow);
+    }
+    .dag-node.start .node-icon { font-size: 14px; margin-bottom: 2px; }
+    .dag-node.end {
+      border-color: var(--text-tertiary);
+      color: var(--text-tertiary);
+    }
+    .dag-node.start:hover {
+      box-shadow: 0 0 30px var(--glow-running), 0 8px 32px var(--shadow);
+      border-color: var(--accent);
+    }
+    .dag-node.end:hover {
+      box-shadow: 0 8px 32px var(--shadow);
+    }
+    .dag-node.agent {
+      width: 148px;
+      padding: 14px 16px 12px;
+      border-radius: 14px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(16px);
+      border: 1.5px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+    .dag-node.agent::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 16px;
+      width: 32px;
+      height: 3px;
+      border-radius: 0 0 3px 3px;
+      background: linear-gradient(90deg, var(--accent-gold), var(--accent));
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
+    }
+    .dag-node.agent.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft), 0 8px 32px var(--shadow);
+    }
+    .dag-node.agent.selected::before { opacity: 1; background: linear-gradient(90deg, var(--accent), var(--accent-gold)); }
+    .dag-node.agent:hover {
+      border-color: var(--accent-gold);
+      box-shadow: 0 12px 40px var(--shadow), 0 0 0 1px var(--accent-gold-soft);
+    }
+    .dag-node.agent:hover::before { opacity: 1; }
+    .dag-node.agent.selected:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft), 0 12px 40px var(--shadow);
+    }
+    .node-icon-wrap {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: var(--accent-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .node-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+    .node-meta {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+    .dag-node.parallel {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--accent-warm);
+      padding: 0;
+      position: relative;
+    }
+    .dag-node.parallel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px dashed var(--accent-warm);
+      opacity: 0.6;
+      animation: spin 25s linear infinite;
+    }
+    .dag-node.parallel::after {
+      content: '';
+      position: absolute;
+      inset: -5px;
+      border-radius: 50%;
+      border: 1px dashed var(--accent-warm-soft);
+      animation: spin 18s linear infinite reverse;
+    }
+    .dag-node.parallel .inner {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      line-height: 1.3;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .dag-node.parallel:hover::before {
+      border-color: var(--accent-warm);
+      opacity: 1;
+    }
+    /* Agent Sidebar */
+    .agent-sidebar-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      cursor: grab;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+    }
+    .agent-sidebar-item:hover {
+      background: var(--accent-soft);
+      transform: translateX(2px);
+    }
+    .agent-sidebar-item:active { cursor: grabbing; }
+    .agent-sidebar-item .drag-handle {
+      font-size: 14px;
+      color: var(--text-tertiary);
+      cursor: grab;
+    }
+    .agent-sidebar-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--accent-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .agent-sidebar-info { flex: 1; min-width: 0; }
+    .agent-sidebar-name { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+    .agent-sidebar-meta { font-size: 10px; color: var(--text-tertiary); }
+    .agent-vendor-tag {
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    /* Toolbar */
+    .canvas-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      background: var(--bg-panel);
+    }
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding-right: 10px;
+      border-right: 1px solid var(--border);
+    }
+    .toolbar-group:last-child { border-right: none; padding-right: 0; }
+    .toolbar-btn {
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+    .toolbar-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-soft); }
+    .toolbar-select {
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 11px;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+    }
+    .toolbar-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    /* Property Panel */
+    .property-group {
+      padding: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .property-group-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
+    .prop-field {
+      margin-bottom: 12px;
+    }
+    .prop-field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      margin-bottom: 5px;
+    }
+    .prop-field input, .prop-field select, .prop-field textarea {
+      width: 100%;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 12px;
+      outline: none;
+      font-family: inherit;
+      transition: all 0.25s ease;
+    }
+    .prop-field input:focus, .prop-field select:focus, .prop-field textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .prop-field textarea { min-height: 60px; resize: vertical; }
+    .prop-row { display: flex; gap: 8px; }
+    .prop-row .prop-field { flex: 1; }
+    .prop-hint {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    .prop-toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+    }
+    .prop-toggle-label { font-size: 12px; color: var(--text-primary); font-weight: 600; }
+    .mini-toggle {
+      width: 36px;
+      height: 20px;
+      border-radius: 10px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      position: relative;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .mini-toggle.on { background: var(--accent); border-color: var(--accent); }
+    .mini-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .mini-toggle.on::after { transform: translateX(16px); }
+
+    /* MiniMap */
+    .minimap {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      width: 160px;
+      height: 100px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      z-index: 10;
+      overflow: hidden;
+      box-shadow: 0 4px 16px var(--shadow);
+    }
+    .minimap-title {
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--text-tertiary);
+      padding: 4px 8px;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .minimap-body {
+      position: relative;
+      width: 100%;
+      height: calc(100% - 20px);
+    }
+    .minimap-node {
+      position: absolute;
+      width: 14px;
+      height: 10px;
+      border-radius: 2px;
+      background: var(--accent);
+      opacity: 0.6;
+    }
+    .minimap-node.start, .minimap-node.end {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .minimap-viewport {
+      position: absolute;
+      border: 1.5px solid var(--accent-gold);
+      border-radius: 3px;
+      background: rgba(168,138,58,0.08);
+    }
+
+    /* 条件边标签 */
+    .edge-label {
+      position: absolute;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+      z-index: 3;
+      backdrop-filter: blur(8px);
+    }
+
+    /* 侧边栏 Tab */
+    .sidebar-tabs {
+      display: flex;
+      padding: 4px;
+      gap: 2px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+    .sidebar-tab {
+      flex: 1;
+      text-align: center;
+      padding: 6px 0;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .sidebar-tab:hover { color: var(--accent); background: var(--accent-soft); }
+    .sidebar-tab.active { color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+    .sidebar-pane { display: none; padding: 10px; }
+    .sidebar-pane.active { display: block; animation: fadeInUp 0.2s ease; }
+
+    /* 右键菜单 */
+    .context-menu {
+      position: absolute;
+      min-width: 160px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 8px 32px var(--shadow);
+      z-index: 100;
+      padding: 6px;
+      animation: fadeInUp 0.15s ease;
+    }
+    .context-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .context-item:hover { background: var(--accent-soft); color: var(--accent); }
+    .context-item.danger:hover { background: var(--accent-warm-soft); color: var(--accent-warm); }
+    .context-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    .template-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid transparent;
+    }
+    .template-item:hover { background: var(--accent-soft); }
+    .template-item.active { background: var(--accent-soft); border-color: var(--accent-soft); }
+    @media (max-width: 1100px) { .col-right, .dag-sidebar { display: none; } }
+
+    /* SVG Icons */
+    .icon {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      flex-shrink: 0;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .icon-lg { width: 20px; height: 20px; }
+    .icon-sm { width: 14px; height: 14px; stroke-width: 1.5; }
+    .icon-xs { width: 12px; height: 12px; stroke-width: 1.5; }
+  </style>
+</head>
+<body data-theme="light">
+  <div class="ink-bamboo">
+    <svg viewBox="0 0 400 250" preserveAspectRatio="xMinYMax slice">
+      <path class="bamboo-stem" d="M-20,180 Q30,120 80,140 T160,100 T240,130 T320,90 L400,110 L400,270 L-20,270 Z" />
+      <path class="bamboo-stem" d="M-20,200 Q40,150 100,170 T200,130 T300,160 L400,140 L400,270 L-20,270 Z" opacity="0.6"/>
+      <path class="bamboo-stem" d="M-20,190 Q50,160 90,175 T180,150 T260,170 T360,155" opacity="0.4"/>
+      <path class="bamboo-joint" d="M60,145 Q65,110 70,145 M65,125 Q55,115 65,125 M65,125 Q75,115 65,125" opacity="0.3"/>
+      <path class="bamboo-joint" d="M140,105 Q145,75 150,105 M145,90 Q135,80 145,90 M145,90 Q155,80 145,90" opacity="0.25"/>
+    </svg>
+  </div>
+  <div class="ink-bamboo-tr">
+    <svg viewBox="0 0 200 150" preserveAspectRatio="xMaxYMin slice">
+      <path class="bamboo-leaf" d="M200,0 Q150,20 180,60 T140,120 T160,150" />
+      <path class="bamboo-leaf" d="M200,30 Q160,50 170,90 T130,140" opacity="0.6"/>
+      <path class="bamboo-leaf" d="M180,0 Q140,15 150,50" opacity="0.4"/>
+    </svg>
+  </div>
+
+  <div class="app">
+    <div class="top-accent-line"></div>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark"><span>纶</span></div>
+        <span>经纶</span>
+      </div>
+      <nav class="nav">
+        <a href="workflow.html" class="nav-item">经纶</a>
+        <a href="templates.html" class="nav-item active">模板</a>
+        <a href="agents.html" class="nav-item">智能体</a>
+        <a href="single.html" class="nav-item">单次</a>
+        <a href="settings.html" class="nav-item">设置</a>
+      </nav>
+      <div class="topbar-right">
+        <div class="status-pill">
+          <span class="status-dot"></span>
+          2 运行中 · 1 待确认
+        </div>
+        <div class="theme-toggle" id="themeToggle" title="切换亮暗主题">
+          <div class="theme-icon sun-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></div>
+          <div class="theme-icon moon-icon"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="main">
+      <div class="panel dag-sidebar" style="animation-delay:0.08s">
+        <div class="sidebar-tabs">
+          <div class="sidebar-tab active" onclick="switchSidebarTab(this,'pane-templates')">模板</div>
+          <div class="sidebar-tab" onclick="switchSidebarTab(this,'pane-agents')">Agent</div>
+        </div>
+
+        <div id="pane-templates" class="sidebar-pane active">
+          <div class="template-item active">
+            <div style="font-size:13px;font-weight:700;margin-bottom:4px;">需求 → 设计 → 开发</div>
+            <div style="font-size:10px;color:var(--text-tertiary);">5 个步骤 · 3 个 Agent</div>
+          </div>
+          <div class="template-item">
+            <div style="font-size:13px;font-weight:700;margin-bottom:4px;">代码 Review 流水线</div>
+            <div style="font-size:10px;color:var(--text-tertiary);">3 个步骤 · 2 个 Agent</div>
+          </div>
+          <div class="template-item">
+            <div style="font-size:13px;font-weight:700;margin-bottom:4px;">定时数据清洗</div>
+            <div style="font-size:10px;color:var(--text-tertiary);">2 个步骤 · 1 个 Agent</div>
+          </div>
+          <div style="padding:8px 4px;font-size:10px;color:var(--text-tertiary);text-align:center;margin-top:4px;">
+            点击下方「Agent」Tab 拖拽添加节点
+          </div>
+        </div>
+
+        <div id="pane-agents" class="sidebar-pane">
+          <div class="search-box" style="padding:0 0 10px;border-bottom:1px solid var(--border);margin-bottom:8px;">
+            <input placeholder="搜索 Agent..." style="width:100%;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;outline:none;font-family:inherit;transition:all 0.25s ease;">
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+              <span class="filter-chip active" style="padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-tertiary);transition:all 0.2s ease;">全部</span>
+              <span class="filter-chip" style="padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-tertiary);transition:all 0.2s ease;">Claude</span>
+              <span class="filter-chip" style="padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-tertiary);transition:all 0.2s ease;">Codex</span>
+              <span class="filter-chip" style="padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-tertiary);transition:all 0.2s ease;">API</span>
+            </div>
+          </div>
+          <div class="agent-sidebar-item">
+            <span class="drag-handle">⋮⋮</span>
+            <div class="agent-sidebar-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="9.01" y2="12"/><line x1="13" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="9.01" y2="16"/><line x1="13" y1="16" x2="15" y2="16"/></svg></div>
+            <div class="agent-sidebar-info">
+              <div class="agent-sidebar-name">Product Manager</div>
+              <div class="agent-sidebar-meta">需求分析 · claude</div>
+            </div>
+          </div>
+          <div class="agent-sidebar-item">
+            <span class="drag-handle">⋮⋮</span>
+            <div class="agent-sidebar-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M15 12l-8.5 8.5a2.12 2.12 0 1 1-3-3L12 9"/><path d="M17.64 15L22 10.64"/><path d="M20.91 11.7l-1.25-1.25c-.6-.6-.93-1.4-.93-2.25V7.86c0-.55-.45-1-1-1H16.14c-.85 0-1.65-.33-2.25-.93L12.64 4.64"/></svg></div>
+            <div class="agent-sidebar-info">
+              <div class="agent-sidebar-name">Architect</div>
+              <div class="agent-sidebar-meta">技术设计 · claude</div>
+            </div>
+          </div>
+          <div class="agent-sidebar-item">
+            <span class="drag-handle">⋮⋮</span>
+            <div class="agent-sidebar-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            <div class="agent-sidebar-info">
+              <div class="agent-sidebar-name">Backend Dev</div>
+              <div class="agent-sidebar-meta">后端开发 · codex</div>
+            </div>
+          </div>
+          <div class="agent-sidebar-item">
+            <span class="drag-handle">⋮⋮</span>
+            <div class="agent-sidebar-icon"><svg class="icon" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.01 17.461 2 12 2z"/></svg></div>
+            <div class="agent-sidebar-info">
+              <div class="agent-sidebar-name">Frontend Dev</div>
+              <div class="agent-sidebar-meta">前端开发 · api</div>
+            </div>
+          </div>
+          <div class="agent-sidebar-item">
+            <span class="drag-handle">⋮⋮</span>
+            <div class="agent-sidebar-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M10 2v7.31"/><path d="M14 2v7.31"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/></svg></div>
+            <div class="agent-sidebar-info">
+              <div class="agent-sidebar-name">QA</div>
+              <div class="agent-sidebar-meta">测试验收 · api</div>
+            </div>
+          </div>
+          <div style="padding:8px 4px;font-size:10px;color:var(--text-tertiary);text-align:center;margin-top:4px;">
+            拖拽 Agent 到画布添加节点
+          </div>
+        </div>
+      </div>
+
+      <div class="panel dag-main" style="animation-delay:0.16s">
+        <div class="canvas-toolbar">
+          <div class="toolbar-group">
+            <select class="toolbar-select">
+              <option>需求 → 设计 → 开发</option>
+              <option>代码 Review 流水线</option>
+              <option>定时数据清洗</option>
+            </select>
+            <button class="toolbar-btn"><svg class="icon icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 新建</button>
+            <button class="toolbar-btn"><svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> 保存</button>
+            <button class="toolbar-btn"><svg class="icon icon-xs" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 另存为</button>
+            <button class="toolbar-btn" style="color:var(--accent-warm);"><svg class="icon icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> 删除</button>
+          </div>
+          <div class="toolbar-group">
+            <button class="toolbar-btn"><svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg> 撤销</button>
+            <button class="toolbar-btn"><svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/></svg> 重做</button>
+          </div>
+          <div class="toolbar-group">
+            <button class="toolbar-btn"><svg class="icon icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+            <span style="font-size:11px;color:var(--text-tertiary);font-weight:600;">100%</span>
+            <button class="toolbar-btn"><svg class="icon icon-xs" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+            <button class="toolbar-btn"><svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg> 适应</button>
+            <button class="toolbar-btn"><svg class="icon icon-xs" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg> 自动布局</button>
+          </div>
+          <div class="toolbar-group" style="margin-left:auto;">
+            <button class="toolbar-btn"><svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 导入</button>
+            <button class="toolbar-btn"><svg class="icon icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> 设置</button>
+            <button class="toolbar-btn"><svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 导出</button>
+          </div>
+        </div>
+        <div class="dag-canvas">
+          <svg class="dag-svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="var(--accent)" />
+                <stop offset="100%" stop-color="var(--accent-gold)" />
+              </linearGradient>
+            </defs>
+
+            <!-- 开始 → 需求分析 -->
+            <path class="dag-path active" d="M 68 140 L 234 140" />
+            <path class="dag-path-flow" d="M 68 140 L 234 140" />
+
+            <!-- 需求分析 → 技术设计 -->
+            <path class="dag-path active" d="M 234 140 L 414 140" />
+            <path class="dag-path-flow" d="M 234 140 L 414 140" />
+
+            <!-- 技术设计 → 并行开发 -->
+            <path class="dag-path active" d="M 414 140 L 562 140" />
+            <path class="dag-path-flow" d="M 414 140 L 562 140" />
+
+            <!-- 并行开发 → 后端 -->
+            <path class="dag-path" d="M 562 182 Q 562 220 554 260" />
+
+            <!-- 并行开发 → 前端 -->
+            <path class="dag-path" d="M 604 140 Q 734 140 734 260" />
+
+            <!-- 后端 → 测试验收 -->
+            <path class="dag-path" d="M 628 300 Q 840 250 840 140" />
+
+            <!-- 前端 → 测试验收 -->
+            <path class="dag-path" d="M 808 300 Q 914 220 914 140" />
+
+            <!-- 测试验收 → 结束 -->
+            <path class="dag-path active" d="M 914 140 L 1048 140" />
+            <path class="dag-path-flow" d="M 914 140 L 1048 140" />
+          </svg>
+
+          <div class="dag-node start" style="left:40px;top:112px;animation-delay:0.1s;">
+            <div class="node-icon"><svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+            <div class="node-label" style="font-size:9px;">开始</div>
+          </div>
+
+          <div class="dag-node agent" style="left:160px;top:92px;animation-delay:0.2s;">
+            <div class="node-icon-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="9.01" y2="12"/><line x1="13" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="9.01" y2="16"/><line x1="13" y1="16" x2="15" y2="16"/></svg></div>
+            <div class="node-label">需求分析</div>
+            <div class="node-meta">Product Manager</div>
+          </div>
+
+          <div class="dag-node agent selected" style="left:340px;top:92px;animation-delay:0.3s;">
+            <div class="node-icon-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M15 12l-8.5 8.5a2.12 2.12 0 1 1-3-3L12 9"/><path d="M17.64 15L22 10.64"/><path d="M20.91 11.7l-1.25-1.25c-.6-.6-.93-1.4-.93-2.25V7.86c0-.55-.45-1-1-1H16.14c-.85 0-1.65-.33-2.25-.93L12.64 4.64"/></svg></div>
+            <div class="node-label">技术设计</div>
+            <div class="node-meta">Architect</div>
+          </div>
+
+          <div class="dag-node parallel" style="left:520px;top:98px;animation-delay:0.4s;">
+            <div class="inner">并行<br/>开发</div>
+          </div>
+
+          <div class="dag-node agent" style="left:480px;top:260px;animation-delay:0.5s;">
+            <div class="node-icon-wrap"><svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            <div class="node-label">后端开发</div>
+            <div class="node-meta">Backend Dev</div>
+          </div>
+
+          <div class="dag-node agent" style="left:660px;top:260px;animation-delay:0.55s;">
+            <div class="node-icon-wrap"><svg class="icon" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.01 17.461 2 12 2z"/></svg></div>
+            <div class="node-label">前端开发</div>
+            <div class="node-meta">Frontend Dev</div>
+          </div>
+
+          <div class="dag-node agent" style="left:840px;top:92px;animation-delay:0.6s;">
+            <div class="node-icon-wrap"><svg class="icon" viewBox="0 0 24 24"><path d="M10 2v7.31"/><path d="M14 2v7.31"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/></svg></div>
+            <div class="node-label">测试验收</div>
+            <div class="node-meta">QA</div>
+          </div>
+
+          <div class="dag-node end" style="left:1020px;top:112px;animation-delay:0.7s;">
+            <div class="node-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></div>
+            <div class="node-label" style="font-size:9px;">结束</div>
+          </div>
+
+          <!-- 条件边标签 -->
+          <div class="edge-label" style="left:270px;top:125px;">默认</div>
+          <div class="edge-label" style="left:440px;top:125px;">默认</div>
+          <div class="edge-label" style="left:590px;top:195px;color:var(--accent-warm);">条件: error</div>
+
+          <!-- 右键菜单演示 -->
+          <div class="context-menu" style="left:420px;top:180px;">
+            <div class="context-item"><svg class="icon icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 添加 Agent 节点</div>
+            <div class="context-item"><svg class="icon icon-xs" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg> 创建并行组</div>
+            <div class="context-divider"></div>
+            <div class="context-item"><svg class="icon icon-xs" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> 编辑属性</div>
+            <div class="context-item"><svg class="icon icon-xs" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 复制节点</div>
+            <div class="context-divider"></div>
+            <div class="context-item danger"><svg class="icon icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> 删除节点</div>
+          </div>
+
+          <!-- MiniMap -->
+          <div class="minimap">
+            <div class="minimap-title">MiniMap</div>
+            <div class="minimap-body">
+              <div class="minimap-node start" style="left:12px;top:30px;"></div>
+              <div class="minimap-node" style="left:38px;top:30px;"></div>
+              <div class="minimap-node" style="left:64px;top:30px;"></div>
+              <div class="minimap-node" style="left:90px;top:20px;"></div>
+              <div class="minimap-node" style="left:90px;top:40px;"></div>
+              <div class="minimap-node" style="left:120px;top:30px;"></div>
+              <div class="minimap-node end" style="left:146px;top:30px;"></div>
+              <div class="minimap-viewport" style="left:10px;top:15px;width:80px;height:45px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Property Panel -->
+      <div class="panel col-right" style="animation-delay:0.24s;width:260px;">
+        <div class="panel-header">
+          <span class="panel-title">属性面板</span>
+          <span style="font-size:11px;color:var(--text-tertiary);font-weight:600;">技术设计</span>
+        </div>
+        <div class="panel-body" style="padding:0;">
+          <div class="property-group">
+            <div class="property-group-title">Agent 配置</div>
+            <div class="prop-field">
+              <label>选择 Agent</label>
+              <select><option>Architect</option><option>Product Manager</option><option>Backend Dev</option></select>
+            </div>
+            <div class="prop-row">
+              <div class="prop-field">
+                <label>模型</label>
+                <select><option>claude-sonnet-4-6</option><option>gpt-4o</option></select>
+              </div>
+              <div class="prop-field">
+                <label>Vendor</label>
+                <select><option>claude</option><option>codex</option><option>api</option></select>
+              </div>
+            </div>
+            <div class="prop-field">
+              <label>角色描述</label>
+              <input value="技术设计 · 架构评审" />
+            </div>
+          </div>
+          <div class="property-group">
+            <div class="property-group-title">Prompt 模板</div>
+            <div class="prop-field">
+              <textarea>你是一位架构师。请根据需求分析结果，设计技术方案并输出架构文档。
+
+需求: {{input}}
+上下文: {{memory}}
+              </textarea>
+              <div class="prop-hint">支持变量: {{input}}, {{memory}}, {{artifacts}}</div>
+            </div>
+          </div>
+          <div class="property-group">
+            <div class="property-group-title">步骤规则</div>
+            <div class="prop-field">
+              <label>On Error</label>
+              <select><option>Retry (最多 3 次)</option><option>Skip</option><option>Stop</option><option>Goto Step</option></select>
+            </div>
+            <div class="prop-field">
+              <label>On Handoff Failed</label>
+              <select><option>Retry-then-notify</option><option>Retry-then-goto</option><option>Stop</option></select>
+            </div>
+            <div class="prop-field">
+              <label>On Done</label>
+              <select><option>Proceed to next</option><option>Await confirmation</option><option>Await user input</option></select>
+            </div>
+          </div>
+          <div class="property-group">
+            <div class="property-group-title">高级选项</div>
+            <div class="prop-toggle-row">
+              <span class="prop-toggle-label">交互式步骤（需用户输入）</span>
+              <div class="mini-toggle"></div>
+            </div>
+            <div class="prop-field" style="margin-top:10px;">
+              <label>USD 预算上限</label>
+              <input type="number" value="0.10" step="0.01" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
+    themeToggle.addEventListener('click', () => {
+      const current = body.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      body.setAttribute('data-theme', next);
+      localStorage.setItem('jinglun-theme', next);
+    });
+    const saved = localStorage.getItem('jinglun-theme');
+    if (saved) body.setAttribute('data-theme', saved);
+
+    function switchSidebarTab(tab, paneId) {
+      document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.sidebar-pane').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(paneId).classList.add('active');
+    }
+  </script>
+</body>
+</html>
