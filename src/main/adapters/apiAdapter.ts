@@ -199,7 +199,7 @@ function mapStreamPart(part: Record<string, unknown>, sessionId: string, queue: 
 
   switch (part.type) {
     case 'text-delta': {
-      const text = stringValue(part.textDelta ?? part.text)
+      const text = stringValue(part.textDelta ?? part.delta ?? part.text)
       if (text) {
         state.text += text
         state.meaningful = true
@@ -208,7 +208,7 @@ function mapStreamPart(part: Record<string, unknown>, sessionId: string, queue: 
       return
     }
     case 'reasoning-delta': {
-      const text = stringValue(part.text)
+      const text = stringValue(part.text ?? part.delta)
       if (text) {
         state.meaningful = true
         queue.push({ kind: 'thinking', text })

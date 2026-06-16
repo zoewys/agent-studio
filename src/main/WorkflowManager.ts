@@ -635,6 +635,7 @@ export class WorkflowManager {
     }
 
     if (event.kind === 'error' && !event.recoverable) {
+      if (this.finishStepWithAvailableHandoff(run, stepIndex, execution)) return
       this.finishStepWithError(run, stepIndex, execution, event.message)
       return
     }
@@ -643,12 +644,24 @@ export class WorkflowManager {
       if (event.reason === 'complete') {
         this.finishStepWithHandoff(run, stepIndex, execution)
       } else {
+        if (this.finishStepWithAvailableHandoff(run, stepIndex, execution)) return
         this.finishStepWithError(run, stepIndex, execution, `Step ${event.reason}`)
       }
     } else {
       this.persist(run)
       this.emitAgentEvent(run.id, stepIndex, executionId, event)
     }
+  }
+
+  private finishStepWithAvailableHandoff(
+    run: WorkflowRun,
+    stepIndex: number,
+    execution: WorkflowStepExecution
+  ): boolean {
+    // Codex can emit the final handoff before reporting a transport timeout.
+    if (!parseHandoff(execution.events)) return false
+    this.finishStepWithHandoff(run, stepIndex, execution)
+    return true
   }
 
   private finishStepWithHandoff(

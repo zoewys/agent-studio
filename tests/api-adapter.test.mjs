@@ -172,11 +172,47 @@ test('ApiAdapter emits session-started first, maps text deltas, emits a full ass
   assert.deepEqual(calls[0].stopWhen, { stepCount: 10 })
 })
 
+test('ApiAdapter maps AI SDK v6 delta text so DeepSeek workflow handoffs can complete', async () => {
+  const { parseHandoff } = await import('../src/main/handoffParser.ts')
+  const { ApiAdapter } = await importApiAdapter(mocksFor([
+    { type: 'text-delta', delta: '{"summary":"ok","artifacts":[]}' },
+    { type: 'finish' }
+  ]))
+  const adapter = new ApiAdapter({
+    id: 'deepseek',
+    name: 'DeepSeek',
+    format: 'openai-compatible',
+    apiKey: 'sk-test',
+    baseUrl: 'https://deepseek.example/v1',
+    models: ['deepseek-chat'],
+    defaultModel: 'deepseek-chat'
+  }, guard)
+
+  const events = await collect(adapter.runTurn({
+    prompt: 'Return handoff',
+    cwd: root,
+    outputSchema: {
+      type: 'object',
+      required: ['summary', 'artifacts'],
+      properties: {
+        summary: { type: 'string' },
+        artifacts: { type: 'array' }
+      }
+    },
+    abortSignal: new AbortController().signal
+  }))
+
+  assert.deepEqual(events[1], { kind: 'message-delta', text: '{"summary":"ok","artifacts":[]}' })
+  assert.deepEqual(events[2], { kind: 'message', role: 'assistant', text: '{"summary":"ok","artifacts":[]}' })
+  assert.equal(events[3].kind, 'turn-done')
+  assert.equal(parseHandoff(events)?.summary, 'ok')
+})
+
 test('ApiAdapter maps v6 tool call, tool result, usage, reasoning, denied output, and finish events', async () => {
   const { ApiAdapter } = await importApiAdapter(mocksFor([
     { type: 'tool-call', toolCallId: 'tool-1', toolName: 'bash', args: { command: 'echo hi' } },
     { type: 'tool-result', toolCallId: 'tool-1', result: { exitCode: 0, output: 'hi\n' } },
-    { type: 'reasoning-delta', text: 'checking tools' },
+    { type: 'reasoning-delta', delta: 'checking tools' },
     { type: 'finish-step', usage: { inputTokens: 3, outputTokens: 4 } },
     { type: 'tool-error', toolCallId: 'tool-2', toolName: 'grep', error: new Error('grep failed') },
     { type: 'tool-output-denied', toolCallId: 'tool-3', toolName: 'file_write' },
