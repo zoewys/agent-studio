@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — Agents</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    .agent-list { width: 280px; border-right: 1px solid var(--glass-border); background: var(--glass-bg); backdrop-filter: var(--glass-blur); display: flex; flex-direction: column; flex-shrink: 0; }
+    [data-theme="dark"] .agent-list { border-right-color: rgba(0,212,170,0.08); background: rgba(10,15,26,0.7); }
+    .agent-list-header { padding: 14px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; }
+    .agent-list-scroll { flex: 1; overflow-y: auto; }
+    .agent-item { width: 100%; padding: 12px 14px; border: none; border-bottom: 1px solid var(--neutral-border-subtle); background: transparent; text-align: left; cursor: pointer; transition: all 150ms; color: inherit; font-family: inherit; }
+    .agent-item:hover { background: rgba(61,142,134,0.04); }
+    .agent-item.active { background: rgba(61,142,134,0.06); border-left: 2px solid var(--brand-primary); }
+    [data-theme="dark"] .agent-item.active { border-left-color: #00d4aa; background: rgba(0,212,170,0.05); }
+    .agent-item-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; font-family: "JetBrains Mono", monospace; }
+    .agent-item-meta { font-size: 11px; color: var(--neutral-text-muted); }
+    .agent-editor { flex: 1; overflow-y: auto; padding: 24px; }
+    .agent-editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .permission-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .permission-card { padding: 12px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass-bg); cursor: pointer; text-align: center; transition: all 150ms; font-family: inherit; color: inherit; }
+    .permission-card:hover { border-color: rgba(61,142,134,0.25); }
+    .permission-card.active { border-color: rgba(61,142,134,0.4); background: rgba(61,142,134,0.06); box-shadow: 0 0 0 2px rgba(61,142,134,0.1); }
+    [data-theme="dark"] .permission-card { border-radius: 6px; }
+    [data-theme="dark"] .permission-card.active { border-color: rgba(0,212,170,0.4); background: rgba(0,212,170,0.08); box-shadow: 0 0 12px rgba(0,212,170,0.1); }
+    .permission-card-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+    .permission-card-desc { font-size: 11px; color: var(--neutral-text-muted); }
+    .tag-green { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; background: rgba(106,189,121,0.1); color: var(--semantic-success); border: 1px solid rgba(106,189,121,0.2); }
+    [data-theme="dark"] .tag-green { font-family: "JetBrains Mono", monospace; }
+    .tag-red { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; background: rgba(201,79,79,0.1); color: var(--semantic-error); border: 1px solid rgba(201,79,79,0.2); }
+    [data-theme="dark"] .tag-red { font-family: "JetBrains Mono", monospace; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    function SvgIcon({ children, size = 16 }) {
+      return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}>{children}</svg>);
+    }
+    const Icons = {
+      Play: () => <SvgIcon><polygon points="5 3 19 12 5 21 5 3"/></SvgIcon>,
+      LayoutGrid: () => <SvgIcon><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></SvgIcon>,
+      Layers: () => <SvgIcon><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></SvgIcon>,
+      Bot: () => <SvgIcon><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></SvgIcon>,
+      MessageCircle: () => <SvgIcon><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></SvgIcon>,
+      Settings: () => <SvgIcon><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></SvgIcon>,
+      Plus: () => <SvgIcon><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></SvgIcon>,
+      Trash2: () => <SvgIcon><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></SvgIcon>,
+      Sun: () => <SvgIcon><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></SvgIcon>,
+      Moon: () => <SvgIcon><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></SvgIcon>,
+      Save: () => <SvgIcon><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></SvgIcon>,
+      RefreshCw: () => <SvgIcon><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></SvgIcon>,
+    };
+
+    const agents = [
+      { id: 'a1', name: 'backend-expert', role: '后端开发专家', vendor: 'claude', model: 'claude-sonnet-4-6', permissionMode: 'askUser', systemPrompt: '你是一个经验丰富的后端开发工程师，擅长 Node.js、Python 和数据库设计。' },
+      { id: 'a2', name: 'frontend-helper', role: '前端助手', vendor: 'codex', model: 'codex-cli', permissionMode: 'bypassPermissions', systemPrompt: '你是一名前端开发专家，精通 React、Vue 和 CSS。' },
+      { id: 'a3', name: 'devops-guru', role: 'DevOps 顾问', vendor: 'api', model: 'gpt-4o', permissionMode: 'askUser', systemPrompt: '你是 DevOps 专家，擅长 Docker、K8s 和 CI/CD 流程。' },
+    ];
+
+    const permissionModes = [
+      { key: 'askUser', title: '询问用户', desc: '每次操作前请求确认' },
+      { key: 'bypassPermissions', title: '绕过权限', desc: '自动执行，不询问' },
+      { key: 'readOnly', title: '只读模式', desc: '仅查看，不修改文件' },
+    ];
+
+    function ModeRail({ mode, onModeChange }) {
+      const modes = [
+        { key: 'workflow', icon: Icons.LayoutGrid, label: 'Workflow' },
+        { key: 'templates', icon: Icons.Layers, label: 'Templates' },
+        { key: 'agents', icon: Icons.Bot, label: 'Agents' },
+        { key: 'single', icon: Icons.MessageCircle, label: 'Single' },
+        { key: 'settings', icon: Icons.Settings, label: 'Settings' },
+      ];
+      return (
+        <nav className="mode-rail">
+          {modes.map(m => (
+            <button key={m.key} className={`mode-rail-btn ${mode === m.key ? 'active' : ''}`} onClick={() => onModeChange(m.key)} title={m.label}>
+              <m.icon />
+            </button>
+          ))}
+        </nav>
+      );
+    }
+
+    function App() {
+      const [theme, setTheme] = useState('light');
+      const [mode, setMode] = useState('agents');
+      const [editingId, setEditingId] = useState('a1');
+      const [draft, setDraft] = useState({ ...agents[0] });
+      const [isNew, setIsNew] = useState(false);
+
+      useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+
+      const selectAgent = (agent) => {
+        setEditingId(agent.id);
+        setDraft({ ...agent });
+        setIsNew(false);
+      };
+
+      const startNew = () => {
+        setEditingId(null);
+        setDraft({ name: '', role: '', vendor: 'claude', model: '', permissionMode: 'askUser', systemPrompt: '' });
+        setIsNew(true);
+      };
+
+      const updateDraft = (field, value) => setDraft(d => ({ ...d, [field]: value }));
+
+      return (
+        <div className="app">
+          <div className="chinese-pattern-bg" />
+          <div className="ink-wash ink-wash-1" />
+          <div className="ink-wash ink-wash-2" />
+          <div className="tech-grid-bg" />
+          <div className="tech-glow tech-glow-1" />
+          <div className="tech-glow tech-glow-2" />
+          <button className="theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+            {theme === 'light' ? '暗色' : '亮色'}
+          </button>
+
+          <header className="app-header">
+            <div className="app-brand">
+              <h1>竹林工坊</h1>
+              <span className="app-subtitle">智能体管理</span>
+            </div>
+            <div className="topbar-chips">
+              <span className="topbar-chip">{agents.length} 智能体</span>
+              <span className="topbar-chip">2 claude · 1 codex</span>
+            </div>
+          </header>
+
+          <div className="app-body">
+            <ModeRail mode={mode} onModeChange={setMode} />
+            <div className="workspace">
+              {/* Agent List */}
+              <div className="agent-list">
+                <div className="agent-list-header">
+                  <span style={{ fontFamily: '"ZCOOL XiaoWei", serif', fontSize: 14, fontWeight: 600 }}>智能体</span>
+                  <button className="btn btn-primary btn-sm" onClick={startNew}><Icons.Plus size={14} /> 新建</button>
+                </div>
+                <div className="agent-list-scroll">
+                  {agents.map(a => (
+                    <button key={a.id} className={`agent-item ${editingId === a.id ? 'active' : ''}`} onClick={() => selectAgent(a)}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span className="agent-item-name">{a.name}</span>
+                        <span className={`${a.permissionMode === 'bypassPermissions' ? 'tag-red' : 'tag-green'}`}>
+                          {a.permissionMode === 'bypassPermissions' ? '自动' : '询问'}
+                        </span>
+                      </div>
+                      <div className="agent-item-meta">{a.role} · {a.vendor}{a.model ? ` · ${a.model}` : ''}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Editor */}
+              <div className="agent-editor">
+                <div className="agent-editor-header">
+                  <div className="detail-title">{isNew ? '新建智能体' : '编辑智能体'}</div>
+                  <div className="detail-actions">
+                    {!isNew && <button className="btn btn-danger btn-sm"><Icons.Trash2 size={14} /> 删除</button>}
+                    <button className="btn btn-secondary btn-sm"><Icons.RefreshCw size={14} /> 重置</button>
+                    <button className="btn btn-primary"><Icons.Save size={14} /> 保存</button>
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">名称</label>
+                    <input className="input" value={draft.name} onChange={e => updateDraft('name', e.target.value)} placeholder="例如 backend-expert" />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">角色</label>
+                    <input className="input" value={draft.role} onChange={e => updateDraft('role', e.target.value)} placeholder="简短描述" />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">供应商</label>
+                    <select className="select" value={draft.vendor} onChange={e => updateDraft('vendor', e.target.value)}>
+                      <option value="claude">Claude</option>
+                      <option value="codex">Codex</option>
+                      <option value="api">API</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">模型</label>
+                    <select className="select" value={draft.model} onChange={e => updateDraft('model', e.target.value)}>
+                      <option>claude-sonnet-4-6</option>
+                      <option>claude-opus-4-8</option>
+                      <option>claude-haiku-4-5</option>
+                      <option>codex-cli</option>
+                      <option>gpt-4o</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">权限模式</label>
+                  <div className="permission-grid">
+                    {permissionModes.map(p => (
+                      <button key={p.key} className={`permission-card ${draft.permissionMode === p.key ? 'active' : ''}`} onClick={() => updateDraft('permissionMode', p.key)}>
+                        <div className="permission-card-title">{p.title}</div>
+                        <div className="permission-card-desc">{p.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">System Prompt</label>
+                  <textarea className="textarea" rows={8} value={draft.systemPrompt} onChange={e => updateDraft('systemPrompt', e.target.value)} placeholder="定义智能体的行为准则和专业知识..." />
+                </div>
+
+                <div className="card" style={{ marginTop: 16 }}>
+                  <div style={{ fontFamily: '"ZCOOL XiaoWei", serif', fontSize: 13, fontWeight: 600, marginBottom: 10 }}>记忆与反思</div>
+                  <div style={{ fontSize: 12, color: 'var(--neutral-text-secondary)', lineHeight: 1.7 }}>
+                    此智能体的记忆系统会在每次运行后自动总结关键信息，并在后续会话中提供上下文参考。
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                    <button className="btn btn-secondary btn-sm">查看记忆</button>
+                    <button className="btn btn-secondary btn-sm">配置反思</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

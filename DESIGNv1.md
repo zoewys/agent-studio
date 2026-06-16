@@ -93,7 +93,7 @@ Primary:
   bg: brand-primary (#3d8e86)
   text: #ffffff
   border: none
-  rounded: 4px
+  rounded: 8px
   padding: 8px 16px
   font: body-medium
   hover → bg: brand-primary-hover (#206864)
@@ -104,7 +104,7 @@ Secondary:
   bg: transparent
   text: brand-primary (#3d8e86)
   border: 1px solid neutral-border (#d8ddd9)
-  rounded: 4px
+  rounded: 8px
   hover → bg: neutral-surface (#f5f7f6), border-color: brand-primary
   active → bg: neutral-border-subtle
 
@@ -126,7 +126,7 @@ Danger:
 Default:
   bg: neutral-bg
   border: 1px solid neutral-border
-  rounded: 4px
+  rounded: 8px
   padding: 8px 12px
   font: body (14px monospace)
   placeholder-color: neutral-text-muted
@@ -253,7 +253,7 @@ Sidebar:
 
 Nav Item:
   padding: 8px 12px
-  rounded: 4px
+  rounded: 8px
   font: body-medium
   color: neutral-text-secondary
   hover → bg: neutral-surface-raised, color: neutral-text-primary

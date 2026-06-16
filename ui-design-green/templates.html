@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — Templates</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    .template-list { width: 260px; border-right: 1px solid var(--glass-border); background: var(--glass-bg); backdrop-filter: var(--glass-blur); display: flex; flex-direction: column; flex-shrink: 0; }
+    [data-theme="dark"] .template-list { border-right-color: rgba(0,212,170,0.08); background: rgba(10,15,26,0.7); }
+    .template-list-header { padding: 14px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; }
+    .template-item { padding: 14px; border-bottom: 1px solid var(--neutral-border-subtle); cursor: pointer; transition: all 150ms; }
+    .template-item:hover { background: rgba(61,142,134,0.04); }
+    .template-item.active { background: rgba(61,142,134,0.06); border-left: 2px solid var(--brand-primary); }
+    [data-theme="dark"] .template-item.active { border-left-color: #00d4aa; background: rgba(0,212,170,0.05); }
+    .template-name { font-size: 13px; font-weight: 600; margin-bottom: 6px; font-family: "JetBrains Mono", monospace; }
+    .template-steps { display: flex; gap: 4px; margin-bottom: 6px; }
+    .step-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--neutral-border); }
+    .step-dot.filled { background: var(--brand-primary); }
+    [data-theme="dark"] .step-dot.filled { background: #00d4aa; box-shadow: 0 0 4px rgba(0,212,170,0.4); }
+    .template-meta { font-size: 11px; color: var(--neutral-text-muted); }
+    .canvas-area { flex: 1; position: relative; overflow: hidden; background: var(--neutral-canvas); }
+    [data-theme="dark"] .canvas-area { background: var(--neutral-canvas); }
+    .canvas-toolbar {
+      position: absolute; top: 16px; left: 16px; right: 16px; z-index: 10;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 16px; border-radius: 10px;
+      background: var(--glass-bg); backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+    }
+    [data-theme="dark"] .canvas-toolbar { border-color: rgba(0,212,170,0.12); }
+    .canvas-node {
+      position: absolute; padding: 12px 18px; border-radius: 10px;
+      border: 1.5px solid var(--glass-border); background: var(--glass-bg); backdrop-filter: var(--glass-blur);
+      font-size: 12px; font-weight: 600; cursor: grab; min-width: 140px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    [data-theme="dark"] .canvas-node { border-radius: 6px; border-color: rgba(0,212,170,0.2); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .canvas-node.start { border-color: rgba(61,142,134,0.4); }
+    [data-theme="dark"] .canvas-node.start { border-color: rgba(0,212,170,0.4); box-shadow: 0 0 12px rgba(0,212,170,0.1); }
+    .canvas-node.end { border-color: rgba(106,189,121,0.4); }
+    [data-theme="dark"] .canvas-node.end { border-color: rgba(46,204,113,0.4); }
+    .node-port { width: 8px; height: 8px; border-radius: 50%; background: var(--neutral-border); position: absolute; }
+    .node-port.in { left: -4px; top: 50%; transform: translateY(-50%); }
+    .node-port.out { right: -4px; top: 50%; transform: translateY(-50%); }
+    .node-port.connected { background: var(--brand-primary); }
+    [data-theme="dark"] .node-port.connected { background: #00d4aa; box-shadow: 0 0 4px rgba(0,212,170,0.5); }
+    .edge-line { stroke: var(--neutral-border); stroke-width: 1.5; fill: none; }
+    [data-theme="dark"] .edge-line { stroke: rgba(0,212,170,0.2); }
+    .edge-line.active { stroke: var(--brand-primary); stroke-dasharray: 6 4; animation: dash 1s linear infinite; }
+    [data-theme="dark"] .edge-line.active { stroke: #00d4aa; filter: drop-shadow(0 0 2px rgba(0,212,170,0.5)); }
+    @keyframes dash { to { stroke-dashoffset: -10; } }
+    .mini-map {
+      position: absolute; bottom: 16px; right: 16px; width: 160px; height: 100px;
+      border-radius: 8px; border: 1px solid var(--glass-border);
+      background: var(--glass-bg); backdrop-filter: var(--glass-blur);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    function SvgIcon({ children, size = 16 }) {
+      return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}>{children}</svg>);
+    }
+    const Icons = {
+      Play: () => <SvgIcon><polygon points="5 3 19 12 5 21 5 3"/></SvgIcon>,
+      LayoutGrid: () => <SvgIcon><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></SvgIcon>,
+      Layers: () => <SvgIcon><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></SvgIcon>,
+      Bot: () => <SvgIcon><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></SvgIcon>,
+      MessageCircle: () => <SvgIcon><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></SvgIcon>,
+      Settings: () => <SvgIcon><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></SvgIcon>,
+      Plus: () => <SvgIcon><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></SvgIcon>,
+      Copy: () => <SvgIcon><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></SvgIcon>,
+      Trash2: () => <SvgIcon><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></SvgIcon>,
+      Download: () => <SvgIcon><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></SvgIcon>,
+      Save: () => <SvgIcon><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></SvgIcon>,
+      Sun: () => <SvgIcon><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></SvgIcon>,
+      Moon: () => <SvgIcon><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></SvgIcon>,
+    };
+
+    const templates = [
+      { id: 't1', name: 'auth-refactor-pipeline', steps: 5, desc: '认证模块重构流水线' },
+      { id: 't2', name: 'dependency-update', steps: 3, desc: '依赖更新与测试' },
+      { id: 't3', name: 'feature-branch-workflow', steps: 4, desc: '新功能分支工作流' },
+      { id: 't4', name: 'docs-sync', steps: 2, desc: '文档同步' },
+    ];
+
+    const nodes = [
+      { id: 'n1', label: 'Start', type: 'start', x: 100, y: 200, agent: '' },
+      { id: 'n2', label: 'Analyze', type: 'default', x: 300, y: 120, agent: 'claude' },
+      { id: 'n3', label: 'Generate Tests', type: 'default', x: 300, y: 280, agent: 'codex' },
+      { id: 'n4', label: 'Refactor', type: 'default', x: 520, y: 200, agent: 'claude' },
+      { id: 'n5', label: 'Review', type: 'default', x: 740, y: 200, agent: 'claude' },
+      { id: 'n6', label: 'End', type: 'end', x: 940, y: 200, agent: '' },
+    ];
+
+    const edges = [
+      { from: 'n1', to: 'n2' }, { from: 'n1', to: 'n3' },
+      { from: 'n2', to: 'n4' }, { from: 'n3', to: 'n4' },
+      { from: 'n4', to: 'n5' }, { from: 'n5', to: 'n6' },
+    ];
+
+    function ModeRail({ mode, onModeChange }) {
+      const modes = [
+        { key: 'workflow', icon: Icons.LayoutGrid, label: 'Workflow' },
+        { key: 'templates', icon: Icons.Layers, label: 'Templates' },
+        { key: 'agents', icon: Icons.Bot, label: 'Agents' },
+        { key: 'single', icon: Icons.MessageCircle, label: 'Single' },
+        { key: 'settings', icon: Icons.Settings, label: 'Settings' },
+      ];
+      return (
+        <nav className="mode-rail">
+          {modes.map(m => (
+            <button key={m.key} className={`mode-rail-btn ${mode === m.key ? 'active' : ''}`} onClick={() => onModeChange(m.key)} title={m.label}>
+              <m.icon />
+            </button>
+          ))}
+        </nav>
+      );
+    }
+
+    function App() {
+      const [theme, setTheme] = useState('light');
+      const [mode, setMode] = useState('templates');
+      const [selectedId, setSelectedId] = useState('t1');
+
+      useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+
+      return (
+        <div className="app">
+          <div className="chinese-pattern-bg" />
+          <div className="ink-wash ink-wash-1" />
+          <div className="ink-wash ink-wash-2" />
+          <div className="tech-grid-bg" />
+          <div className="tech-glow tech-glow-1" />
+          <div className="tech-glow tech-glow-2" />
+          <button className="theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+            {theme === 'light' ? '暗色' : '亮色'}
+          </button>
+
+          <header className="app-header">
+            <div className="app-brand">
+              <h1>竹林工坊</h1>
+              <span className="app-subtitle">模板编辑</span>
+            </div>
+            <div className="topbar-chips">
+              <span className="topbar-chip">{templates.length} 模板</span>
+            </div>
+          </header>
+
+          <div className="app-body">
+            <ModeRail mode={mode} onModeChange={setMode} />
+            <div className="workspace">
+              <div className="template-list">
+                <div className="template-list-header">
+                  <span style={{ fontFamily: '"ZCOOL XiaoWei", serif', fontSize: 14, fontWeight: 600 }}>模板</span>
+                  <button className="btn btn-primary btn-sm"><Icons.Plus size={14} /> 新建</button>
+                </div>
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  {templates.map(t => (
+                    <div key={t.id} className={`template-item ${selectedId === t.id ? 'active' : ''}`} onClick={() => setSelectedId(t.id)}>
+                      <div className="template-name">{t.name}</div>
+                      <div className="template-steps">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <span key={i} className={`step-dot ${i < t.steps ? 'filled' : ''}`} />
+                        ))}
+                      </div>
+                      <div className="template-meta">{t.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="canvas-area">
+                <div className="canvas-toolbar">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span className="detail-title">{templates.find(t => t.id === selectedId)?.name}</span>
+                    <span className="tag-green" style={{ fontSize: 10 }}>{templates.find(t => t.id === selectedId)?.steps} steps</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn btn-secondary btn-sm"><Icons.Copy size={14} /> 复制</button>
+                    <button className="btn btn-secondary btn-sm"><Icons.Download size={14} /> 导出</button>
+                    <button className="btn btn-danger btn-sm"><Icons.Trash2 size={14} /> 删除</button>
+                    <button className="btn btn-primary btn-sm"><Icons.Save size={14} /> 保存</button>
+                  </div>
+                </div>
+
+                <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+                  {edges.map((e, i) => {
+                    const from = nodes.find(n => n.id === e.from);
+                    const to = nodes.find(n => n.id === e.to);
+                    return (
+                      <path key={i} className="edge-line" d={`M${from.x + 60} ${from.y + 20} C${from.x + 120} ${from.y + 20}, ${to.x - 60} ${to.y + 20}, ${to.x} ${to.y + 20}`} />
+                    );
+                  })}
+                </svg>
+
+                {nodes.map(n => (
+                  <div key={n.id} className={`canvas-node ${n.type}`} style={{ left: n.x, top: n.y }}>
+                    <span className="node-port in" />
+                    <span className="node-port out connected" />
+                    {n.agent && <span style={{ fontSize: 10, color: 'var(--neutral-text-muted)', marginRight: 4 }}>{n.agent}</span>}
+                    {n.label}
+                  </div>
+                ))}
+
+                <div className="mini-map" />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

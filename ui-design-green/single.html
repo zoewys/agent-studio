@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — Single Run</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    .config-bar {
+      padding: 12px 24px; border-bottom: 1px solid var(--glass-border);
+      background: var(--glass-bg); backdrop-filter: var(--glass-blur);
+      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    }
+    [data-theme="dark"] .config-bar { background: rgba(10,15,26,0.7); border-bottom-color: rgba(0,212,170,0.08); }
+    .config-bar .form-label { margin-bottom: 0; font-size: 10px; }
+    [data-theme="dark"] .config-bar .form-label { font-size: 9px; }
+    .config-item { display: flex; flex-direction: column; gap: 4px; }
+    .config-item .input, .config-item .select { padding: 6px 10px; font-size: 12px; border-radius: 8px; width: auto; min-width: 140px; }
+    [data-theme="dark"] .config-item .input, [data-theme="dark"] .config-item .select { border-radius: 4px; font-size: 11px; }
+    .vendor-tabs { display: flex; gap: 4px; }
+    .vendor-tab {
+      padding: 6px 12px; border-radius: 6px; border: 1px solid var(--glass-border);
+      background: transparent; color: var(--neutral-text-secondary); cursor: pointer; font-family: inherit; font-size: 12px;
+    }
+    [data-theme="dark"] .vendor-tab { border-radius: 4px; font-size: 11px; font-family: "JetBrains Mono", monospace; }
+    .vendor-tab.active { background: rgba(61,142,134,0.1); color: var(--brand-primary); border-color: rgba(61,142,134,0.3); }
+    [data-theme="dark"] .vendor-tab.active { background: rgba(0,212,170,0.1); color: #00d4aa; border-color: rgba(0,212,170,0.3); box-shadow: 0 0 8px rgba(0,212,170,0.1); }
+    .session-sidebar {
+      width: 260px; border-right: 1px solid var(--glass-border);
+      background: var(--glass-bg); backdrop-filter: var(--glass-blur);
+      display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    [data-theme="dark"] .session-sidebar { border-right-color: rgba(0,212,170,0.08); background: rgba(10,15,26,0.7); }
+    .session-sidebar-header {
+      padding: 14px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;
+    }
+    .session-item {
+      padding: 12px 14px; border-bottom: 1px solid var(--neutral-border-subtle); cursor: pointer; transition: all 150ms;
+    }
+    .session-item:hover { background: rgba(61,142,134,0.04); }
+    .session-item.active { background: rgba(61,142,134,0.06); border-left: 2px solid var(--brand-primary); }
+    [data-theme="dark"] .session-item.active { border-left-color: #00d4aa; background: rgba(0,212,170,0.05); }
+    .session-item-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; font-family: "JetBrains Mono", monospace; }
+    .session-item-meta { font-size: 11px; color: var(--neutral-text-muted); }
+    .single-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .codex-options {
+      padding: 12px 24px; border-bottom: 1px solid var(--glass-border); background: var(--glass-bg); backdrop-filter: var(--glass-blur);
+      display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+    }
+    [data-theme="dark"] .codex-options { background: rgba(10,15,26,0.6); border-bottom-color: rgba(0,212,170,0.08); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    function SvgIcon({ children, size = 16 }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          {children}
+        </svg>
+      );
+    }
+    const Icons = {
+      Play: () => <SvgIcon><polygon points="5 3 19 12 5 21 5 3"/></SvgIcon>,
+      Square: () => <SvgIcon><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></SvgIcon>,
+      MessageCircle: () => <SvgIcon><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></SvgIcon>,
+      Settings: () => <SvgIcon><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></SvgIcon>,
+      LayoutGrid: () => <SvgIcon><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></SvgIcon>,
+      Layers: () => <SvgIcon><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></SvgIcon>,
+      Bot: () => <SvgIcon><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></SvgIcon>,
+      FileCode: () => <SvgIcon><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="10" y1="13" x2="14" y2="13"/><line x1="10" y1="17" x2="14" y2="17"/></SvgIcon>,
+      Send: () => <SvgIcon><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></SvgIcon>,
+      Paperclip: () => <SvgIcon><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></SvgIcon>,
+      X: () => <SvgIcon><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></SvgIcon>,
+      Plus: () => <SvgIcon><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></SvgIcon>,
+      Zap: () => <SvgIcon><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></SvgIcon>,
+      FolderOpen: () => <SvgIcon><path d="M5 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v2"/><path d="M13 15l3 3-3 3"/></SvgIcon>,
+      Sun: () => <SvgIcon><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></SvgIcon>,
+      Moon: () => <SvgIcon><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></SvgIcon>,
+      AlertTriangle: () => <SvgIcon><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></SvgIcon>,
+      CheckCircle: () => <SvgIcon><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></SvgIcon>,
+      Clock: () => <SvgIcon><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></SvgIcon>,
+      GitBranch: () => <SvgIcon><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></SvgIcon>,
+    };
+
+    const sessions = [
+      { id: 's1', name: 'auth-middleware-discuss', vendor: 'claude', model: 'claude-sonnet-4-6', status: 'running', time: '2m ago' },
+      { id: 's2', name: 'docker-compose-fix', vendor: 'codex', model: 'codex-cli', status: 'success', time: '15m ago' },
+      { id: 's3', name: 'api-error-debug', vendor: 'api', model: 'gpt-4o', status: 'error', time: '1h ago' },
+      { id: 's4', name: 'refactor-utils', vendor: 'claude', model: 'claude-haiku-4-5', status: 'success', time: '3h ago' },
+    ];
+
+    const transcripts = [
+      { role: 'user', text: '帮我分析一下为什么这个 Docker 容器启动失败，错误日志如下...', time: '5m ago' },
+      { role: 'ai', text: '让我查看日志。从错误信息来看，这是端口冲突问题。\n\n```bash\nError: bind EADDRINUSE 0.0.0.0:3000\n```\n\n解决方案：\n1. 修改 docker-compose.yml 中的端口映射\n2. 或者停止占用 3000 端口的进程', time: '4m ago' },
+      { role: 'user', text: '改成 3001 端口吧。', time: '3m ago' },
+      { role: 'ai', text: '好的，已将端口从 3000 改为 3001。\n\n```yaml\n# docker-compose.yml\nservices:\n  app:\n    ports:\n      - "3001:3000"\n```\n\n现在可以重新启动了。', time: '2m ago', artifact: { type: 'yaml', title: 'docker-compose.yml' } },
+    ];
+
+    function ModeRail({ mode, onModeChange }) {
+      const modes = [
+        { key: 'workflow', icon: Icons.LayoutGrid, label: 'Workflow' },
+        { key: 'templates', icon: Icons.Layers, label: 'Templates' },
+        { key: 'agents', icon: Icons.Bot, label: 'Agents' },
+        { key: 'single', icon: Icons.MessageCircle, label: 'Single' },
+        { key: 'settings', icon: Icons.Settings, label: 'Settings' },
+      ];
+      return (
+        <nav className="mode-rail">
+          {modes.map(m => (
+            <button key={m.key} className={`mode-rail-btn ${mode === m.key ? 'active' : ''}`} onClick={() => onModeChange(m.key)} title={m.label}>
+              <m.icon />
+            </button>
+          ))}
+        </nav>
+      );
+    }
+
+    function TranscriptViewer({ messages }) {
+      return (
+        <div className="transcript-area">
+          {messages.map((msg, i) => (
+            <div key={i} className={`message message-${msg.role}`}>
+              <div className="message-meta">{msg.role === 'user' ? '用户' : '智能助手'} · {msg.time}</div>
+              <div className="message-bubble">
+                <div style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</div>
+                {msg.artifact && (
+                  <div className="artifact-card">
+                    <div className="artifact-header">
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Icons.FileCode /> {msg.artifact.title}</span>
+                      <span style={{ fontSize: 11, color: 'var(--neutral-text-muted)' }}>{msg.artifact.type}</span>
+                    </div>
+                    <div className="artifact-body"><div className="code-block">{msg.text.split('```')[1] || msg.text}</div></div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function ComposerBar({ value, onChange, onSend, placeholder, enabled }) {
+      return (
+        <div className="composer-bar">
+          <div className="composer-input-wrap">
+            <button className="btn btn-ghost btn-sm" style={{ padding: 4 }}><Icons.Paperclip size={16} /></button>
+            <textarea className="composer-textarea" rows={1} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} disabled={!enabled} />
+            <button className="btn btn-primary btn-sm" onClick={onSend} disabled={!enabled}><Icons.Send size={14} /></button>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [theme, setTheme] = useState('light');
+      const [mode, setMode] = useState('single');
+      const [selectedSessionId, setSelectedSessionId] = useState('s1');
+      const [composerValue, setComposerValue] = useState('');
+      const [vendor, setVendor] = useState('claude');
+      const [agentId, setAgentId] = useState('a1');
+      const [model, setModel] = useState('claude-sonnet-4-6');
+      const [provider, setProvider] = useState('default');
+      const [projectPath, setProjectPath] = useState('/Users/dev/projects/api-service');
+
+      useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+      const selectedSession = sessions.find(s => s.id === selectedSessionId);
+
+      return (
+        <div className="app">
+          <div className="chinese-pattern-bg" />
+          <div className="ink-wash ink-wash-1" />
+          <div className="ink-wash ink-wash-2" />
+          <div className="tech-grid-bg" />
+          <div className="tech-glow tech-glow-1" />
+          <div className="tech-glow tech-glow-2" />
+          <button className="theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+            {theme === 'light' ? '暗色' : '亮色'}
+          </button>
+
+          <header className="app-header">
+            <div className="app-brand">
+              <h1>竹林工坊</h1>
+              <span className="app-subtitle">单次对话</span>
+            </div>
+            <div className="topbar-chips">
+              <span className="topbar-chip">4 会话</span>
+              <span className="topbar-chip">1 运行中</span>
+            </div>
+          </header>
+
+          <div className="app-body">
+            <ModeRail mode={mode} onModeChange={setMode} />
+            <div className="workspace">
+              {/* Session Sidebar */}
+              <div className="session-sidebar">
+                <div className="session-sidebar-header">
+                  <span style={{ fontFamily: '"ZCOOL XiaoWei", serif', fontSize: 14, fontWeight: 600 }}>会话列表</span>
+                  <button className="btn btn-primary btn-sm"><Icons.Plus size={14} /> 新建</button>
+                </div>
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                  {sessions.map(s => (
+                    <div key={s.id} className={`session-item ${selectedSessionId === s.id ? 'active' : ''}`} onClick={() => setSelectedSessionId(s.id)}>
+                      <div className="session-item-name">{s.name}</div>
+                      <div className="session-item-meta">{s.vendor} · {s.model} · <Icons.Clock size={10} /> {s.time}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Main */}
+              <div className="single-main">
+                {/* Config Bar */}
+                <div className="config-bar">
+                  <div className="config-item">
+                    <label className="form-label">供应商</label>
+                    <div className="vendor-tabs">
+                      {['claude', 'codex', 'api'].map(v => (
+                        <button key={v} className={`vendor-tab ${vendor === v ? 'active' : ''}`} onClick={() => setVendor(v)}>{v}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="config-item">
+                    <label className="form-label">智能体</label>
+                    <select className="select" value={agentId} onChange={e => setAgentId(e.target.value)}>
+                      <option value="a1">backend-expert</option>
+                      <option value="a2">frontend-helper</option>
+                      <option value="a3">devops-guru</option>
+                    </select>
+                  </div>
+                  <div className="config-item">
+                    <label className="form-label">模型</label>
+                    <select className="select" value={model} onChange={e => setModel(e.target.value)}>
+                      <option>claude-sonnet-4-6</option>
+                      <option>claude-opus-4-8</option>
+                      <option>claude-haiku-4-5</option>
+                    </select>
+                  </div>
+                  <div className="config-item">
+                    <label className="form-label">Provider</label>
+                    <select className="select" value={provider} onChange={e => setProvider(e.target.value)}>
+                      <option value="default">Default</option>
+                      <option value="custom">Custom API</option>
+                    </select>
+                  </div>
+                  <div className="config-item" style={{ flex: 1, minWidth: 200 }}>
+                    <label className="form-label">项目路径</label>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input className="input" style={{ flex: 1 }} value={projectPath} onChange={e => setProjectPath(e.target.value)} />
+                      <button className="btn btn-secondary btn-sm" style={{ padding: '6px 8px' }}><Icons.FolderOpen size={14} /></button>
+                    </div>
+                  </div>
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'flex-end' }}>
+                    <button className="btn btn-danger btn-sm"><Icons.Square size={14} /> 终止</button>
+                  </div>
+                </div>
+
+                {/* Codex Options (shown when vendor=codex) */}
+                {vendor === 'codex' && (
+                  <div className="codex-options">
+                    <div className="config-item">
+                      <label className="form-label">Reasoning Effort</label>
+                      <select className="select"><option>low</option><option>medium</option><option>high</option></select>
+                    </div>
+                    <div className="config-item">
+                      <label className="form-label">Service Tier</label>
+                      <select className="select"><option>default</option><option>flex</option></select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Route change warning */}
+                <div style={{ padding: '8px 24px', background: 'rgba(229,168,50,0.04)', borderBottom: '1px solid var(--glass-border)', fontSize: 12, color: 'var(--semantic-warning)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Icons.AlertTriangle size={14} /> 配置已更改，新消息将使用当前路由设置。
+                </div>
+
+                <TranscriptViewer messages={transcripts} />
+                <ComposerBar value={composerValue} onChange={setComposerValue} onSend={() => setComposerValue('')} placeholder="向智能体发送消息..." enabled={true} />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

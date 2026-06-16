@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — UI Design (Workflow Workspace)</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    /* ========================= SVG Icons ========================= */
+    function SvgIcon({ children, size = 16 }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          {children}
+        </svg>
+      );
+    }
+
+    const Icons = {
+      Play: () => <SvgIcon><polygon points="5 3 19 12 5 21 5 3"/></SvgIcon>,
+      Square: () => <SvgIcon><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></SvgIcon>,
+      RotateCcw: () => <SvgIcon><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></SvgIcon>,
+      SkipForward: () => <SvgIcon><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></SvgIcon>,
+      Check: () => <SvgIcon><polyline points="20 6 9 17 4 12"/></SvgIcon>,
+      AlertTriangle: () => <SvgIcon><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></SvgIcon>,
+      MessageCircle: () => <SvgIcon><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></SvgIcon>,
+      GitBranch: () => <SvgIcon><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></SvgIcon>,
+      FolderOpen: () => <SvgIcon><path d="M5 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v2"/><path d="M13 15l3 3-3 3"/></SvgIcon>,
+      Calendar: () => <SvgIcon><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></SvgIcon>,
+      Clock: () => <SvgIcon><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></SvgIcon>,
+      X: () => <SvgIcon><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></SvgIcon>,
+      Plus: () => <SvgIcon><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></SvgIcon>,
+      Zap: () => <SvgIcon><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></SvgIcon>,
+      Settings: () => <SvgIcon><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></SvgIcon>,
+      LayoutGrid: () => <SvgIcon><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></SvgIcon>,
+      User: () => <SvgIcon><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></SvgIcon>,
+      FileCode: () => <SvgIcon><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="10" y1="13" x2="14" y2="13"/><line x1="10" y1="17" x2="14" y2="17"/></SvgIcon>,
+      Send: () => <SvgIcon><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></SvgIcon>,
+      Paperclip: () => <SvgIcon><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></SvgIcon>,
+      ChevronRight: () => <SvgIcon><polyline points="9 18 15 12 9 6"/></SvgIcon>,
+      ChevronDown: () => <SvgIcon><polyline points="6 9 12 15 18 9"/></SvgIcon>,
+      Layers: () => <SvgIcon><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></SvgIcon>,
+      Trash2: () => <SvgIcon><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></SvgIcon>,
+      MoreHorizontal: () => <SvgIcon><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></SvgIcon>,
+      CheckCircle: () => <SvgIcon><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></SvgIcon>,
+      Bot: () => <SvgIcon><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></SvgIcon>,
+      PanelRight: () => <SvgIcon><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="15" y1="3" x2="15" y2="21"/></SvgIcon>,
+      Sun: () => <SvgIcon><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></SvgIcon>,
+      Moon: () => <SvgIcon><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></SvgIcon>,
+      Leaf: () => <SvgIcon><path d="M11 20A7 7 0 0 1 9.8 6.6C9.8 6.6 11 2 15 2 15 2 14 10 18 10 18 10 12 18 11 20Z"/></SvgIcon>,
+    };
+
+    /* ========================= 水墨竹叶装饰组件 ========================= */
+    function BambooDecoration() {
+      return (
+        <svg className="bamboo-deco" style={{ top: 60, right: 120, width: 80 }} viewBox="0 0 100 200" fill="none">
+          <path d="M50 0v200" stroke="currentColor" strokeWidth="2"/>
+          <path d="M50 40q20-10 30-5" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M50 80q-20-10-30-5" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M50 120q18-8 28-3" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M50 160q-18-8-28-3" stroke="currentColor" strokeWidth="1.5"/>
+        </svg>
+      );
+    }
+
+    /* ========================= DATA ========================= */
+    const runs = [
+      { id: 'run-1', name: 'feature-auth-workflow', status: 'running', step: '2/5', agent: 'claude-code', time: '2m ago' },
+      { id: 'run-2', name: 'refactor-db-layer', status: 'awaiting-confirm', step: '3/4', agent: 'codex', time: '15m ago' },
+      { id: 'run-3', name: 'update-deps-pr', status: 'success', step: '4/4', agent: 'claude-code', time: '1h ago' },
+      { id: 'run-4', name: 'fix-login-bug', status: 'error', step: '2/3', agent: 'claude-code', time: '2h ago' },
+      { id: 'run-5', name: 'docs-update', status: 'success', step: '2/2', agent: 'codex', time: '3h ago' },
+    ];
+
+    const steps = [
+      { id: 's1', name: 'Analyze codebase', status: 'success', agent: 'claude-code' },
+      { id: 's2', name: 'Generate tests', status: 'running', agent: 'codex' },
+      { id: 's3', name: 'Refactor auth', status: 'idle', agent: 'claude-code' },
+      { id: 's4', name: 'Update docs', status: 'idle', agent: 'codex' },
+      { id: 's5', name: 'Final review', status: 'idle', agent: 'claude-code' },
+    ];
+
+    const transcripts = [
+      { role: 'user', text: '请帮我实现一个基于 JWT 的认证中间件，要求支持 refresh token 轮换策略。项目路径在 /apps/api。', time: '2m ago' },
+      { role: 'ai', text: '好的，我来为 /apps/api 实现 JWT 认证中间件。首先让我分析现有的代码结构...\n\n我已经分析了项目结构，发现已有 Express 框架但缺少认证层。我将按以下步骤进行：\n\n1. 安装依赖: jsonwebtoken, bcrypt\n2. 创建 middleware/auth.ts\n3. 实现 token 轮换策略\n4. 添加单元测试', time: '1m ago' },
+      { role: 'ai', text: '```json\n{\n  "plan": [\n    "安装依赖",\n    "创建 auth middleware",\n    "实现 refresh token 轮换",\n    "编写测试"\n  ],\n  "currentStep": 1\n}\n```', time: '1m ago', artifact: { type: 'json', title: 'plan.json' } },
+      { role: 'user', text: '继续执行第 2 步。', time: '50s ago' },
+      { role: 'ai', text: '正在创建 auth middleware...\n\n```typescript\n// middleware/auth.ts\nimport { Request, Response, NextFunction } from \'express\';\nimport jwt from \'jsonwebtoken\';\n\nexport interface AuthRequest extends Request {\n  user?: { id: string; email: string };\n}\n\nexport const authenticate = (\n  req: AuthRequest,\n  res: Response,\n  next: NextFunction\n) => {\n  const token = req.headers.authorization?.split(\' \')[1];\n  if (!token) return res.status(401).json({ error: \'Unauthorized\' });\n  \n  try {\n    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;\n    req.user = decoded;\n    next();\n  } catch (err) {\n    return res.status(403).json({ error: \'Invalid token\' });\n  }\n};\n```', time: '30s ago', artifact: { type: 'code', title: 'middleware/auth.ts' } },
+    ];
+
+    const schedules = [
+      { id: 'sch-1', name: 'Daily health-check', cron: '0 9 * * *', enabled: true, lastRun: '今天 09:00' },
+      { id: 'sch-2', name: 'Weekly dependency update', cron: '0 10 * * 1', enabled: true, lastRun: '周一 10:00' },
+      { id: 'sch-3', name: 'Nightly e2e tests', cron: '0 2 * * *', enabled: false, lastRun: '昨天 02:00' },
+    ];
+
+    /* ========================= COMPONENTS ========================= */
+
+    function ModeRail({ mode, onModeChange }) {
+      const modes = [
+        { key: 'workflow', icon: Icons.LayoutGrid, label: 'Workflow' },
+        { key: 'templates', icon: Icons.Layers, label: 'Templates' },
+        { key: 'agents', icon: Icons.Bot, label: 'Agents' },
+        { key: 'single', icon: Icons.MessageCircle, label: 'Single' },
+        { key: 'settings', icon: Icons.Settings, label: 'Settings' },
+      ];
+      return (
+        <nav className="mode-rail">
+          {modes.map(m => (
+            <button
+              key={m.key}
+              className={`mode-rail-btn ${mode === m.key ? 'active' : ''}`}
+              onClick={() => onModeChange(m.key)}
+              title={m.label}
+            >
+              <m.icon />
+            </button>
+          ))}
+        </nav>
+      );
+    }
+
+    function StatusBadge({ status }) {
+      const map = {
+        running: 'run-status-running',
+        success: 'run-status-success',
+        error: 'run-status-error',
+        'awaiting-confirm': 'run-status-awaiting',
+        'awaiting-input': 'run-status-awaiting',
+      };
+      const labels = {
+        running: '运行中',
+        success: '已完成',
+        error: '出错',
+        'awaiting-confirm': '待确认',
+        'awaiting-input': '待输入',
+      };
+      return <span className={`run-status-badge ${map[status] || ''}`}>{labels[status] || status}</span>;
+    }
+
+    function RunList({ runs, selectedRunId, onSelectRun, onNewRun }) {
+      return (
+        <div className="run-list">
+          <button className="new-run-btn" onClick={onNewRun}>
+            <Icons.Plus /> 新建工作流
+          </button>
+          {runs.map(run => (
+            <div
+              key={run.id}
+              className={`run-item ${selectedRunId === run.id ? 'active' : ''}`}
+              onClick={() => onSelectRun(run.id)}
+            >
+              <div className="run-item-header">
+                <span className="run-name">{run.name}</span>
+                <StatusBadge status={run.status} />
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--neutral-text-secondary)' }}>
+                步骤 {run.step} · {run.agent}
+              </div>
+              <div className="run-meta">
+                <span><Icons.Clock size={10} /> {run.time}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function ScheduleListView({ schedules, selectedScheduleId, onSelectSchedule }) {
+      return (
+        <div className="run-list">
+          <button className="new-run-btn">
+            <Icons.Plus /> 新建定时任务
+          </button>
+          {schedules.map(sch => (
+            <div
+              key={sch.id}
+              className={`schedule-item ${selectedScheduleId === sch.id ? 'active' : ''}`}
+              onClick={() => onSelectSchedule(sch.id)}
+              style={{ cursor: 'pointer', borderColor: selectedScheduleId === sch.id ? 'rgba(61,142,134,0.35)' : undefined, background: selectedScheduleId === sch.id ? 'rgba(61,142,134,0.06)' : undefined }}
+            >
+              <div className="schedule-item-header">
+                <span className="schedule-name">{sch.name}</span>
+                <span className="run-status-badge" style={{ background: sch.enabled ? 'rgba(106,189,121,0.08)' : 'rgba(138,158,150,0.08)', color: sch.enabled ? 'var(--semantic-success)' : 'var(--neutral-text-muted)' }}>
+                  {sch.enabled ? '启用' : '停用'}
+                </span>
+              </div>
+              <div className="schedule-cron">{sch.cron}</div>
+              <div className="run-meta">上次运行: {sch.lastRun}</div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function StepNavigator({ steps, selectedStepIndex, onSelectStep }) {
+      return (
+        <div className="step-nav">
+          {steps.map((step, i) => (
+            <button
+              key={step.id}
+              className={`step-pill ${step.status} ${selectedStepIndex === i ? 'active' : ''}`}
+              onClick={() => onSelectStep(i)}
+            >
+              <span className={`step-indicator ${step.status}`} />
+              {step.name}
+            </button>
+          ))}
+        </div>
+      );
+    }
+
+    function TranscriptViewer({ messages }) {
+      return (
+        <div className="transcript-area">
+          {messages.map((msg, i) => (
+            <div key={i} className={`message message-${msg.role}`}>
+              <div className="message-meta">
+                {msg.role === 'user' ? '用户' : '智能助手'} · {msg.time}
+              </div>
+              <div className="message-bubble">
+                <div style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</div>
+                {msg.artifact && (
+                  <div className="artifact-card">
+                    <div className="artifact-header">
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Icons.FileCode /> {msg.artifact.title}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--neutral-text-muted)' }}>{msg.artifact.type}</span>
+                    </div>
+                    <div className="artifact-body">
+                      <div className="code-block">{msg.text.split('```')[1] || msg.text}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function ComposerBar({ value, onChange, onSend, placeholder, enabled }) {
+      return (
+        <div className="composer-bar">
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+            <span className="file-chip"><Icons.FileCode size={12} /> package.json <Icons.X size={12} style={{ cursor: 'pointer' }} /></span>
+            <span className="file-chip"><Icons.FileCode size={12} /> tsconfig.json <Icons.X size={12} style={{ cursor: 'pointer' }} /></span>
+          </div>
+          <div className="composer-input-wrap">
+            <button className="btn btn-ghost btn-sm" style={{ padding: 4 }}><Icons.Paperclip size={16} /></button>
+            <textarea
+              className="composer-textarea"
+              rows={1}
+              placeholder={placeholder}
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              disabled={!enabled}
+            />
+            <button className="btn btn-primary btn-sm" onClick={onSend} disabled={!enabled}>
+              <Icons.Send size={14} />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function HandoffPanel() {
+      return (
+        <div className="handoff-panel">
+          <div className="handoff-header">
+            <Icons.CheckCircle /> 步骤交接 — Handoff
+          </div>
+          <div className="handoff-body">
+            <div style={{ fontSize: 13, color: 'var(--neutral-text-secondary)', marginBottom: 12 }}>
+              上一步骤已完成，以下是传递给下一步的上下文：
+            </div>
+            <div className="code-block" style={{ fontSize: 12 }}>
+{`{\n  "summary": "已完成 JWT middleware 骨架代码",\n  "files_modified": [\n    "src/middleware/auth.ts"\n  ],\n  "next_steps": [\n    "实现 refresh token 轮换逻辑",\n    "添加密码哈希比较"\n  ]\n}`}
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary btn-sm">查看完整 Handoff</button>
+              <button className="btn btn-primary btn-sm"><Icons.Check size={14} /> 确认并继续</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function RightPanel() {
+      const [tab, setTab] = useState('files');
+      return (
+        <aside className="right-panel">
+          <div className="right-panel-header">
+            <span>文件预览</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button className={`detail-tab ${tab === 'files' ? 'active' : ''}`} onClick={() => setTab('files')} style={{ padding: '6px 10px' }}>文件</button>
+              <button className={`detail-tab ${tab === 'output' ? 'active' : ''}`} onClick={() => setTab('output')} style={{ padding: '6px 10px' }}>输出</button>
+            </div>
+          </div>
+          <div className="right-panel-body">
+            {tab === 'files' && (
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--neutral-text-muted)', marginBottom: 10, fontFamily: '"JetBrains Mono", monospace' }}>
+                  src/middleware/auth.ts
+                </div>
+                <div className="code-block" style={{ fontSize: 12 }}>
+{`import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+
+export interface AuthRequest extends Request {
+  user?: { id: string; email: string };
+}
+
+export const authenticate = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(403).json({ error: 'Invalid token' });
+  }
+};`}
+                </div>
+              </div>
+            )}
+            {tab === 'output' && (
+              <div>
+                <div className="status-banner running">
+                  <Icons.Zap /> 步骤 2/5 正在执行...
+                </div>
+                <div className="code-block" style={{ fontSize: 12 }}>
+{`$ npm install jsonwebtoken bcrypt
++ jsonwebtoken@9.0.2
++ bcrypt@5.1.1
+added 42 packages in 2.1s
+
+$ mkdir -p src/middleware
+$ cat > src/middleware/auth.ts << 'EOF'
+...写入中
+EOF
+
+✓ 文件已创建`}
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
+      );
+    }
+
+    function NewRunDrawer({ open, onClose }) {
+      if (!open) return null;
+      return (
+        <div className="drawer-overlay" onClick={onClose}>
+          <div className="drawer" onClick={e => e.stopPropagation()}>
+            <div className="drawer-header">
+              <h2>新建工作流</h2>
+              <button className="btn btn-ghost btn-sm" onClick={onClose}><Icons.X /></button>
+            </div>
+            <div className="drawer-body">
+              <div className="form-group">
+                <label className="form-label">工作流模板</label>
+                <select className="select">
+                  <option>auth-refactor-pipeline</option>
+                  <option>dependency-update</option>
+                  <option>feature-branch-workflow</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">运行名称</label>
+                <input className="input" placeholder="例如 feature-auth-workflow" defaultValue="feature-auth-workflow" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">项目路径</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input className="input" defaultValue="/Users/dev/projects/api-service" style={{ flex: 1 }} />
+                  <button className="btn btn-secondary btn-sm"><Icons.FolderOpen size={14} /></button>
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">初始指令</label>
+                <textarea className="textarea" rows={5} defaultValue="请帮我实现一个基于 JWT 的认证中间件，要求支持 refresh token 轮换策略。" />
+              </div>
+              <div className="card" style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6, fontFamily: '"ZCOOL XiaoWei", serif' }}>
+                  <Icons.GitBranch size={14} /> Git 安全检查
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--neutral-text-secondary)', lineHeight: 1.8 }}>
+                  ✓ 工作目录干净<br/>
+                  ✓ 无冲突 worktree<br/>
+                  ⚠ 当前有 1 个运行中任务
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">步骤预览</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {['分析代码结构', '生成测试', '重构认证', '更新文档', '最终审查'].map((s, i) => (
+                    <div key={i} style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid var(--glass-border)', background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--neutral-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
+                        {i + 1}
+                      </span>
+                      <span style={{ fontFamily: '"ZCOOL XiaoWei", serif' }}>{s}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="drawer-footer">
+              <button className="btn btn-secondary" onClick={onClose}>取消</button>
+              <button className="btn btn-primary"><Icons.Play size={14} /> 启动运行</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ScheduleDetailView({ schedule }) {
+      if (!schedule) return (
+        <div className="empty-state">
+          <Icons.Calendar size={32} className="empty-state-icon" />
+          <div style={{ fontFamily: '"ZCOOL XiaoWei", serif' }}>选择一个定时任务查看详情</div>
+        </div>
+      );
+      return (
+        <div style={{ padding: 24 }}>
+          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 20, fontFamily: '"ZCOOL XiaoWei", serif', letterSpacing: 1 }}>
+            {schedule.name}
+          </div>
+          <div className="card" style={{ marginBottom: 18 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+              <div>
+                <div className="form-label">Cron 表达式</div>
+                <div style={{ fontSize: 13, fontFamily: '"JetBrains Mono", monospace' }}>{schedule.cron}</div>
+              </div>
+              <div>
+                <div className="form-label">状态</div>
+                <div style={{ fontSize: 13 }}>{schedule.enabled ? '已启用' : '已停用'}</div>
+              </div>
+              <div>
+                <div className="form-label">上次运行</div>
+                <div style={{ fontSize: 13 }}>{schedule.lastRun}</div>
+              </div>
+              <div>
+                <div className="form-label">下次运行</div>
+                <div style={{ fontSize: 13 }}>明日 09:00</div>
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button className="btn btn-danger btn-sm"><Icons.Trash2 size={14} /> 删除</button>
+            <button className="btn btn-secondary btn-sm">编辑</button>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [theme, setTheme] = useState('light');
+      const [mode, setMode] = useState('workflow');
+      const [activeTab, setActiveTab] = useState('runs');
+      const [selectedRunId, setSelectedRunId] = useState('run-1');
+      const [selectedStepIndex, setSelectedStepIndex] = useState(1);
+      const [selectedScheduleId, setSelectedScheduleId] = useState('sch-1');
+      const [drawerOpen, setDrawerOpen] = useState(false);
+      const [composerValue, setComposerValue] = useState('');
+
+      useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+      }, [theme]);
+
+      const selectedRun = runs.find(r => r.id === selectedRunId);
+
+      return (
+        <div className="app">
+          {/* 亮色：中国风底纹 + 水墨装饰 */}
+          <div className="chinese-pattern-bg" />
+          <div className="ink-wash ink-wash-1" />
+          <div className="ink-wash ink-wash-2" />
+          <BambooDecoration />
+
+          {/* 暗色：科技感网格 + 光晕 */}
+          <div className="tech-grid-bg" />
+          <div className="tech-glow tech-glow-1" />
+          <div className="tech-glow tech-glow-2" />
+
+          {/* 主题切换 */}
+          <button className="theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+            {theme === 'light' ? '暗色' : '亮色'}
+          </button>
+
+          <header className="app-header">
+            <div className="app-brand">
+              <h1>竹林工坊</h1>
+              <span className="app-subtitle">{mode === 'workflow' ? '工作流' : mode}</span>
+            </div>
+            <div className="topbar-chips">
+              <span className="topbar-chip">1 运行中</span>
+              <span className="topbar-chip">1 待确认</span>
+              <span className="topbar-chip">4 模板</span>
+              <span className="topbar-chip">3 智能体</span>
+            </div>
+          </header>
+
+          <div className="app-body">
+            <ModeRail mode={mode} onModeChange={setMode} />
+
+            <div className="workspace">
+              <div className="workflow-sidebar-shell">
+                <div className="workflow-tabs">
+                  <button className={activeTab === 'runs' ? 'active' : ''} onClick={() => setActiveTab('runs')}>运行</button>
+                  <button className={activeTab === 'schedules' ? 'active' : ''} onClick={() => setActiveTab('schedules')}>定时</button>
+                </div>
+                {activeTab === 'runs' ? (
+                  <RunList
+                    runs={runs}
+                    selectedRunId={selectedRunId}
+                    onSelectRun={setSelectedRunId}
+                    onNewRun={() => setDrawerOpen(true)}
+                  />
+                ) : (
+                  <ScheduleListView
+                    schedules={schedules}
+                    selectedScheduleId={selectedScheduleId}
+                    onSelectSchedule={setSelectedScheduleId}
+                  />
+                )}
+              </div>
+
+              {activeTab === 'runs' ? (
+                <div className="run-detail">
+                  <div className="detail-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div className="detail-title">{selectedRun?.name}</div>
+                      <StatusBadge status={selectedRun?.status} />
+                    </div>
+                    <div className="detail-actions">
+                      <button className="btn btn-secondary btn-sm"><Icons.RotateCcw size={14} /> 重试</button>
+                      <button className="btn btn-secondary btn-sm"><Icons.SkipForward size={14} /> 跳过</button>
+                      <button className="btn btn-danger btn-sm"><Icons.Square size={14} /> 终止</button>
+                    </div>
+                  </div>
+
+                  <StepNavigator
+                    steps={steps}
+                    selectedStepIndex={selectedStepIndex}
+                    onSelectStep={setSelectedStepIndex}
+                  />
+
+                  <div className="step-info">
+                    <div className="step-info-row">
+                      <span>智能体: <strong>codex</strong></span>
+                      <span>模型: <strong>claude-sonnet-4-6</strong></span>
+                      <span>状态: <strong style={{ color: 'var(--brand-primary)' }}>运行中</strong></span>
+                      <span>耗时: <strong>1m 34s</strong></span>
+                    </div>
+                  </div>
+
+                  <div className="detail-body">
+                    <div className="detail-main">
+                      <div style={{ padding: '14px 24px', borderBottom: '1px solid var(--glass-border)' }}>
+                        <div className="status-banner running">
+                          <Icons.Zap /> 当前步骤正在执行中 — 智能体正在处理任务...
+                        </div>
+                        <HandoffPanel />
+                      </div>
+                      <TranscriptViewer messages={transcripts} />
+                      <ComposerBar
+                        value={composerValue}
+                        onChange={setComposerValue}
+                        onSend={() => setComposerValue('')}
+                        placeholder="向运行中的智能体发送消息..."
+                        enabled={true}
+                      />
+                    </div>
+                    <div className="resize-handle" />
+                    <RightPanel />
+                  </div>
+                </div>
+              ) : (
+                <ScheduleDetailView schedule={schedules.find(s => s.id === selectedScheduleId)} />
+              )}
+            </div>
+          </div>
+
+          <NewRunDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

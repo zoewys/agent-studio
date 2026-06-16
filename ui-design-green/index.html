@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — UI Design System</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    .nav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; padding: 24px; }
+    .nav-card {
+      padding: 24px; border-radius: 14px; border: 1px solid var(--glass-border);
+      background: var(--glass-bg); backdrop-filter: var(--glass-blur);
+      cursor: pointer; transition: all 200ms ease; text-decoration: none; color: inherit;
+    }
+    .nav-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: rgba(61,142,134,0.3); }
+    [data-theme="dark"] .nav-card:hover { border-color: rgba(0,212,170,0.3); box-shadow: 0 4px 20px rgba(0,212,170,0.1); }
+    .nav-card h3 { margin: 0 0 8px; font-size: 16px; }
+    .nav-card p { margin: 0; font-size: 12px; color: var(--neutral-text-secondary); line-height: 1.6; }
+    .nav-page-title {
+      font-family: "Ma Shan Zheng", cursive; font-size: 32px; margin: 0; letter-spacing: 2px; color: var(--brand-primary);
+    }
+    [data-theme="dark"] .nav-page-title { font-family: "JetBrains Mono", monospace; font-size: 24px; font-weight: 700; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    function App() {
+      const [theme, setTheme] = useState('light');
+      useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+      const pages = [
+        { href: 'workflow', title: '工作流模式', desc: 'Workflow Workspace — Runs / Schedules / Transcript / Handoff / Composer' },
+        { href: 'single', title: '单次对话', desc: 'Single Agent — Session 列表 / 模型配置 / Transcript / Composer' },
+        { href: 'agents', title: '智能体管理', desc: 'Agent Manager — Agent CRUD / System Prompt / Reflection / Memory' },
+        { href: 'templates', title: '模板编辑', desc: 'Templates — DAG 画布编辑器 / 节点连线 / 保存导出' },
+        { href: 'settings', title: '系统设置', desc: 'Settings — CLI 安装 / Provider / 飞书通知 / 导入导出' },
+      ];
+      return (
+        <div className="app" style={{ overflow: 'auto' }}>
+          <div className="chinese-pattern-bg" />
+          <div className="ink-wash ink-wash-1" />
+          <div className="ink-wash ink-wash-2" />
+          <div className="tech-grid-bg" />
+          <div className="tech-glow tech-glow-1" />
+          <div className="tech-glow tech-glow-2" />
+          <button className="theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+            {theme === 'light' ? '暗色' : '亮色'}
+          </button>
+          <header className="app-header">
+            <div className="app-brand">
+              <h1 className="nav-page-title">竹林工坊</h1>
+              <span className="app-subtitle">设计稿导航</span>
+            </div>
+          </header>
+          <div style={{ padding: '32px 24px 12px', maxWidth: 960, margin: '0 auto' }}>
+            <div style={{ fontFamily: '"ZCOOL XiaoWei", serif', fontSize: 18, marginBottom: 8, letterSpacing: 1 }}>
+              Agent Studio UI 设计稿
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--neutral-text-secondary)', marginBottom: 24 }}>
+              点击下方卡片预览各页面。亮色 = 中国风 + 毛玻璃；暗色 = 赛博科技 + 霓虹荧光。
+            </div>
+            <div className="nav-grid">
+              {pages.map(p => (
+                <a key={p.href} className="nav-card" href={p.href}>
+                  <h3 style={{ fontFamily: '"ZCOOL XiaoWei", serif', letterSpacing: 0.5 }}>{p.title}</h3>
+                  <p>{p.desc}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

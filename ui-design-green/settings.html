@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Studio — Settings</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* 左侧设置分类导航 */
+    .settings-sidebar {
+      width: 220px;
+      border-right: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      padding: 16px 0;
+      transition: all 300ms ease;
+    }
+    [data-theme="dark"] .settings-sidebar {
+      border-right-color: rgba(0,212,170,0.08);
+      background: rgba(10,15,26,0.7);
+    }
+    .settings-sidebar-title {
+      padding: 0 16px 12px;
+      font-family: "ZCOOL XiaoWei", serif;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--neutral-text-secondary);
+    }
+    [data-theme="dark"] .settings-sidebar-title {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .settings-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      margin: 2px 8px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--neutral-text-secondary);
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 150ms ease;
+      text-align: left;
+      width: calc(100% - 16px);
+    }
+    .settings-nav-item:hover {
+      background: rgba(61,142,134,0.06);
+      color: var(--neutral-text-primary);
+    }
+    [data-theme="dark"] .settings-nav-item:hover {
+      background: rgba(0,212,170,0.06);
+      color: var(--neutral-text-primary);
+    }
+    .settings-nav-item.active {
+      background: rgba(61,142,134,0.1);
+      color: var(--brand-primary);
+      font-weight: 600;
+    }
+    [data-theme="dark"] .settings-nav-item.active {
+      background: rgba(0,212,170,0.1);
+      color: #00d4aa;
+      box-shadow: 0 0 8px rgba(0,212,170,0.08);
+    }
+
+    /* 右侧设置内容 */
+    .settings-main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .settings-content {
+      width: 100%;
+      max-width: 640px;
+    }
+    .settings-section { margin-bottom: 40px; }
+    .settings-section-title {
+      font-family: "ZCOOL XiaoWei", serif;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    [data-theme="dark"] .settings-section-title {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 14px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .settings-section-desc {
+      font-size: 12px;
+      color: var(--neutral-text-muted);
+      margin-bottom: 16px;
+    }
+    .settings-divider {
+      height: 1px;
+      background: var(--glass-border);
+      margin: 16px 0;
+    }
+
+    /* CLI Card */
+    .cli-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      margin-bottom: 10px;
+    }
+    [data-theme="dark"] .cli-card { border-radius: 6px; }
+    .cli-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: rgba(61,142,134,0.08);
+      color: var(--brand-primary);
+      flex-shrink: 0;
+    }
+    [data-theme="dark"] .cli-icon {
+      background: rgba(0,212,170,0.08);
+      border-radius: 6px;
+    }
+    .cli-info { flex: 1; min-width: 0; }
+    .cli-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .cli-version { font-size: 11px; color: var(--neutral-text-muted); }
+
+    /* Toggle Row */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--neutral-border-subtle);
+    }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-switch {
+      width: 42px;
+      height: 24px;
+      border-radius: 12px;
+      background: var(--neutral-border);
+      position: relative;
+      cursor: pointer;
+      transition: all 200ms;
+      border: none;
+      flex-shrink: 0;
+    }
+    .toggle-switch.on { background: var(--brand-primary); }
+    [data-theme="dark"] .toggle-switch.on {
+      background: #00d4aa;
+      box-shadow: 0 0 10px rgba(0,212,170,0.3);
+    }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      transition: all 200ms;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .toggle-switch.on::after { left: 20px; }
+
+    /* Provider Card */
+    .provider-card {
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      margin-bottom: 10px;
+    }
+    [data-theme="dark"] .provider-card { border-radius: 6px; }
+
+    /* 飞书展开区域 */
+    .feishu-expand {
+      margin-top: 12px;
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+    }
+    [data-theme="dark"] .feishu-expand { border-radius: 6px; }
+
+    .tag-green {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      background: rgba(106,189,121,0.1);
+      color: var(--semantic-success);
+      border: 1px solid rgba(106,189,121,0.2);
+    }
+    [data-theme="dark"] .tag-green { font-family: "JetBrains Mono", monospace; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    function SvgIcon({ children, size = 16 }) {
+      return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: 'middle' }}>{children}</svg>);
+    }
+    const Icons = {
+      Play: () => <SvgIcon><polygon points="5 3 19 12 5 21 5 3"/></SvgIcon>,
+      LayoutGrid: () => <SvgIcon><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></SvgIcon>,
+      Layers: () => <SvgIcon><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></SvgIcon>,
+      Bot: () => <SvgIcon><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></SvgIcon>,
+      MessageCircle: () => <SvgIcon><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></SvgIcon>,
+      Settings: () => <SvgIcon><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></SvgIcon>,
+      Sun: () => <SvgIcon><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></SvgIcon>,
+      Moon: () => <SvgIcon><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></SvgIcon>,
+      Code2: () => <SvgIcon><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></SvgIcon>,
+      Download: () => <SvgIcon><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></SvgIcon>,
+      Upload: () => <SvgIcon><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></SvgIcon>,
+      RefreshCw: () => <SvgIcon><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></SvgIcon>,
+      Plus: () => <SvgIcon><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></SvgIcon>,
+      Zap: () => <SvgIcon><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></SvgIcon>,
+      Terminal: () => <SvgIcon><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></SvgIcon>,
+      Database: () => <SvgIcon><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></SvgIcon>,
+      Globe: () => <SvgIcon><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></SvgIcon>,
+      Bell: () => <SvgIcon><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></SvgIcon>,
+      Sliders: () => <SvgIcon><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></SvgIcon>,
+    };
+
+    const navItems = [
+      { key: 'cli', label: 'CLI 工具', icon: Icons.Terminal },
+      { key: 'data', label: '数据管理', icon: Icons.Database },
+      { key: 'provider', label: 'API Provider', icon: Icons.Globe },
+      { key: 'feishu', label: '飞书通知', icon: Icons.Bell },
+      { key: 'preference', label: '偏好设置', icon: Icons.Sliders },
+    ];
+
+    function ModeRail({ mode, onModeChange }) {
+      const modes = [
+        { key: 'workflow', icon: Icons.LayoutGrid, label: 'Workflow' },
+        { key: 'templates', icon: Icons.Layers, label: 'Templates' },
+        { key: 'agents', icon: Icons.Bot, label: 'Agents' },
+        { key: 'single', icon: Icons.MessageCircle, label: 'Single' },
+        { key: 'settings', icon: Icons.Settings, label: 'Settings' },
+      ];
+      return (
+        <nav className="mode-rail">
+          {modes.map(m => (
+            <button key={m.key} className={`mode-rail-btn ${mode === m.key ? 'active' : ''}`} onClick={() => onModeChange(m.key)} title={m.label}>
+              <m.icon />
+            </button>
+          ))}
+        </nav>
+      );
+    }
+
+    function Toggle({ value, onChange }) {
+      return <button className={`toggle-switch ${value ? 'on' : ''}`} onClick={() => onChange(!value)} />;
+    }
+
+    function App() {
+      const [theme, setTheme] = useState('light');
+      const [mode, setMode] = useState('settings');
+      const [activeSection, setActiveSection] = useState('cli');
+      const [feishuEnabled, setFeishuEnabled] = useState(false);
+      const [soundEnabled, setSoundEnabled] = useState(true);
+      const [memoryEnabled, setMemoryEnabled] = useState(true);
+
+      useEffect(() => { document.documentElement.setAttribute('data-theme', theme); }, [theme]);
+
+      const scrollToSection = (key) => {
+        setActiveSection(key);
+        const el = document.getElementById(`section-${key}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+
+      return (
+        <div className="app">
+          <div className="chinese-pattern-bg" />
+          <div className="ink-wash ink-wash-1" />
+          <div className="ink-wash ink-wash-2" />
+          <div className="tech-grid-bg" />
+          <div className="tech-glow tech-glow-1" />
+          <div className="tech-glow tech-glow-2" />
+          <button className="theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+            {theme === 'light' ? '暗色' : '亮色'}
+          </button>
+
+          <header className="app-header">
+            <div className="app-brand">
+              <h1>竹林工坊</h1>
+              <span className="app-subtitle">系统设置</span>
+            </div>
+          </header>
+
+          <div className="app-body">
+            <ModeRail mode={mode} onModeChange={setMode} />
+
+            {/* 左侧设置分类导航 */}
+            <div className="settings-sidebar">
+              <div className="settings-sidebar-title">设置</div>
+              {navItems.map(item => (
+                <button
+                  key={item.key}
+                  className={`settings-nav-item ${activeSection === item.key ? 'active' : ''}`}
+                  onClick={() => scrollToSection(item.key)}
+                >
+                  <item.icon size={16} />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 右侧设置内容 */}
+            <div className="settings-main">
+              <div className="settings-content">
+
+                {/* CLI 工具 */}
+                <div id="section-cli" className="settings-section">
+                  <div className="settings-section-title">CLI 工具</div>
+                  <div className="settings-section-desc">管理智能体运行所需的命令行工具</div>
+                  <div className="cli-card">
+                    <div className="cli-icon"><Icons.Bot size={18} /></div>
+                    <div className="cli-info">
+                      <div className="cli-name">Claude Code</div>
+                      <div className="cli-version">已安装 · v0.2.14</div>
+                    </div>
+                    <button className="btn btn-secondary btn-sm"><Icons.RefreshCw size={14} /> 检查更新</button>
+                  </div>
+                  <div className="cli-card">
+                    <div className="cli-icon"><Icons.Code2 size={18} /></div>
+                    <div className="cli-info">
+                      <div className="cli-name">Codex CLI</div>
+                      <div className="cli-version">未安装</div>
+                    </div>
+                    <button className="btn btn-primary btn-sm">安装</button>
+                  </div>
+                </div>
+
+                {/* 数据管理 */}
+                <div id="section-data" className="settings-section">
+                  <div className="settings-section-title">数据管理</div>
+                  <div className="settings-section-desc">备份和恢复你的配置数据</div>
+                  <div className="toggle-row">
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>导出数据</div>
+                      <div style={{ fontSize: 11, color: 'var(--neutral-text-muted)' }}>导出所有 Agent、模板和设置到 JSON 文件</div>
+                    </div>
+                    <button className="btn btn-secondary btn-sm"><Icons.Download size={14} /> 导出</button>
+                  </div>
+                  <div className="toggle-row">
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>导入数据</div>
+                      <div style={{ fontSize: 11, color: 'var(--neutral-text-muted)' }}>从 JSON 文件恢复配置</div>
+                    </div>
+                    <button className="btn btn-secondary btn-sm"><Icons.Upload size={14} /> 导入</button>
+                  </div>
+                </div>
+
+                {/* API Provider */}
+                <div id="section-provider" className="settings-section">
+                  <div className="settings-section-title">API Provider</div>
+                  <div className="settings-section-desc">配置外部模型服务连接</div>
+                  <div className="provider-card">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600 }}>Default Provider</span>
+                      <span className="tag-green">已连接</span>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Base URL</label>
+                      <input className="input" defaultValue="https://api.openai.com/v1" />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">API Key</label>
+                      <input className="input" type="password" defaultValue="sk-********************" />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">默认模型</label>
+                      <select className="select"><option>gpt-4o</option><option>gpt-4o-mini</option></select>
+                    </div>
+                  </div>
+                  <button className="btn btn-secondary btn-sm"><Icons.Plus size={14} /> 添加 Provider</button>
+                </div>
+
+                {/* 飞书通知 */}
+                <div id="section-feishu" className="settings-section">
+                  <div className="settings-section-title">飞书通知</div>
+                  <div className="settings-section-desc">工作流完成后推送消息到飞书</div>
+                  <div className="toggle-row">
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>启用飞书通知</div>
+                      <div style={{ fontSize: 11, color: 'var(--neutral-text-muted)' }}>开启后将在任务结束时推送通知</div>
+                    </div>
+                    <Toggle value={feishuEnabled} onChange={setFeishuEnabled} />
+                  </div>
+                  {feishuEnabled && (
+                    <div className="feishu-expand">
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label className="form-label">App ID</label>
+                          <input className="input" placeholder="cli_xxxxxxxx" />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">App Secret</label>
+                          <input className="input" type="password" />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Webhook URL</label>
+                        <input className="input" placeholder="https://open.feishu.cn/..." />
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button className="btn btn-secondary btn-sm">测试连接</button>
+                        <button className="btn btn-primary btn-sm">保存配置</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 偏好设置 */}
+                <div id="section-preference" className="settings-section">
+                  <div className="settings-section-title">偏好设置</div>
+                  <div className="settings-section-desc">调整应用的行为和体验</div>
+                  <div className="toggle-row">
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>通知音效</div>
+                      <div style={{ fontSize: 11, color: 'var(--neutral-text-muted)' }}>工作流完成时播放提示音</div>
+                    </div>
+                    <Toggle value={soundEnabled} onChange={setSoundEnabled} />
+                  </div>
+                  <div className="toggle-row">
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>智能记忆</div>
+                      <div style={{ fontSize: 11, color: 'var(--neutral-text-muted)' }}>自动总结会话上下文供后续参考</div>
+                    </div>
+                    <Toggle value={memoryEnabled} onChange={setMemoryEnabled} />
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
