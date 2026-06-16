@@ -16,6 +16,8 @@ import {
   BookOpen,
   Check,
   CheckCheck,
+  ChevronDown,
+  ChevronUp,
   Circle,
   CircleAlert,
   CircleCheck,
@@ -505,7 +507,13 @@ function BlockView({
             <span className="cli-think-dot" />
             Thinking
             <span className="cli-think-toggle">
-              {thinkExp ? '▲ Collapse' : needsTruncation ? '▼ Expand' : '▼ Show'}
+              {thinkExp ? (
+                <><ChevronUp size={12} /> Collapse</>
+              ) : needsTruncation ? (
+                <><ChevronDown size={12} /> Expand</>
+              ) : (
+                <><ChevronDown size={12} /> Show</>
+              )}
             </span>
           </div>
           <pre className="cli-think-body">{displayText}</pre>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Bot, Code2, Download, MessageSquare, RefreshCw, Upload } from 'lucide-react'
+import { Bell, Bot, Code2, Database, Download, Globe, MessageSquare, Moon, RefreshCw, Sliders, Sun, Terminal, Upload } from 'lucide-react'
 import type { AppSettings, FeishuConnectionStatus, FeishuConfig } from '@shared/types'
 import { DEFAULT_FEISHU_CONFIG } from '@shared/types'
 import { ExportDialog } from './ExportDialog'
@@ -25,6 +25,14 @@ const CLI_DEFS = [
   { key: 'codex' as const, name: 'Codex', Icon: Code2, pkg: '@openai/codex' }
 ]
 
+const SETTINGS_NAV = [
+  { key: 'cli', label: 'CLI 工具', Icon: Terminal },
+  { key: 'data', label: '数据管理', Icon: Database },
+  { key: 'provider', label: 'API Provider', Icon: Globe },
+  { key: 'feishu', label: '飞书通知', Icon: Bell },
+  { key: 'preference', label: '偏好设置', Icon: Sliders }
+]
+
 export function SettingsPanel({ settings, loading, onSave }: SettingsPanelProps): JSX.Element {
   const [clis, setClis] = useState<Record<string, CliInfo>>({})
   const [refreshing, setRefreshing] = useState(false)
@@ -41,6 +49,7 @@ export function SettingsPanel({ settings, loading, onSave }: SettingsPanelProps)
   const [feishuTesting, setFeishuTesting] = useState(false)
   const [feishuSaving, setFeishuSaving] = useState(false)
   const [feishuTestResult, setFeishuTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
+  const [activeSection, setActiveSection] = useState('cli')
 
   const refresh = useCallback(async () => {
     setRefreshing(true)
@@ -123,10 +132,32 @@ export function SettingsPanel({ settings, loading, onSave }: SettingsPanelProps)
     }
   }, [])
 
+  const scrollToSection = useCallback((key: string) => {
+    setActiveSection(key)
+    document.getElementById(`section-${key}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  }, [])
+
   return (
-    <div className="settings-panel">
+    <div className="settings-shell">
+      <aside className="settings-sidebar">
+        <div className="settings-sidebar-title">设置</div>
+        {SETTINGS_NAV.map(({ key, label, Icon }) => (
+          <button
+            key={key}
+            type="button"
+            className={`settings-nav-item ${activeSection === key ? 'active' : ''}`}
+            onClick={() => scrollToSection(key)}
+          >
+            <Icon size={16} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </aside>
+
+      <div className="settings-main">
+        <div className="settings-content">
       {/* ── CLI Management ── */}
-      <section className="settings-section">
+      <section id="section-cli" className="settings-section">
         <div className="settings-section-head">
           <div>
             <h3 className="settings-section-title">CLI 工具</h3>
@@ -202,7 +233,7 @@ export function SettingsPanel({ settings, loading, onSave }: SettingsPanelProps)
       {/* ── divider ── */}
       <hr className="settings-divider" />
 
-      <section className="settings-section">
+      <section id="section-provider" className="settings-section">
         <div className="settings-section-head">
           <div>
             <h3 className="settings-section-title">API 供应商</h3>
@@ -215,7 +246,7 @@ export function SettingsPanel({ settings, loading, onSave }: SettingsPanelProps)
       <hr className="settings-divider" />
 
       {/* ── Data Management ── */}
-      <section className="settings-section">
+      <section id="section-data" className="settings-section">
         <div className="settings-section-head">
           <div>
             <h3 className="settings-section-title">数据管理</h3>
@@ -241,6 +272,37 @@ export function SettingsPanel({ settings, loading, onSave }: SettingsPanelProps)
       </section>
 
       {/* ── divider ── */}
+      <hr className="settings-divider" />
+
+      <section id="section-preference" className="settings-section">
+        <div className="settings-section-head">
+          <div>
+            <h3 className="settings-section-title">偏好设置</h3>
+            <p className="settings-section-desc">调整应用的视觉主题和工作台行为。</p>
+          </div>
+        </div>
+
+        <div className="settings-toggle-row">
+          <div className="settings-toggle-info">
+            <h4>深色科技主题</h4>
+            <p>开启后使用设计稿的暗色网格和青绿色高亮；关闭后使用宣纸浅色主题。</p>
+          </div>
+          <button
+            type="button"
+            className={`settings-switch${settings.appearanceTheme === 'dark' ? ' on' : ''}`}
+            disabled={loading}
+            onClick={() => onSave({
+              ...settings,
+              appearanceTheme: settings.appearanceTheme === 'dark' ? 'light' : 'dark'
+            })}
+            role="switch"
+            aria-checked={settings.appearanceTheme === 'dark'}
+          >
+            {settings.appearanceTheme === 'dark' ? <Moon size={12} /> : <Sun size={12} />}
+          </button>
+        </div>
+      </section>
+
       <hr className="settings-divider" />
 
       {/* ── Memory ── */}
@@ -296,7 +358,7 @@ export function SettingsPanel({ settings, loading, onSave }: SettingsPanelProps)
 
       <hr className="settings-divider" />
 
-      <section className="settings-section">
+      <section id="section-feishu" className="settings-section">
         <div className="settings-section-head">
           <div>
             <h3 className="settings-section-title">飞书机器人</h3>
@@ -387,6 +449,9 @@ export function SettingsPanel({ settings, loading, onSave }: SettingsPanelProps)
           </div>
         )}
       </section>
+        </div>
+      </div>
+
       {showExport && (
         <ExportDialog
           items={[
