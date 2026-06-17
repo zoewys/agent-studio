@@ -311,9 +311,9 @@ body {
 
 .single-session-header {
   border-bottom: 1px solid var(--border);
-  padding: 14px 18px;
+  padding: 10px 18px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   background: #1b1f28;
@@ -321,11 +321,15 @@ body {
 
 .single-session-title-block {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
 }
 
 .single-session-title-block h2 {
-  margin: 3px 0 7px;
-  font-size: 18px;
+  margin: 0;
+  font-size: 16px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -566,12 +570,12 @@ body {
 }
 
 .chat-system {
-  align-self: center;
+  align-self: flex-start;
   max-width: min(74%, 640px);
   color: var(--text-dim);
   font-size: 11px;
   line-height: 1.45;
-  text-align: center;
+  text-align: left;
   padding: 2px 8px;
 }
 
@@ -4354,6 +4358,181 @@ button.icon-only {
   cursor: default;
 }
 
+/* ── Runtime × Model Cascade ───────────────────────────────────────────── */
+
+.runtime-model-cascade {
+  position: relative;
+  width: 100%;
+}
+
+.runtime-model-cascade-trigger {
+  width: 100%;
+  /* `.select-trigger` already sets `justify-content: space-between`, but the
+     global `button { justify-content: center }` rule wins on specificity for
+     a plain `button` element — re-assert it here. */
+  justify-content: space-between !important;
+}
+
+.runtime-model-cascade-trigger > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex: 1;
+  text-align: left;
+}
+
+.runtime-model-cascade-popover {
+  /* Portal'd to document.body — coordinates come from getBoundingClientRect
+     (viewport-relative), so use position: fixed to escape every ancestor's
+     stacking context (the toolbar uses backdrop-filter, which would otherwise
+     trap z-index regardless of how high we set it). */
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  padding: 6px;
+  /* Use a fully opaque color — both --bg-panel and --bg-surface are
+     translucent in light theme. */
+  background: var(--neutral-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  min-width: 520px;
+  animation: select-in 0.12s ease-out;
+}
+
+.runtime-model-cascade-entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 200px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.runtime-model-cascade-group-label {
+  padding: 6px 10px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.runtime-model-cascade-group-label:not(:first-child) {
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.runtime-model-cascade-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.runtime-model-cascade-entry:focus {
+  outline: none;
+}
+
+.runtime-model-cascade-entry.is-active,
+.runtime-model-cascade-entry:hover {
+  background: var(--accent-dim);
+  color: var(--text-strong);
+}
+
+.runtime-model-cascade-entry.is-selected .runtime-model-cascade-entry-name {
+  font-weight: 600;
+}
+
+.runtime-model-cascade-entry.is-unavailable {
+  opacity: 0.55;
+}
+
+.runtime-model-cascade-empty-row {
+  padding: 7px 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.runtime-model-cascade-chevron {
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.runtime-model-cascade-models-pane {
+  flex: 1;
+  border-left: 1px solid var(--border);
+  padding-left: 6px;
+  min-width: 240px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.runtime-model-cascade-models {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.runtime-model-cascade-model {
+  display: flex;
+  align-items: baseline;
+  /* Override global `button { justify-content: center }` so the model id sits
+     at the left edge of the row instead of being centered. */
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  min-height: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.runtime-model-cascade-model:hover:not(:disabled) {
+  /* Cancel the global hover border so the row hover only shows the dim bg. */
+  border-color: transparent;
+}
+
+.runtime-model-cascade-model:hover,
+.runtime-model-cascade-model.is-selected {
+  background: var(--accent-dim);
+  color: var(--text-strong);
+}
+
+.runtime-model-cascade-model-id {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.runtime-model-cascade-model-hint {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.runtime-model-cascade-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Codex-style layout: transcript + preview dual pane
    ═══════════════════════════════════════════════════════════════════════ */
@@ -4914,7 +5093,7 @@ button.icon-only {
 
 .settings-page {
   grid-column: 2 / -1;
-  overflow-y: auto;
+  overflow: hidden;
   height: 100%;
 }
 
@@ -7827,7 +8006,7 @@ select:focus,
 }
 
 .single-session-header {
-  padding: 14px 24px;
+  padding: 10px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -7835,13 +8014,13 @@ select:focus,
 }
 
 .single-session-meta {
-  margin-top: 6px;
+  margin-top: 0;
   display: flex;
   align-items: center;
   gap: 12px;
   color: var(--neutral-text-muted);
   font-size: 11px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .single-session-meta span {
@@ -8477,11 +8656,12 @@ select:focus,
 }
 
 .api-log-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: start;
-  padding: 12px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
   border-radius: 14px;
   border: 1px solid var(--neutral-border-subtle);
   background: color-mix(in srgb, var(--neutral-surface-raised) 88%, transparent);
@@ -8490,8 +8670,10 @@ select:focus,
 
 .api-log-main {
   min-width: 0;
-  display: grid;
-  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 200px;
 }
 
 .api-log-main strong {
@@ -8512,11 +8694,9 @@ select:focus,
 .api-log-meta {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  white-space: nowrap;
+  gap: 6px;
   flex-wrap: wrap;
-  text-align: right;
+  flex-shrink: 0;
   line-height: 1.2;
 }
 
@@ -9182,7 +9362,7 @@ select:focus,
 
 .settings-page {
   grid-column: 2 / -1;
-  overflow-y: auto;
+  overflow: hidden;
   height: 100%;
 }
 
@@ -10407,28 +10587,158 @@ select:focus,
 
 /* Real-data Single/Agents fixes: keep chat readable and dark selection states usable. */
 .single-session-route-panel {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  padding: 10px 24px 8px !important;
+}
+
+.single-session-toolbar-main {
   display: grid !important;
   grid-template-columns:
-    minmax(165px, 1fr)
+    minmax(260px, 1.5fr)
     minmax(220px, 1.15fr)
-    minmax(175px, 1fr)
-    minmax(175px, 1fr)
-    minmax(245px, 1.35fr) !important;
-  align-items: end !important;
-  gap: 12px !important;
-  padding: 12px 24px !important;
+    minmax(320px, 1.7fr) !important;
+  gap: 10px !important;
+  align-items: start !important;
 }
 
-.single-session-route-panel .compact-field,
-.single-session-cwd-field {
+.single-session-toolbar-cluster {
   min-width: 0 !important;
-  flex: unset !important;
+  padding: 10px 12px !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 12px !important;
+  background: color-mix(in srgb, var(--neutral-surface-raised) 88%, transparent) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset !important;
 }
 
-.single-session-route-panel .field-row,
-.single-session-route-panel .select-trigger,
-.single-session-route-panel input {
+.single-session-toolbar-label {
+  color: var(--neutral-text-muted) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+}
+
+.single-session-toolbar-inline {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
   min-width: 0 !important;
+}
+
+.single-session-toolbar-input,
+.single-session-toolbar-inline > * {
+  min-width: 0 !important;
+}
+
+.single-session-toolbar-input {
+  flex: 1 1 150px !important;
+}
+
+.single-session-toolbar-input-wide {
+  flex-basis: 220px !important;
+}
+
+.single-session-toolbar-quiet,
+.single-session-toolbar-advanced-toggle {
+  flex: 0 0 auto !important;
+  height: 38px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 0 10px !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 10px !important;
+  background: rgba(61, 142, 134, 0.04) !important;
+  color: var(--neutral-text-secondary) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+.single-session-toolbar-quiet:hover,
+.single-session-toolbar-advanced-toggle:hover {
+  border-color: rgba(61, 142, 134, 0.28) !important;
+  color: var(--neutral-text-primary) !important;
+  background: rgba(61, 142, 134, 0.08) !important;
+}
+
+.single-session-path-shell {
+  flex: 1 1 250px !important;
+  min-width: 0 !important;
+  height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 12px !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 10px !important;
+  background: rgba(61, 142, 134, 0.03) !important;
+  color: var(--neutral-text-secondary) !important;
+}
+
+.single-session-path-shell input {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  color: var(--neutral-text-primary) !important;
+}
+
+.single-session-path-shell input:focus {
+  outline: none !important;
+}
+
+.single-session-toolbar-meta {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+}
+
+.single-session-toolbar-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  height: 24px !important;
+  padding: 0 8px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(61, 142, 134, 0.14) !important;
+  background: rgba(61, 142, 134, 0.06) !important;
+  color: var(--neutral-text-muted) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.4px !important;
+}
+
+.single-session-toolbar-advanced-toggle {
+  margin-left: auto !important;
+  height: 26px !important;
+  padding: 0 9px !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  font-size: 10px !important;
+}
+
+.single-session-toolbar-advanced-toggle.active {
+  border-color: rgba(61, 142, 134, 0.34) !important;
+  background: rgba(61, 142, 134, 0.1) !important;
+  color: var(--neutral-text-primary) !important;
+}
+
+.single-session-toolbar-advanced-icon {
+  transition: transform 0.16s ease !important;
+}
+
+.single-session-toolbar-advanced-toggle.active .single-session-toolbar-advanced-icon {
+  transform: rotate(180deg) !important;
 }
 
 .single-session-route-panel .vendor-tabs {
@@ -10440,20 +10750,52 @@ select:focus,
 .single-session-route-panel .vendor-tab {
   width: 100% !important;
   max-width: none !important;
+  min-height: 34px !important;
+  padding: 7px 8px !important;
+  border-radius: 10px !important;
+  font-size: 11px !important;
+}
+
+.single-session-advanced-panel {
+  display: grid !important;
+  gap: 10px !important;
+  padding: 2px 0 0 !important;
+}
+
+.single-session-advanced-panel .api-advanced-controls {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(120px, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.single-session-advanced-panel .codex-options {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.single-session-advanced-panel .field {
+  gap: 6px !important;
+}
+
+.single-session-advanced-panel .field > span {
+  font-size: 10px !important;
 }
 
 .single-session-transcript {
-  padding: 18px 24px 16px !important;
+  overflow: hidden !important;
+  padding: 14px 24px 12px !important;
 }
 
 .single-session-transcript .transcript-chat {
-  min-height: 100% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
   padding: 0 !important;
   gap: 10px !important;
 }
 
 .chat-row {
-  min-height: 0 !important;
+  min-height: auto !important;
 }
 
 .chat-bubble {
@@ -10549,12 +10891,27 @@ select:focus,
 }
 
 @media (max-width: 1180px) {
-  .single-session-route-panel {
+  .single-session-toolbar-main {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
-  .single-session-cwd-field {
+  .single-session-toolbar-context {
     grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 860px) {
+  .single-session-toolbar-main {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .single-session-toolbar-context {
+    grid-column: auto !important;
+  }
+
+  .single-session-advanced-panel .api-advanced-controls,
+  .single-session-advanced-panel .codex-options {
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 }
 
@@ -11437,6 +11794,7 @@ button:disabled,
 .settings-main {
   padding: 24px 32px !important;
   align-items: center !important;
+  overflow-y: auto !important;
 }
 
 .settings-content {

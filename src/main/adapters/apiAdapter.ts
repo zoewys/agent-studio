@@ -392,13 +392,52 @@ async function runGenerateFallback(
 }
 
 function buildMessages(input: RunTurnInput, modelId: string): ModelMessage[] {
-  if (input.messages?.length) return input.messages as ModelMessage[]
-  return [buildUserMessage(input.prompt, input.attachments ?? [], modelId)]
+  const attachments = input.attachments ?? []
+  if (input.messages?.length) return mergeAttachmentsIntoMessages(input.messages, attachments, modelId) as ModelMessage[]
+  return [buildUserMessage(input.prompt, attachments, modelId)]
 }
 
 function buildUserMessage(text: string, attachments: RunAttachment[], modelId: string): ModelMessage {
-  if (attachments.length === 0) return { role: 'user', content: text }
-  const content: Array<Record<string, unknown>> = [{ type: 'text', text }]
+  return { role: 'user', content: buildUserContent(text, attachments, modelId) as any }
+}
+
+function buildUserContent(text: string, attachments: RunAttachment[], modelId: string): string | Array<Record<string, unknown>> {
+  if (attachments.length === 0) return text
+  return appendAttachmentsToContent([{ type: 'text', text }], attachments, modelId)
+}
+
+function mergeAttachmentsIntoMessages(
+  messages: ApiConversationMessage[],
+  attachments: RunAttachment[],
+  modelId: string
+): ApiConversationMessage[] {
+  if (attachments.length === 0) return messages
+  const next = messages.map((message) => ({
+    ...message,
+    content: Array.isArray(message.content)
+      ? message.content.map((part) => ({ ...part }))
+      : message.content
+  }))
+
+  for (let index = next.length - 1; index >= 0; index -= 1) {
+    const message = next[index]
+    if (message.role !== 'user') continue
+    message.content = typeof message.content === 'string'
+      ? buildUserContent(message.content, attachments, modelId)
+      : appendAttachmentsToContent(message.content, attachments, modelId)
+    return next
+  }
+
+  next.push({ role: 'user', content: buildUserContent('', attachments, modelId) })
+  return next
+}
+
+function appendAttachmentsToContent(
+  initialContent: Array<Record<string, unknown>>,
+  attachments: RunAttachment[],
+  modelId: string
+): Array<Record<string, unknown>> {
+  const content = initialContent.map((part) => ({ ...part }))
   const attachmentNotes: string[] = []
   const vision = isLikelyVisionModel(modelId)
 
@@ -422,7 +461,7 @@ function buildUserMessage(text: string, attachments: RunAttachment[], modelId: s
   if (attachmentNotes.length > 0) {
     content.push({ type: 'text', text: `\n\nAttachments:\n${attachmentNotes.map((item) => `- ${item}`).join('\n')}` })
   }
-  return { role: 'user', content: content as any }
+  return content
 }
 
 function buildSystemPrompt(
@@ -606,7 +645,7 @@ function inferAttachmentKind(path: string): 'image' | 'file' {
 }
 
 function isLikelyVisionModel(modelId: string): boolean {
-  return /(gpt-4o|vision|omni|vl|claude-3|gemini|glm-4v|qwen.*vl|mimo-v2-omni)/i.test(modelId)
+  return /(gpt-4o|vision|omni|vl|claude-3|gemini|glm-4v|qwen.*vl|mimo-v2-omni|kimi(?:-k2(?:\.\d+)?|.*(?:vision|vl|omni))|moonshot.*(?:vision|vl|omni))/i.test(modelId)
 }
 
 function mediaTypeForPath(path: string): string {

@@ -725,6 +725,47 @@ test('ApiAdapter sends image attachments as multimodal parts for likely vision A
   }
 })
 
+test('ApiAdapter merges image attachments into the replayed user turn for kimi-k2.6 sessions', async () => {
+  const { dir, cleanup } = tempProject()
+  try {
+    const imagePath = join(dir, 'shot.png')
+    writeFileSync(imagePath, Buffer.from('89504e470d0a1a0a', 'hex'))
+    const calls = []
+    const { ApiAdapter } = await importApiAdapter(mocksFor([{ type: 'finish' }], calls))
+    const adapter = new ApiAdapter({
+      id: 'p1',
+      name: 'Volcengine',
+      format: 'openai-compatible',
+      apiKey: 'sk-test',
+      baseUrl: 'https://volcengine.example/v1',
+      models: ['kimi-k2.6'],
+      defaultModel: 'kimi-k2.6'
+    }, guard)
+
+    await collect(adapter.runTurn({
+      prompt: 'ignored when replay messages exist',
+      cwd: dir,
+      model: 'kimi-k2.6',
+      messages: [
+        { role: 'user', content: 'Earlier turn' },
+        { role: 'assistant', content: 'Earlier answer' },
+        { role: 'user', content: 'Describe the latest image' }
+      ],
+      attachments: [{ path: imagePath, kind: 'image', mediaType: 'image/png' }],
+      abortSignal: new AbortController().signal
+    }))
+
+    const content = calls[0].messages.at(-1).content
+    assert.equal(Array.isArray(content), true)
+    assert.deepEqual(content[0], { type: 'text', text: 'Describe the latest image' })
+    assert.equal(content[1].type, 'image')
+    assert.equal(content[1].mediaType, 'image/png')
+    assert.equal(Buffer.isBuffer(content[1].image), true)
+  } finally {
+    cleanup()
+  }
+})
+
 test('ApiAdapter records API call logs and emits a compact transcript event', async () => {
   const calls = []
   const logs = []

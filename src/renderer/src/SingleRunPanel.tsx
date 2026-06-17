@@ -19,16 +19,15 @@ import type {
   SingleSessionDetail,
   SingleSessionSendInput
 } from '@shared/types'
-import { ALL_VENDORS } from '@shared/types'
 import { Select } from './Select'
 import { CodexOptions } from './CodexOptions'
-import { ModelSelect } from './ModelSelect'
+import { RuntimeModelCascade } from './RuntimeModelCascade'
 import { TranscriptViewer } from './TranscriptViewer'
 import { MemoryReferences } from './MemoryReferences'
 import { ComposerBar } from './ComposerBar'
 import { SingleSessionSidebar } from './SingleSessionSidebar'
 import { readLastProjectPath, rememberProjectPath } from './projectPathMemory'
-import { Bot, FolderOpen, GitBranch, MessageSquare, Square } from 'lucide-react'
+import { Bot, ChevronDown, FolderOpen, MessageSquare, Settings2, Square } from 'lucide-react'
 import { useProviders } from './useProviders'
 
 interface SingleRunPanelProps {
@@ -82,6 +81,7 @@ export function SingleRunPanel({
   const [apiTopP, setApiTopP] = useState('1')
   const [attachedFiles, setAttachedFiles] = useState<string[]>([])
   const [lastRouteSwitch, setLastRouteSwitch] = useState<string | null>(null)
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const providerState = useProviders()
 
   const selectedAgent = useMemo(
@@ -115,6 +115,7 @@ export function SingleRunPanel({
   useEffect(() => {
     if (!selectedSession) return
     setCwd(selectedSession.cwd)
+    setShowAdvanced(false)
     if (!selectedSession.route) return
     setVendor(selectedSession.route.vendor)
     setModel(selectedSession.route.model ?? '')
@@ -144,6 +145,7 @@ export function SingleRunPanel({
     setVendor(nextVendor)
     setModel('')
     if (nextVendor !== 'api') setSelectedProviderId('')
+    if (nextVendor === 'claude') setShowAdvanced(false)
   }
 
   const handleProviderChange = (providerId: string): void => {
@@ -238,6 +240,19 @@ export function SingleRunPanel({
     : lastRouteSwitch
       ? `模型已切换，会话保持不变：${lastRouteSwitch}`
       : null
+  const hasAdvancedControls = vendor === 'api' || vendor === 'codex'
+  const advancedSummaryChips = vendor === 'api'
+    ? [
+        `${parseOptionalPositiveInt(apiMaxSteps) ?? 10} steps`,
+        `T ${compactNumericLabel(apiTemperature, '0.2')}`,
+        `P ${compactNumericLabel(apiTopP, '1')}`
+      ]
+    : vendor === 'codex'
+      ? [
+          codexReasoningEffort ? `Reasoning ${reasoningSummaryLabel(codexReasoningEffort)}` : 'Reasoning auto',
+          codexServiceTier ? `Speed ${codexServiceTier}` : 'Speed auto'
+        ]
+      : []
 
   return (
     <>
@@ -252,11 +267,9 @@ export function SingleRunPanel({
       <main className="panel panel-runtime single-session-main">
         <div className="single-session-header">
           <div className="single-session-title-block">
-            <span className="section-title">Single Agent</span>
             <h2>{selectedSession?.title ?? 'New Session'}</h2>
             <div className="single-session-meta">
               <span><Bot size={13} /> {routeLabel(selectedSession?.route ?? currentRoute)}</span>
-              <span><GitBranch size={13} /> {cwd || 'No project selected'}</span>
               <span className={selectedSession?.running ? 'single-session-status-running' : ''}>
                 {selectedSession?.running ? 'LIVE' : 'READY'}
               </span>
@@ -284,101 +297,122 @@ export function SingleRunPanel({
         )}
 
         <div className="single-session-route-panel">
-          <label className="field compact-field">
-            <span>Agent</span>
-            <div className="field-row">
-              <Select value={selectedAgentId ?? ''} onChange={(v) => handleSelectAgent(v)} placeholder="None — manual config">
-                <Select.Item value="">None — manual config</Select.Item>
-                {agents.map((a) => (
-                  <Select.Item key={a.id} value={a.id}>{a.name || 'Unnamed'}</Select.Item>
-                ))}
-              </Select>
-              <button onClick={onModeAgents} type="button">Agent</button>
-            </div>
-          </label>
-
-          <label className="field compact-field">
-            <span>Mode</span>
-            <div className="vendor-tabs">
-              {ALL_VENDORS.map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  className={`vendor-tab${vendor === v ? ' active' : ''}`}
-                  onClick={() => handleVendorChange(v)}
-                >
-                  {v === 'claude' ? 'Claude CLI' : v === 'codex' ? 'Codex CLI' : 'API'}
-                  {clis && !clis[v] ? ' (not installed)' : ''}
+          <div className="single-session-toolbar-main">
+            <section className="single-session-toolbar-cluster single-session-toolbar-runtime">
+              <span className="single-session-toolbar-label">Runtime</span>
+              <div className="single-session-toolbar-inline">
+                <div className="single-session-toolbar-input">
+                  <Select value={selectedAgentId ?? ''} onChange={(v) => handleSelectAgent(v)} placeholder="Agent or manual">
+                    <Select.Item value="">None — manual config</Select.Item>
+                    {agents.map((a) => (
+                      <Select.Item key={a.id} value={a.id}>{a.name || 'Unnamed'}</Select.Item>
+                    ))}
+                  </Select>
+                </div>
+                <button className="single-session-toolbar-quiet" onClick={onModeAgents} type="button">
+                  <Bot size={13} /> Agents
                 </button>
-              ))}
-            </div>
-          </label>
-
-          {vendor === 'api' ? (
-            <>
-              <label className="field compact-field">
-                <span>API 供应商</span>
-                <Select value={selectedProvider?.id ?? ''} onChange={handleProviderChange} disabled={providerState.loading || providerState.providers.length === 0}>
-                  {providerState.providers.map((provider) => (
-                    <Select.Item key={provider.id} value={provider.id}>{provider.name}</Select.Item>
-                  ))}
-                </Select>
-              </label>
-              <label className="field compact-field">
-                <span>Model</span>
-                <Select value={effectiveModel} onChange={setModel} disabled={apiModels.length === 0}>
-                  {apiModels.map((apiModel) => (
-                    <Select.Item key={apiModel} value={apiModel}>{apiModel}</Select.Item>
-                  ))}
-                </Select>
-              </label>
-              <div className="api-advanced-controls">
-                <label className="field compact-field">
-                  <span>Max steps</span>
-                  <input type="number" min="1" max="50" value={apiMaxSteps} onChange={(e) => setApiMaxSteps(e.target.value)} />
-                </label>
-                <label className="field compact-field">
-                  <span>Temperature</span>
-                  <input type="number" min="0" max="2" step="0.1" value={apiTemperature} onChange={(e) => setApiTemperature(e.target.value)} />
-                </label>
-                <label className="field compact-field">
-                  <span>Top P</span>
-                  <input type="number" min="0" max="1" step="0.05" value={apiTopP} onChange={(e) => setApiTopP(e.target.value)} />
-                </label>
               </div>
-            </>
-          ) : (
-            <label className="field compact-field">
-              <span>Model</span>
-              <ModelSelect
-                value={model}
-                loading={modelsLoading}
-                modelInfo={modelInfo}
-                onChange={setModel}
-              />
-            </label>
-          )}
+            </section>
 
-          {vendor === 'codex' && (
-            <CodexOptions
-              model={model}
-              modelInfo={modelInfo}
-              reasoningEffort={codexReasoningEffort}
-              serviceTier={codexServiceTier}
-              onReasoningEffortChange={setCodexReasoningEffort}
-              onServiceTierChange={setCodexServiceTier}
-            />
-          )}
+            <section className="single-session-toolbar-cluster single-session-toolbar-model">
+              <span className="single-session-toolbar-label">Model</span>
+              <div className="single-session-toolbar-inline">
+                <div className="single-session-toolbar-input single-session-toolbar-input-wide">
+                  <RuntimeModelCascade
+                    vendor={vendor}
+                    apiProviderId={selectedProvider?.id ?? ''}
+                    model={effectiveModel}
+                    apiProviders={providerState.providers}
+                    claudeCatalog={modelCatalog?.claude ?? null}
+                    codexCatalog={modelCatalog?.codex ?? null}
+                    apiProvidersLoading={providerState.loading}
+                    modelsLoading={modelsLoading}
+                    cliAvailability={clis ?? undefined}
+                    onChange={(selection) => {
+                      if (selection.vendor !== vendor) {
+                        handleVendorChange(selection.vendor)
+                      }
+                      if (selection.vendor === 'api') {
+                        const nextProviderId = selection.apiProviderId ?? ''
+                        if (nextProviderId !== selectedProviderId) {
+                          handleProviderChange(nextProviderId)
+                        }
+                      }
+                      setModel(selection.model)
+                    }}
+                  />
+                </div>
+              </div>
+            </section>
 
-          <label className="field compact-field single-session-cwd-field">
-            <span>Project Directory</span>
-            <div className="field-row">
-              <input value={cwd} placeholder="/path/to/project" onChange={(e) => setCwd(e.target.value)} />
-              <button onClick={handlePickDir} type="button">
-                <FolderOpen size={14} /> Browse
-              </button>
+            <section className="single-session-toolbar-cluster single-session-toolbar-context">
+              <span className="single-session-toolbar-label">Context</span>
+              <div className="single-session-toolbar-inline single-session-toolbar-inline-context">
+                <div className="single-session-path-shell" title={cwd || 'No project selected'}>
+                  <FolderOpen size={14} />
+                  <input
+                    value={cwd}
+                    placeholder="/path/to/project"
+                    onChange={(e) => setCwd(e.target.value)}
+                    aria-label="Project Directory"
+                  />
+                </div>
+                <button className="single-session-toolbar-quiet" onClick={handlePickDir} type="button">
+                  Browse
+                </button>
+              </div>
+              <div className="single-session-toolbar-meta">
+                {advancedSummaryChips.map((chip) => (
+                  <span key={chip} className="single-session-toolbar-chip">{chip}</span>
+                ))}
+                {hasAdvancedControls ? (
+                  <button
+                    type="button"
+                    className={`single-session-toolbar-advanced-toggle${showAdvanced ? ' active' : ''}`}
+                    aria-expanded={showAdvanced}
+                    onClick={() => setShowAdvanced((value) => !value)}
+                  >
+                    <Settings2 size={13} />
+                    Advanced
+                    <ChevronDown size={13} className="single-session-toolbar-advanced-icon" />
+                  </button>
+                ) : null}
+              </div>
+            </section>
+          </div>
+
+          {showAdvanced && hasAdvancedControls ? (
+            <div className="single-session-advanced-panel">
+              {vendor === 'api' ? (
+                <div className="api-advanced-controls">
+                  <label className="field compact-field">
+                    <span>Max steps</span>
+                    <input type="number" min="1" max="50" value={apiMaxSteps} onChange={(e) => setApiMaxSteps(e.target.value)} />
+                  </label>
+                  <label className="field compact-field">
+                    <span>Temperature</span>
+                    <input type="number" min="0" max="2" step="0.1" value={apiTemperature} onChange={(e) => setApiTemperature(e.target.value)} />
+                  </label>
+                  <label className="field compact-field">
+                    <span>Top P</span>
+                    <input type="number" min="0" max="1" step="0.05" value={apiTopP} onChange={(e) => setApiTopP(e.target.value)} />
+                  </label>
+                </div>
+              ) : null}
+
+              {vendor === 'codex' ? (
+                <CodexOptions
+                  model={model}
+                  modelInfo={modelInfo}
+                  reasoningEffort={codexReasoningEffort}
+                  serviceTier={codexServiceTier}
+                  onReasoningEffortChange={setCodexReasoningEffort}
+                  onServiceTierChange={setCodexServiceTier}
+                />
+              ) : null}
             </div>
-          </label>
+          ) : null}
         </div>
 
         {!cliAvailable && <div className="warn">{vendor} CLI not found. Auto-installing...</div>}
@@ -445,6 +479,24 @@ function routeLabel(route: SessionRoute): string {
 
 function numberEmpty(value: number | undefined): string {
   return value === undefined ? '' : String(value)
+}
+
+function compactNumericLabel(value: string, fallback: string): string {
+  const clean = value.trim()
+  return clean.length > 0 ? clean : fallback
+}
+
+function reasoningSummaryLabel(value: NonNullable<RunConfig['codexReasoningEffort']>): string {
+  switch (value) {
+    case 'low':
+      return 'Low'
+    case 'medium':
+      return 'Medium'
+    case 'high':
+      return 'High'
+    case 'xhigh':
+      return 'XHigh'
+  }
 }
 
 function parseOptionalFloat(value: string): number | undefined {
