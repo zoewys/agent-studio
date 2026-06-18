@@ -130,6 +130,34 @@ test('save persists API generation limits such as maxOutputTokens', () =>
     assert.equal(store.getDecrypted(saved.id).maxOutputTokens, 16384)
   }))
 
+test('save persists per-model context windows', () =>
+  withTempDir(async (dir) => {
+    const { ProviderStore } = await importProviderStore(dir)
+    const store = new ProviderStore()
+
+    const saved = store.save({
+      name: 'Kimi',
+      format: 'openai-compatible',
+      apiKey: 'sk-context',
+      baseUrl: 'https://api.moonshot.cn/v1',
+      models: ['kimi-k2-thinking-251104', 'kimi-k2.6'],
+      modelContextWindows: {
+        'kimi-k2-thinking-251104': 256000,
+        'kimi-k2.6': 256000
+      },
+      defaultModel: 'kimi-k2-thinking-251104'
+    })
+
+    assert.deepEqual(store.list()[0].modelContextWindows, {
+      'kimi-k2-thinking-251104': 256000,
+      'kimi-k2.6': 256000
+    })
+    assert.deepEqual(store.getDecrypted(saved.id).modelContextWindows, {
+      'kimi-k2-thinking-251104': 256000,
+      'kimi-k2.6': 256000
+    })
+  }))
+
 test('remove deletes a provider by id', () =>
   withTempDir(async (dir) => {
     const { ProviderStore } = await importProviderStore(dir)

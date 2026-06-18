@@ -66,6 +66,12 @@ function modelHint(modelId: string): string | undefined {
   return MODEL_CONTEXT_HINT[modelId]
 }
 
+function contextWindowHint(value?: number): string | undefined {
+  if (!value) return undefined
+  if (value >= 1000 && value % 1000 === 0) return `${value / 1000}k context`
+  return `${value.toLocaleString()} context`
+}
+
 export function RuntimeModelCascade({
   vendor,
   apiProviderId,
@@ -139,7 +145,7 @@ export function RuntimeModelCascade({
       label: p.name,
       group: 'api',
       available: true,
-      models: p.models.map((id) => ({ id, label: id, hint: modelHint(id) })),
+      models: p.models.map((id) => ({ id, label: id, hint: contextWindowHint(p.modelContextWindows?.[id]) ?? modelHint(id) })),
       emptyMessage: p.models.length === 0 ? 'No models configured' : undefined
     }))
 

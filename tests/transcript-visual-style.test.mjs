@@ -69,6 +69,19 @@ test('assistant code blocks stay readable in the light workflow transcript', () 
   assert.match(css, /\[data-theme="dark"\] \.cli-msg pre\s*\{[\s\S]*background:\s*rgba\(10, 15, 26, 0\.78\) !important;[\s\S]*color:\s*var\(--neutral-text-primary\) !important;/)
 })
 
+test('chat error messages wrap fully instead of truncating', () => {
+  const row = lastRootBlock('.chat-v2-error')
+  const text = lastBlock('.chat-v2-error-text')
+
+  assert.match(row, /align-items:\s*flex-start;/)
+  assert.match(text, /overflow:\s*visible;/)
+  assert.match(text, /text-overflow:\s*clip;/)
+  assert.match(text, /white-space:\s*pre-wrap;/)
+  assert.match(text, /overflow-wrap:\s*anywhere;/)
+  assert.doesNotMatch(text, /white-space:\s*nowrap;/)
+  assert.doesNotMatch(text, /text-overflow:\s*ellipsis;/)
+})
+
 test('workflow card dashboard keeps runs, detail, and step chips readable', () => {
   const runTime = lastRootBlock('.workflow-run-card-time')
   const stepNav = block('.workflow-step-nav')

@@ -9003,6 +9003,14 @@ select:focus,
   padding: 5px 7px;
 }
 
+.model-row-context-input {
+  flex: 0 0 118px;
+  min-width: 96px;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  padding: 5px 7px;
+}
+
 .model-row .select-trigger {
   width: 28px;
   height: 26px;
@@ -13346,7 +13354,7 @@ button:disabled,
 
 .chat-v2-error {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 5px 12px;
   margin: 2px 0;
@@ -13365,6 +13373,11 @@ button:disabled,
 
 .chat-v2-error-text {
   flex: 1 1 auto;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .chat-v2-system {

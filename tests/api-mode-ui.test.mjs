@@ -48,6 +48,11 @@ test('ProviderSettings implements compact provider list and inline form with luc
   assert.match(component, /Plus/)
   assert.match(component, /maxOutputTokens/)
   assert.match(component, /最大输出 Tokens/)
+  assert.match(component, /contextWindows/)
+  assert.match(component, /modelContextWindows/)
+  assert.match(component, /model-row-context-input/)
+  assert.match(component, /placeholder="上下文窗口"/)
+  assert.match(component, /buildModelContextWindows/)
 })
 
 test('ProviderSettings shows decrypted API keys directly when editing providers', () => {
@@ -95,6 +100,14 @@ test('single run panel supports runtime cascade, provider selection, and API run
   assert.match(panel, /compactNumericLabel/)
   assert.doesNotMatch(panel, /Reasoning auto/)
   assert.doesNotMatch(panel, /Speed auto/)
+})
+
+test('runtime model cascade shows configured API model context windows', () => {
+  const cascade = source('src/renderer/src/RuntimeModelCascade.tsx')
+
+  assert.match(cascade, /function contextWindowHint\(value\?: number\): string \| undefined/)
+  assert.match(cascade, /p\.modelContextWindows\?\.\[id\]/)
+  assert.match(cascade, /contextWindowHint\(p\.modelContextWindows\?\.\[id\]\) \?\? modelHint\(id\)/)
 })
 
 test('agent manager supports API vendor tabs and persists apiProviderId', () => {

@@ -20,6 +20,7 @@ export interface ApiProviderConfig {
   apiKey: string
   baseUrl?: string
   models: string[]
+  modelContextWindows?: Record<string, number>
   defaultModel?: string
   maxOutputTokens?: number
 }

@@ -20,6 +20,7 @@ interface ProviderDraft {
   apiKey: string
   baseUrl: string
   models: string[]
+  contextWindows: string[]
   defaultModel: string
   maxOutputTokens: string
 }
@@ -30,6 +31,7 @@ const EMPTY_DRAFT: ProviderDraft = {
   apiKey: '',
   baseUrl: '',
   models: [],
+  contextWindows: [],
   defaultModel: '',
   maxOutputTokens: ''
 }
@@ -84,6 +86,7 @@ export function ProviderSettings({ providers, loading, save, remove, testConnect
       apiKey: decryptedKey,
       baseUrl: provider.baseUrl ?? '',
       models: [...provider.models],
+      contextWindows: provider.models.map((model) => provider.modelContextWindows?.[model] ? String(provider.modelContextWindows[model]) : ''),
       defaultModel: provider.defaultModel ?? provider.models[0] ?? '',
       maxOutputTokens: provider.maxOutputTokens ? String(provider.maxOutputTokens) : ''
     })
@@ -103,7 +106,13 @@ export function ProviderSettings({ providers, loading, save, remove, testConnect
   }
 
   const submit = async (): Promise<void> => {
-    const models = draft.models.map((m) => m.trim()).filter(Boolean)
+    const modelEntries = draft.models
+      .map((model, index) => ({
+        model: model.trim(),
+        contextWindow: draft.contextWindows[index] ?? ''
+      }))
+      .filter((entry) => Boolean(entry.model))
+    const models = modelEntries.map((entry) => entry.model)
     if (!draft.name.trim() || models.length === 0) return
     if (!draft.apiKey.trim()) {
       setTestMessage('请输入 API Key')
@@ -116,6 +125,7 @@ export function ProviderSettings({ providers, loading, save, remove, testConnect
       apiKey: draft.apiKey,
       baseUrl: draft.baseUrl.trim() || undefined,
       models,
+      modelContextWindows: buildModelContextWindows(modelEntries),
       defaultModel: draft.defaultModel.trim() || models[0],
       maxOutputTokens: parseOptionalPositiveInt(draft.maxOutputTokens)
     })
@@ -141,6 +151,12 @@ export function ProviderSettings({ providers, loading, save, remove, testConnect
         apiKey: draft.apiKey,
         baseUrl: draft.baseUrl.trim() || undefined,
         models: [],
+        modelContextWindows: buildModelContextWindows(
+          draft.models.map((model, index) => ({
+            model: model.trim(),
+            contextWindow: draft.contextWindows[index] ?? ''
+          })).filter((entry) => Boolean(entry.model))
+        ),
         defaultModel: '',
         maxOutputTokens: parseOptionalPositiveInt(draft.maxOutputTokens)
       }, editingId ?? undefined)
@@ -149,6 +165,7 @@ export function ProviderSettings({ providers, loading, save, remove, testConnect
         setDraft((d) => ({
           ...d,
           models: [...new Set([...d.models, ...result.models])],
+          contextWindows: mergeContextWindowsForModels(d.models, d.contextWindows, result.models),
           defaultModel: d.defaultModel || result.models[0]
         }))
         setTestMessage(`获取到 ${result.models.length} 个模型，已合并到列表`)
@@ -163,7 +180,7 @@ export function ProviderSettings({ providers, loading, save, remove, testConnect
   }
 
   const addEmptyModel = (): void => {
-    setDraft((d) => ({ ...d, models: [...d.models, ''] }))
+    setDraft((d) => ({ ...d, models: [...d.models, ''], contextWindows: [...d.contextWindows, ''] }))
   }
 
   const updateModel = (index: number, value: string): void => {
@@ -174,10 +191,19 @@ export function ProviderSettings({ providers, loading, save, remove, testConnect
     })
   }
 
+  const updateModelContextWindow = (index: number, value: string): void => {
+    setDraft((d) => {
+      const contextWindows = [...d.contextWindows]
+      contextWindows[index] = value
+      return { ...d, contextWindows }
+    })
+  }
+
   const removeModel = (index: number): void => {
     setDraft((d) => ({
       ...d,
       models: d.models.filter((_, i) => i !== index),
+      contextWindows: d.contextWindows.filter((_, i) => i !== index),
       defaultModel: d.defaultModel === d.models[index] ? '' : d.defaultModel
     }))
   }
@@ -185,10 +211,12 @@ export function ProviderSettings({ providers, loading, save, remove, testConnect
   const moveModel = (index: number, direction: -1 | 1): void => {
     setDraft((d) => {
       const models = [...d.models]
+      const contextWindows = [...d.contextWindows]
       const target = index + direction
       if (target < 0 || target >= models.length) return d
       ;[models[index], models[target]] = [models[target], models[index]]
-      return { ...d, models }
+      ;[contextWindows[index], contextWindows[target]] = [contextWindows[target], contextWindows[index]]
+      return { ...d, models, contextWindows }
     })
   }
 
@@ -283,6 +311,7 @@ export function ProviderSettings({ providers, loading, save, remove, testConnect
                     name: d.name || preset.name,
                     baseUrl: preset.baseUrl,
                     models: d.models.length === 0 ? preset.models : d.models,
+                    contextWindows: d.models.length === 0 ? preset.models.map(() => '') : d.contextWindows,
                     defaultModel: d.defaultModel || preset.models[0]
                   }))}
                 >
@@ -319,6 +348,16 @@ export function ProviderSettings({ providers, loading, save, remove, testConnect
                     value={model}
                     placeholder="输入模型名称"
                     onChange={(e) => updateModel(index, e.target.value)}
+                  />
+                  <input
+                    className="pf-input model-row-context-input"
+                    type="number"
+                    min="1"
+                    inputMode="numeric"
+                    value={draft.contextWindows[index] ?? ''}
+                    placeholder="上下文窗口"
+                    aria-label={`${model || `模型 ${index + 1}`} 上下文窗口`}
+                    onChange={(e) => updateModelContextWindow(index, e.target.value)}
                   />
                   <Select
                     value=""
@@ -427,6 +466,29 @@ function providerIconClass(provider: ApiProviderConfig): string {
 function parseOptionalPositiveInt(value: string): number | undefined {
   const parsed = Number.parseInt(value.trim(), 10)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+}
+
+interface ModelContextDraftEntry {
+  model: string
+  contextWindow: string
+}
+
+function buildModelContextWindows(entries: ModelContextDraftEntry[]): Record<string, number> | undefined {
+  const windows = entries.reduce<Record<string, number>>((acc, entry) => {
+    const parsed = parseOptionalPositiveInt(entry.contextWindow)
+    if (parsed) acc[entry.model] = parsed
+    return acc
+  }, {})
+  return Object.keys(windows).length > 0 ? windows : undefined
+}
+
+function mergeContextWindowsForModels(
+  currentModels: string[],
+  currentContextWindows: string[],
+  fetchedModels: string[]
+): string[] {
+  const contextByModel = new Map(currentModels.map((model, index) => [model, currentContextWindows[index] ?? '']))
+  return [...new Set([...currentModels, ...fetchedModels])].map((model) => contextByModel.get(model) ?? '')
 }
 
 function toErrorMessage(value: unknown): string {

@@ -46,6 +46,7 @@ export class ProviderStore {
       apiKey: encryptedKey,
       baseUrl: input.baseUrl,
       models: input.models,
+      modelContextWindows: input.modelContextWindows,
       defaultModel: input.defaultModel,
       maxOutputTokens: input.maxOutputTokens
     }

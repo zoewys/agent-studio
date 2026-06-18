@@ -18,6 +18,7 @@ test('shared contract exposes API vendor, provider config, run fields, agent fie
   assert.match(types, /apiKey: string/)
   assert.match(types, /baseUrl\?: string/)
   assert.match(types, /models: string\[\]/)
+  assert.match(types, /modelContextWindows\?: Record<string, number>/)
   assert.match(types, /defaultModel\?: string/)
   assert.match(types, /maxOutputTokens\?: number/)
   assert.match(types, /export interface ApiConversationMessage/)
