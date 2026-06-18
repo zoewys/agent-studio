@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Studio — Transcript UI v2</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* 设计系统变量 — 严格遵循 DESIGNv1.md                                       */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
+/* Light Mode */
+:root {
+  --neutral-bg: #ffffff;
+  --neutral-surface: #f5f7f6;
+  --neutral-surface-raised: #ffffff;
+  --neutral-border: #d8ddd9;
+  --neutral-border-subtle: #e8ece9;
+  --neutral-text-primary: #1a2e2e;
+  --neutral-text-secondary: #5a7070;
+  --neutral-text-muted: #8a9e96;
+  --neutral-canvas: #eef1f0;
+
+  --brand-primary: #3d8e86;
+  --brand-primary-hover: #206864;
+  --brand-secondary: #55bb8b;
+  --brand-accent: #6abd79;
+  --brand-muted: #9ab378;
+  --brand-surface: #77d2d1;
+
+  --semantic-success: #6abd79;
+  --semantic-warning: #e5a832;
+  --semantic-error: #d64545;
+  --semantic-info: #3d8e86;
+
+  --shadow-sm: 0 2px 8px rgba(26, 46, 46, 0.06);
+  --shadow-md: 0 4px 16px rgba(26, 46, 46, 0.08);
+
+  --font: "JetBrains Mono", "Fira Code", "SF Mono", "Cascadia Code", monospace;
+  --font-zh: "LXGW WenKai Mono", "Noto Sans Mono CJK SC", monospace;
+}
+
+/* Dark Mode */
+.dark {
+  --neutral-bg: #1a2a2a;
+  --neutral-surface: #223535;
+  --neutral-surface-raised: #2a4040;
+  --neutral-border: #3a5050;
+  --neutral-border-subtle: #2e4242;
+  --neutral-text-primary: #e0ebe6;
+  --neutral-text-secondary: #8aada0;
+  --neutral-text-muted: #5a7a70;
+  --neutral-canvas: #162222;
+
+  --semantic-success: #6abd79;
+  --semantic-warning: #f0b840;
+  --semantic-error: #ef6b6b;
+  --semantic-info: #77d2d1;
+
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.25);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font), var(--font-zh);
+  background: var(--neutral-bg);
+  color: var(--neutral-text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* 页面框架                                                               */
+/* ═══════════════════════════════════════════════════════════════════════ */
+.page-header {
+  background: var(--neutral-surface);
+  border-bottom: 1px solid var(--neutral-border);
+  padding: 24px 32px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.page-header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+.page-header p { font-size: 14px; color: var(--neutral-text-secondary); margin-top: 6px; line-height: 1.6; }
+
+.container { max-width: 1400px; margin: 0 auto; padding: 32px; }
+.container-dark { background: #0d1a1a; padding: 32px; }
+
+.section { margin-bottom: 48px; }
+.section-head {
+  font-size: 18px; font-weight: 600; color: var(--brand-primary);
+  border-bottom: 1px solid var(--neutral-border); padding-bottom: 8px; margin-bottom: 20px;
+}
+.section-desc { font-size: 14px; color: var(--neutral-text-secondary); margin-bottom: 20px; line-height: 1.6; }
+
+.side-by-side { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+.side-by-side > .mockup-frame { flex: 1; min-width: 520px; max-width: 640px; }
+
+.annotation {
+  background: var(--neutral-surface); border: 1px dashed var(--neutral-border); border-radius: 6px;
+  padding: 16px; font-size: 13px; color: var(--neutral-text-secondary); max-width: 320px; line-height: 1.7;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* 核心改动 1：视觉层级 — AI 消息最突出，工具次级                            */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
+/* 时间线容器 */
+.timeline {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+/* ── AI 消息（视觉中心，最突出）── */
+.msg-ai {
+  padding: 10px 12px;
+  margin: 4px 0;
+  animation: msgAppear 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(8px);
+}
+.msg-ai-body {
+  color: var(--neutral-text-primary); line-height: 1.7;
+  font-family: var(--font), var(--font-zh);
+}
+.msg-ai-body pre {
+  background: var(--neutral-bg); border: 1px solid var(--neutral-border-subtle);
+  border-radius: 6px; padding: 12px 14px; font-size: 13px; overflow-x: auto; margin: 10px 0;
+  color: var(--neutral-text-primary); font-family: var(--font);
+  line-height: 1.7;
+}
+.msg-ai-body code {
+  background: var(--neutral-bg); padding: 2px 5px; border-radius: 3px;
+  font-size: 12px; color: var(--brand-primary); font-family: var(--font);
+  border: 1px solid var(--neutral-border-subtle);
+}
+.msg-ai-body p { margin: 8px 0; }
+.msg-ai-body p:first-child { margin-top: 0; }
+.msg-ai-body ul, .msg-ai-body ol { margin: 8px 0; padding-left: 22px; }
+.msg-ai-body li { margin: 3px 0; }
+
+/* ── 用户消息（右对齐，圆角气泡）── */
+.msg-user {
+  align-self: flex-end;
+  max-width: 80%;
+  background: rgba(61, 142, 134, 0.06);
+  border: 1px solid rgba(61, 142, 134, 0.12);
+  border-radius: 14px 14px 4px 14px;
+  padding: 10px 14px;
+  margin: 4px 0;
+  animation: msgAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(8px);
+}
+.dark .msg-user {
+  background: rgba(61, 142, 134, 0.1);
+  border-color: rgba(61, 142, 134, 0.18);
+}
+.msg-user-body {
+  color: var(--neutral-text-primary);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* ── 工具调用（最弱，单行内联，高透明度）── */
+.msg-tool {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 12px;
+  margin: 1px 0;
+  font-size: 11px; font-family: var(--font);
+  color: var(--neutral-text-muted);
+  opacity: 0.55;
+  border-left: 2px solid transparent;
+  animation: msgAppear 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform: translateY(6px);
+}
+.msg-tool:hover { opacity: 0.85; }
+.msg-tool-read     { border-left-color: rgba(61, 142, 134, 0.2); }
+.msg-tool-write    { border-left-color: rgba(229, 168, 50, 0.2); }
+.msg-tool-exec     { border-left-color: rgba(180, 142, 173, 0.2); }
+.msg-tool-search   { border-left-color: rgba(85, 187, 139, 0.2); }
+.msg-tool-task     { border-left-color: rgba(106, 189, 121, 0.2); }
+.msg-tool-ok       { border-left-color: rgba(106, 189, 121, 0.15); }
+.msg-tool-err      { border-left-color: rgba(214, 69, 69, 0.15); }
+
+.tool-dot {
+  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.tool-dot-pulse { animation: dotPulse 1.3s ease-in-out infinite; }
+.tool-dot-blue   { background: var(--semantic-info); }
+.tool-dot-orange { background: var(--semantic-warning); }
+.tool-dot-purple { background: var(--brand-primary); }
+.tool-dot-green  { background: var(--semantic-success); }
+.tool-dot-red    { background: var(--semantic-error); }
+.tool-dot-dim    { background: var(--neutral-text-muted); }
+
+.tool-name {
+  font-weight: 600; color: var(--neutral-text-secondary); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.tool-target {
+  font-family: var(--font); color: var(--neutral-text-muted); font-size: 12px;
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tool-result {
+  font-size: 11px; color: var(--semantic-success); flex-shrink: 0;
+}
+.tool-result-err { color: var(--semantic-error); }
+
+/* 工具详情展开（仅在 Process 模式） */
+.tool-detail {
+  padding: 0 12px 6px 32px; font-size: 12px; color: var(--neutral-text-muted);
+  font-family: var(--font);
+}
+.tool-detail summary { cursor: pointer; user-select: none; font-size: 11px; }
+.tool-detail pre {
+  margin-top: 6px; padding: 8px 10px; background: var(--neutral-bg);
+  border-radius: 4px; border: 1px solid var(--neutral-border-subtle);
+  overflow-x: auto; font-size: 11px; color: var(--neutral-text-primary);
+}
+
+/* ── Thinking（折叠，不占空间，高透明度）── */
+.msg-think {
+  padding: 3px 12px; margin: 1px 0;
+  font-size: 11px; color: var(--neutral-text-muted);
+  font-family: var(--font);
+  opacity: 0.45;
+}
+.msg-think:hover { opacity: 0.75; }
+.think-row {
+  display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+}
+.think-body {
+  padding: 8px 0 0 22px; border-top: 1px solid var(--neutral-border-subtle); margin-top: 8px;
+  font-size: 12px; line-height: 1.7; color: var(--neutral-text-muted);
+  white-space: pre-wrap;
+}
+.think-body.collapsed { display: none; }
+
+/* ── 文件变更（单行内联，高透明度）── */
+.msg-file {
+  display: flex; align-items: center; gap: 8px;
+  padding: 3px 12px; margin: 1px 0;
+  font-size: 11px; font-family: var(--font);
+  opacity: 0.5;
+  animation: msgAppear 0.2s ease forwards;
+}
+.msg-file:hover { opacity: 0.8; }
+.file-op { font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+.file-op-create { color: var(--semantic-success); }
+.file-op-modify { color: var(--semantic-warning); }
+.file-op-delete { color: var(--semantic-error); }
+.file-path { color: var(--neutral-text-muted); font-size: 11px; }
+
+/* ── 权限请求（醒目但只在需要时）── */
+.msg-perm {
+  background: rgba(229, 168, 50, 0.04);
+  border: 1px solid rgba(229, 168, 50, 0.2);
+  border-radius: 6px; padding: 12px 14px; margin: 4px 0;
+  animation: msgAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0; transform: translateY(6px);
+}
+.dark .msg-perm { background: rgba(229, 168, 50, 0.06); }
+.perm-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.perm-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+  color: var(--semantic-warning); font-family: var(--font);
+}
+.perm-cmd {
+  font-family: var(--font); font-size: 12px; background: var(--neutral-bg);
+  padding: 6px 10px; border-radius: 4px; color: var(--neutral-text-primary); margin: 8px 0;
+  border: 1px solid var(--neutral-border-subtle);
+}
+.perm-btns { display: flex; gap: 6px; }
+
+/* ── 错误（单行内联，不破坏流）── */
+.msg-error {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; margin: 2px 0;
+  font-size: 12px; color: var(--semantic-error); font-family: var(--font);
+  animation: msgAppear 0.25s ease forwards;
+  opacity: 0;
+}
+
+/* ── 元信息（最弱）── */
+.msg-meta {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 12px; font-size: 11px; color: var(--neutral-text-muted); font-family: var(--font);
+}
+.meta-line { flex: 1; height: 1px; background: var(--neutral-border-subtle); }
+
+/* ── Usage ── */
+.msg-usage {
+  display: flex; align-items: center; justify-content: center; gap: 20px;
+  padding: 6px 12px; font-size: 11px; color: var(--neutral-text-muted); font-family: var(--font);
+}
+.usage-val { color: var(--brand-primary); font-weight: 600; }
+.dark .usage-val { color: #77d2d1; }
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* 核心改动 2：前缀标签 — 图标和文字严格单行                                 */
+/* ═══════════════════════════════════════════════════════════════════════ */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 500; letter-spacing: 0.5px;
+  text-transform: uppercase; padding: 1px 6px; border-radius: 4px;
+  white-space: nowrap; flex-shrink: 0; font-family: var(--font);
+  border: 1px solid transparent; line-height: 1.4;
+  vertical-align: middle;
+}
+
+.badge-read     { background: rgba(61, 142, 134, 0.08);  color: var(--semantic-info);   border-color: rgba(61, 142, 134, 0.2); }
+.badge-write    { background: rgba(229, 168, 50, 0.08);  color: var(--semantic-warning); border-color: rgba(229, 168, 50, 0.2); }
+.badge-exec     { background: rgba(180, 142, 173, 0.08); color: var(--brand-primary);   border-color: rgba(180, 142, 173, 0.2); }
+.badge-search   { background: rgba(85, 187, 139, 0.08);  color: var(--brand-secondary);  border-color: rgba(85, 187, 139, 0.2); }
+.badge-task     { background: rgba(106, 189, 121, 0.08); color: var(--semantic-success);  border-color: rgba(106, 189, 121, 0.2); }
+.badge-think    { background: rgba(154, 163, 181, 0.05); color: var(--neutral-text-muted); border-color: rgba(154, 163, 181, 0.12); }
+.badge-msg      { background: rgba(61, 142, 134, 0.08);  color: var(--semantic-info);   border-color: rgba(61, 142, 134, 0.2); }
+.badge-system   { background: rgba(154, 163, 181, 0.04); color: var(--neutral-text-muted); border-color: rgba(154, 163, 181, 0.1); }
+.badge-error    { background: rgba(214, 69, 69, 0.06);   color: var(--semantic-error);   border-color: rgba(214, 69, 69, 0.2); }
+.badge-file     { background: rgba(229, 168, 50, 0.06);  color: var(--semantic-warning); border-color: rgba(229, 168, 50, 0.15); }
+.badge-usage    { background: rgba(61, 142, 134, 0.04);  color: var(--neutral-text-muted); border-color: rgba(61, 142, 134, 0.1); }
+.badge-perm     { background: rgba(229, 168, 50, 0.08);  color: var(--semantic-warning); border-color: rgba(229, 168, 50, 0.25); }
+.badge-done     { background: rgba(106, 189, 121, 0.08); color: var(--semantic-success);  border-color: rgba(106, 189, 121, 0.2); }
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* 核心改动 3：动态效果 — 消息出现、脉冲、光标等                              */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
+/* 消息出现动画 */
+@keyframes msgAppear {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 脉冲圆点 */
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%      { opacity: 1;   transform: scale(1); }
+}
+
+/* 流式输出光标闪烁 */
+.streaming-cursor::after {
+  content: '|';
+  display: inline;
+  color: var(--brand-primary);
+  animation: cursorBlink 0.8s step-end infinite;
+  margin-left: 1px;
+}
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* 工具执行骨架脉冲 */
+.tool-skeleton {
+  display: inline-block;
+  width: 60px; height: 10px;
+  background: linear-gradient(90deg, var(--neutral-border-subtle) 25%, var(--neutral-border) 50%, var(--neutral-border-subtle) 75%);
+  background-size: 200% 100%;
+  border-radius: 3px;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+@keyframes skeletonPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 状态条呼吸 */
+.status-bar {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px; font-size: 11px; font-weight: 500;
+  background: var(--neutral-surface); border-bottom: 1px solid var(--neutral-border);
+  font-family: var(--font);
+  animation: statusFadeIn 0.3s ease forwards;
+}
+@keyframes statusFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.status-hint {
+  font-weight: 400; color: var(--neutral-text-muted); margin-left: 4px;
+  max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* 按钮悬停微动 */
+.btn {
+  padding: 5px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;
+  border: 1px solid var(--neutral-border); background: var(--neutral-surface-raised);
+  color: var(--neutral-text-primary); font-family: var(--font); font-weight: 500;
+  transition: all 0.15s ease;
+}
+.btn:hover { border-color: var(--brand-primary); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.btn:active { transform: translateY(0); }
+.btn-success { background: var(--semantic-success); border-color: var(--semantic-success); color: #fff; }
+.btn-success:hover { background: #5ba86a; border-color: #5ba86a; }
+.btn-danger { border-color: rgba(214, 69, 69, 0.5); color: var(--semantic-error); }
+.btn-danger:hover { background: rgba(214, 69, 69, 0.06); }
+.btn-ghost { background: transparent; color: var(--neutral-text-muted); border-color: var(--neutral-border-subtle); }
+.btn-ghost:hover { background: var(--neutral-surface); color: var(--neutral-text-primary); }
+
+/* 卡片悬停微抬 */
+.msg-ai, .msg-user, .msg-perm {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+.msg-ai:hover { transform: translateY(-1px); }
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* Mockup 容器                                                            */
+/* ═══════════════════════════════════════════════════════════════════════ */
+.mockup-frame {
+  border: 1px solid var(--neutral-border); border-radius: 6px; overflow: hidden;
+  background: var(--neutral-bg); width: 100%; flex: 1; min-width: 520px; max-width: 640px;
+  box-shadow: var(--shadow-sm);
+}
+.mockup-header {
+  background: var(--neutral-surface); border-bottom: 1px solid var(--neutral-border);
+  padding: 8px 14px; font-size: 11px; color: var(--neutral-text-muted); font-family: var(--font);
+  display: flex; align-items: center; justify-content: space-between; font-weight: 500; letter-spacing: 0.5px;
+}
+.mockup-body { max-height: 520px; overflow-y: auto; }
+
+/* 分隔区 */
+.mode-divider {
+  height: 48px; display: flex; align-items: center; justify-content: center;
+  gap: 16px; margin: 48px 0; border-top: 1px solid var(--neutral-border);
+  border-bottom: 1px solid var(--neutral-border); background: var(--neutral-surface);
+}
+.mode-divider .label {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+  color: var(--neutral-text-muted); font-family: var(--font);
+}
+.mode-divider .line { flex: 1; height: 1px; background: var(--neutral-border-subtle); max-width: 200px; }
+
+/* 代码块 */
+pre.spec { background: var(--neutral-surface); border: 1px solid var(--neutral-border-subtle);
+  border-radius: 6px; padding: 14px; font-size: 12px; font-family: var(--font);
+  color: var(--neutral-text-primary); overflow-x: auto; line-height: 1.7; }
+pre.spec .c { color: var(--neutral-text-muted); }
+pre.spec .k { color: var(--brand-primary); }
+pre.spec .s { color: var(--semantic-success); }
+
+/* 表格 */
+table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; font-family: var(--font); }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--neutral-border-subtle); }
+th { color: var(--neutral-text-muted); font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+td { color: var(--neutral-text-primary); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Agent Studio — Transcript UI v2</h1>
+  <p>视觉层级重排：AI 消息最突出，工具调用次级。图标文字严格单行。添加动态效果。</p>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- 第一部分：前缀标签文案规范                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-head">一、前缀标签文案规范</div>
+  <p class="section-desc">
+    所有事件类型在渲染时必须携带一个前缀标签，格式统一。以下为全部文案对照表，实现时请严格遵循。
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>事件类型</th><th>中文标签</th><th>英文标签</th><th>颜色</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>tool-call (read)</td><td>文件读取中</td><td>文件读取中</td><td style="color:var(--semantic-info)">蓝</td></tr>
+      <tr><td>tool-call (write)</td><td>文件写入中</td><td>Writing</td><td style="color:var(--semantic-warning)">橙</td></tr>
+      <tr><td>tool-call (exec)</td><td>命令执行中</td><td>命令执行中</td><td style="color:var(--brand-primary)">紫</td></tr>
+      <tr><td>tool-call (search)</td><td>搜索中</td><td>搜索中</td><td style="color:var(--brand-secondary)">青</td></tr>
+      <tr><td>tool-call (task)</td><td>任务执行中</td><td>Task</td><td style="color:var(--semantic-success)">绿</td></tr>
+      <tr><td>thinking</td><td>思考中</td><td>思考中</td><td style="color:var(--neutral-text-muted)">灰</td></tr>
+      <tr><td>message-delta</td><td>生成回复中</td><td>Generating</td><td style="color:var(--brand-primary)">主色</td></tr>
+      <tr><td>file-changed</td><td>文件变更</td><td>文件变更</td><td style="color:var(--semantic-warning)">黄</td></tr>
+      <tr><td>error</td><td>错误</td><td>错误</td><td style="color:var(--semantic-error)">红</td></tr>
+      <tr><td>permission</td><td>权限请求</td><td>权限请求</td><td style="color:var(--semantic-warning)">黄</td></tr>
+      <tr><td>tool-result (ok)</td><td>已完成</td><td>已完成</td><td style="color:var(--semantic-success)">绿</td></tr>
+      <tr><td>tool-result (err)</td><td>失败</td><td>Failed</td><td style="color:var(--semantic-error)">红</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- 第二部分：视觉层级说明                                                   -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-head">二、视觉层级规则</div>
+  <p class="section-desc">
+    按信息重要性从高到低排列。AI 正式回复是视觉中心，工具调用仅作为辅助信息低调展示。
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>层级</th><th>元素</th><th>样式</th><th>目的</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span style="color:var(--brand-primary);font-weight:600;">1 · 最突出</span></td>
+        <td>AI 正式消息</td>
+        <td>白色卡片 + 左侧铜青色条 + 阴影</td>
+        <td>用户阅读的核心内容</td>
+      </tr>
+      <tr>
+        <td><span style="color:var(--brand-secondary);font-weight:600;">2 · 次级</span></td>
+        <td>用户消息</td>
+        <td>右对齐 + 半透明铜青底</td>
+        <td>对话上下文</td>
+      </tr>
+      <tr>
+        <td><span style="color:var(--neutral-text-muted);font-weight:600;">3 · 辅助</span></td>
+        <td>权限请求</td>
+        <td>黄色边框独立卡片</td>
+        <td>需要用户操作时醒目</td>
+      </tr>
+      <tr>
+        <td><span style="color:var(--neutral-text-muted);font-weight:600;">4 · 最弱</span></td>
+        <td>工具调用 / 文件变更</td>
+        <td>单行内联，无背景，仅细色条</td>
+        <td>执行痕迹，扫一眼即可</td>
+      </tr>
+      <tr>
+        <td><span style="color:var(--neutral-text-muted);font-weight:600;">5 · 隐藏</span></td>
+        <td>思考中</td>
+        <td>单行可折叠，默认收起</td>
+        <td>需要时才展开</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- 第二部分：亮色模式 — Process 展开视图                                     -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-head">三、亮色模式 — Process 展开视图</div>
+
+  <div class="side-by-side">
+    <div class="mockup-frame">
+      <div class="mockup-header">
+        <span>Process</span>
+        <span>运行中 · Step 1: PM</span>
+      </div>
+      <div class="mockup-body">
+        <div class="timeline">
+
+          <!-- AI 消息 — 最突出 -->
+          <div class="msg-ai">
+            <div class="msg-ai-body">
+              <p>我来帮你梳理这个功能的需求。先确认几个关键问题：</p>
+              <ol>
+                <li>这个功能的目标用户是谁？</li>
+                <li>有没有参考产品或竞品？</li>
+                <li>预期的上线时间是？</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- 用户消息 -->
+          <div class="msg-user">
+            <div class="msg-user-body">内部运营团队用的，参考飞书多维表格，不急。</div>
+          </div>
+
+          <!-- Thinking — 折叠，最弱 -->
+          <div class="msg-think">
+            <div class="think-row" onclick="this.nextElementSibling.classList.toggle('collapsed')">
+              <span class="badge badge-think"><span class="tool-dot tool-dot-dim"></span>思考中</span>
+              <span style="color:var(--neutral-text-muted);font-size:11px;">▾</span>
+            </div>
+            <div class="think-body collapsed">分析用户需求中... 确认数据源、视图类型和权限控制。</div>
+          </div>
+
+          <!-- 工具调用 — 单行内联，最弱 -->
+          <div class="msg-tool msg-tool-read">
+            <span class="tool-dot tool-dot-blue tool-dot-pulse"></span>
+            <span class="badge badge-read">文件读取中</span>
+            <span class="tool-name">read</span>
+            <span class="tool-target">src/shared/types.ts</span>
+          </div>
+
+          <!-- 工具结果 — 单行内联 -->
+          <div class="msg-tool msg-tool-ok">
+            <span class="tool-dot tool-dot-green"></span>
+            <span class="badge badge-done">已完成</span>
+            <span class="tool-name">read</span>
+            <span class="tool-target">src/shared/types.ts</span>
+            <span class="tool-result">· 142 lines</span>
+          </div>
+
+          <!-- 搜索工具 -->
+          <div class="msg-tool msg-tool-search">
+            <span class="tool-dot tool-dot-green tool-dot-pulse"></span>
+            <span class="badge badge-search">搜索中</span>
+            <span class="tool-name">search</span>
+            <span class="tool-target">AgentEvent | tool-call</span>
+          </div>
+
+          <div class="msg-tool msg-tool-ok">
+            <span class="tool-dot tool-dot-green"></span>
+            <span class="badge badge-done">已完成</span>
+            <span class="tool-name">search</span>
+            <span class="tool-target">AgentEvent | tool-call</span>
+            <span class="tool-result">· 3 results</span>
+          </div>
+
+          <!-- 执行工具（带详情） -->
+          <div class="msg-tool msg-tool-exec">
+            <span class="tool-dot tool-dot-purple tool-dot-pulse"></span>
+            <span class="badge badge-exec">命令执行中</span>
+            <span class="tool-name">bash</span>
+            <span class="tool-target">find src -name "*.tsx" | wc -l</span>
+          </div>
+          <div class="tool-detail">
+            <details>
+              <summary>Output</summary>
+              <pre>42</pre>
+            </details>
+          </div>
+
+          <div class="msg-tool msg-tool-ok">
+            <span class="tool-dot tool-dot-green"></span>
+            <span class="badge badge-done">已完成</span>
+            <span class="tool-name">bash</span>
+            <span class="tool-target">find src -name "*.tsx" | wc -l</span>
+            <span class="tool-result">· exit 0</span>
+          </div>
+
+          <!-- 权限请求 — 醒目但只在需要时 -->
+          <div class="msg-perm">
+            <div class="perm-row">
+              <span class="badge badge-perm"><span class="tool-dot tool-dot-yellow tool-dot-pulse"></span>权限请求</span>
+              <span style="font-size:11px;color:var(--semantic-warning);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Pending</span>
+            </div>
+            <div style="font-size:12px;color:var(--neutral-text-secondary);margin-bottom:6px;">bash requests to execute</div>
+            <div class="perm-cmd">rm -rf dist &amp;&amp; npm run build</div>
+            <div class="perm-btns">
+              <button class="btn btn-success">Allow</button>
+              <button class="btn btn-danger">Deny</button>
+              <button class="btn btn-ghost">Allow All</button>
+            </div>
+          </div>
+
+          <!-- 文件变更 — 单行 -->
+          <div class="msg-file">
+            <span class="badge badge-file">文件变更</span>
+            <span class="file-op file-op-create">已创建</span>
+            <span class="file-path">design/ui-transcript-v2.html</span>
+          </div>
+
+          <!-- AI 继续 -->
+          <div class="msg-ai">
+            <div class="msg-ai-body">
+              <p>明白了。再确认几个细节：</p>
+              <ul>
+                <li>数据源是从 API 接口还是手动导入？</li>
+                <li>需要支持哪些视图？</li>
+                <li>需要权限控制吗？</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Turn 分隔 -->
+          <div class="msg-meta">
+            <span class="meta-line"></span>
+            <span class="badge badge-system">回合结束</span>
+            <span class="meta-line"></span>
+          </div>
+
+          <div class="msg-usage">
+            <span class="badge badge-usage">用量统计</span>
+            <span>Input: <span class="usage-val">3,245</span></span>
+            <span>Output: <span class="usage-val">1,102</span></span>
+            <span>Cost: <span class="usage-val">$0.0042</span></span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <strong>Process 模式要点：</strong><br><br>
+      1. <strong>AI 消息最突出</strong>：白色卡片 + 左侧铜青色条 + 阴影<br><br>
+      2. <strong>工具调用最弱</strong>：单行内联，无背景，仅细色条 + 小圆点<br><br>
+      3. <strong>图标文字严格单行</strong>：所有工具信息一行显示<br><br>
+      4. <strong>Thinking 折叠</strong>：不占空间，点击展开<br><br>
+      5. <strong>权限请求醒目</strong>：黄色边框卡片，仅在有请求时出现<br><br>
+      6. <strong>出现动画</strong>：每条消息从下方淡入滑出
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- 第三部分：亮色模式 — Chat 紧凑视图                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-head">四、亮色模式 — Chat 紧凑视图</div>
+
+  <div class="side-by-side">
+    <div class="mockup-frame">
+      <div class="mockup-header">
+        <span>Chat</span>
+        <span>Single Session · claude-sonnet-4-6</span>
+      </div>
+      <div class="mockup-body">
+        <div class="timeline">
+
+          <div class="msg-ai">
+            <div class="msg-ai-body">
+              <p>我来帮你设计一个新的页面。你先描述一下想要什么风格？</p>
+            </div>
+          </div>
+
+          <div class="msg-user">
+            <div class="msg-user-body">想要一个像素风复古游戏风格的 Hello World 页面，8-bit 感觉。</div>
+          </div>
+
+          <!-- Chat 模式下工具更弱：仅一行 badge + 文件名 -->
+          <div class="msg-tool msg-tool-read" style="padding:3px 12px;">
+            <span class="badge badge-read">已读取</span>
+            <span style="font-size:11px;color:var(--neutral-text-muted);">index.html · SPEC.md · DESIGN.md</span>
+          </div>
+
+          <div class="msg-ai">
+            <div class="msg-ai-body">
+              <p>好的，我来按像素风重新设计。设计方案：</p>
+              <ul>
+                <li>深空蓝底 <code>#1a1c2c</code></li>
+                <li>Press Start 2P 像素字体</li>
+                <li>CRT 扫描线效果</li>
+                <li>霓虹色点缀（绿/青/橙/黄/粉）</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="msg-file" style="padding:3px 12px;">
+            <span class="badge badge-file">已创建</span>
+            <span class="file-path">design/pixel-hello-world.html</span>
+          </div>
+
+          <div class="msg-think" style="padding:3px 12px;">
+            <div class="think-row" onclick="this.nextElementSibling.classList.toggle('collapsed')">
+              <span class="badge badge-think"><span class="tool-dot tool-dot-dim"></span>思考中</span>
+              <span style="color:var(--neutral-text-muted);font-size:10px;">▾</span>
+            </div>
+            <div class="think-body collapsed">用户要求像素风...</div>
+          </div>
+
+          <div class="msg-user">
+            <div class="msg-user-body">看起来不错，再加一个 PRESS START 按钮和像素精灵动画。</div>
+          </div>
+
+          <div class="msg-ai">
+            <div class="msg-ai-body">
+              <p>已更新，新增了 PRESS START 按钮和 idle 动画的像素精灵：</p>
+              <pre><code>/* 像素精灵 idle 动画 */
+@keyframes idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}</code></pre>
+            </div>
+          </div>
+
+          <div class="msg-error">
+            <span style="font-size:14px;">⚠</span>
+            <span><span class="badge badge-error">错误</span> 文件保存失败：权限不足，无法写入 /design 目录</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <strong>Chat 模式要点：</strong><br><br>
+      1. <strong>对话为主体</strong>：AI 卡片是视觉中心<br><br>
+      2. <strong>工具极度弱化</strong>：仅 badge + 文件名一行<br><br>
+      3. <strong>Thinking 极简</strong>：单行可展开<br><br>
+      4. <strong>错误不打断</strong>：红色单行提示<br><br>
+      5. <strong>代码块正常渲染</strong>：保持可读性
+    </div>
+  </div>
+</div>
+
+</div><!-- /light container -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- 暗色模式分隔                                                           -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="mode-divider">
+  <span class="line"></span>
+  <span class="label">▼ 暗色模式 Dark Mode</span>
+  <span class="line"></span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- 暗色模式容器                                                           -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="container dark">
+
+<div class="section">
+  <div class="section-head">五、暗色模式 — Process 展开视图</div>
+
+  <div class="side-by-side">
+    <div class="mockup-frame">
+      <div class="mockup-header">
+        <span>Process</span>
+        <span>运行中 · Step 2: Developer</span>
+      </div>
+      <div class="mockup-body">
+        <div class="timeline">
+
+          <div class="msg-meta">
+            <span class="badge badge-system">会话</span>
+            <span style="font-size:11px;color:var(--neutral-text-muted);">claude-sonnet-4-6 · /Users/siyuan/wsy/agent-studio</span>
+          </div>
+
+          <div class="msg-ai">
+            <div class="msg-ai-body">
+              <p>我来帮你梳理这个功能的需求。先确认几个关键问题：</p>
+              <ol>
+                <li>这个功能的目标用户是谁？</li>
+                <li>有没有参考产品或竞品？</li>
+                <li>预期的上线时间是？</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="msg-user">
+            <div class="msg-user-body">内部运营团队用的，参考飞书多维表格，不急。</div>
+          </div>
+
+          <div class="msg-think">
+            <div class="think-row" onclick="this.nextElementSibling.classList.toggle('collapsed')">
+              <span class="badge badge-think"><span class="tool-dot tool-dot-dim"></span>思考中</span>
+              <span style="color:var(--neutral-text-muted);font-size:11px;">▾</span>
+            </div>
+            <div class="think-body collapsed">分析用户需求中...</div>
+          </div>
+
+          <div class="msg-tool msg-tool-read">
+            <span class="tool-dot tool-dot-blue tool-dot-pulse"></span>
+            <span class="badge badge-read">文件读取中</span>
+            <span class="tool-name">read</span>
+            <span class="tool-target">src/shared/types.ts</span>
+          </div>
+
+          <div class="msg-tool msg-tool-ok">
+            <span class="tool-dot tool-dot-green"></span>
+            <span class="badge badge-done">已完成</span>
+            <span class="tool-name">read</span>
+            <span class="tool-target">src/shared/types.ts</span>
+            <span class="tool-result">· 142 lines</span>
+          </div>
+
+          <div class="msg-tool msg-tool-exec">
+            <span class="tool-dot tool-dot-purple tool-dot-pulse"></span>
+            <span class="badge badge-exec">命令执行中</span>
+            <span class="tool-name">bash</span>
+            <span class="tool-target">npm run build</span>
+          </div>
+
+          <div class="msg-tool msg-tool-ok">
+            <span class="tool-dot tool-dot-green"></span>
+            <span class="badge badge-done">已完成</span>
+            <span class="tool-name">bash</span>
+            <span class="tool-target">npm run build</span>
+            <span class="tool-result">· exit 0</span>
+          </div>
+
+          <div class="msg-perm">
+            <div class="perm-row">
+              <span class="badge badge-perm"><span class="tool-dot tool-dot-yellow tool-dot-pulse"></span>权限请求</span>
+              <span style="font-size:11px;color:var(--semantic-warning);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Pending</span>
+            </div>
+            <div style="font-size:12px;color:var(--neutral-text-secondary);margin-bottom:6px;">bash requests to execute</div>
+            <div class="perm-cmd">rm -rf dist &amp;&amp; npm run build</div>
+            <div class="perm-btns">
+              <button class="btn btn-success">Allow</button>
+              <button class="btn btn-danger">Deny</button>
+              <button class="btn btn-ghost">Allow All</button>
+            </div>
+          </div>
+
+          <div class="msg-file">
+            <span class="badge badge-file">文件变更</span>
+            <span class="file-op file-op-create">已创建</span>
+            <span class="file-path">design/ui-transcript-v2.html</span>
+          </div>
+
+          <div class="msg-meta">
+            <span class="meta-line"></span>
+            <span class="badge badge-system">回合结束</span>
+            <span class="meta-line"></span>
+          </div>
+
+          <div class="msg-usage">
+            <span class="badge badge-usage">用量统计</span>
+            <span>Input: <span class="usage-val">3,245</span></span>
+            <span>Output: <span class="usage-val">1,102</span></span>
+            <span>Cost: <span class="usage-val">$0.0042</span></span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <strong>暗色模式特点：</strong><br><br>
+      1. 底色墨绿 #1a2a2a，非纯黑<br><br>
+      2. AI 卡片用 #2a4040 底色，左侧铜青色条更明显<br><br>
+      3. 工具调用保持弱化：单行无背景<br><br>
+      4. 脉冲圆点在暗色下更醒目
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-head">六、暗色模式 — Chat 紧凑视图</div>
+
+  <div class="side-by-side">
+    <div class="mockup-frame">
+      <div class="mockup-header">
+        <span>Chat</span>
+        <span>Single Session · claude-sonnet-4-6</span>
+      </div>
+      <div class="mockup-body">
+        <div class="timeline">
+
+          <div class="msg-ai">
+            <div class="msg-ai-body">
+              <p>我来帮你设计一个新的页面。你先描述一下想要什么风格？</p>
+            </div>
+          </div>
+
+          <div class="msg-user">
+            <div class="msg-user-body">想要一个像素风复古游戏风格的 Hello World 页面，8-bit 感觉。</div>
+          </div>
+
+          <div class="msg-tool msg-tool-read" style="padding:3px 12px;">
+            <span class="badge badge-read">已读取</span>
+            <span style="font-size:11px;color:var(--neutral-text-muted);">index.html · SPEC.md · DESIGN.md</span>
+          </div>
+
+          <div class="msg-ai">
+            <div class="msg-ai-body">
+              <p>好的，我来按像素风重新设计。设计方案：</p>
+              <ul>
+                <li>深空蓝底 <code>#1a1c2c</code></li>
+                <li>Press Start 2P 像素字体</li>
+                <li>CRT 扫描线效果</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="msg-file" style="padding:3px 12px;">
+            <span class="badge badge-file">已创建</span>
+            <span class="file-path">design/pixel-hello-world.html</span>
+          </div>
+
+          <div class="msg-think" style="padding:3px 12px;">
+            <div class="think-row" onclick="this.nextElementSibling.classList.toggle('collapsed')">
+              <span class="badge badge-think"><span class="tool-dot tool-dot-dim"></span>思考中</span>
+              <span style="color:var(--neutral-text-muted);font-size:10px;">▾</span>
+            </div>
+            <div class="think-body collapsed">用户要求像素风...</div>
+          </div>
+
+          <div class="msg-user">
+            <div class="msg-user-body">看起来不错，再加一个 PRESS START 按钮和像素精灵动画。</div>
+          </div>
+
+          <div class="msg-error">
+            <span style="font-size:14px;">⚠</span>
+            <span><span class="badge badge-error">错误</span> 文件保存失败：权限不足</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <strong>Chat 暗色模式：</strong><br><br>
+      1. 用户气泡用铜青半透明底 #223535<br><br>
+      2. AI 卡片有左侧色条 + 阴影<br><br>
+      3. 工具极度弱化，不占视觉重心<br><br>
+      4. 代码块保持清晰可读
+    </div>
+  </div>
+</div>
+
+</div><!-- /dark container -->
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- 第六部分：动态效果规范                                                   -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="container">
+<div class="section">
+  <div class="section-head">七、动态效果规范</div>
+
+  <table>
+    <thead>
+      <tr><th>效果</th><th>触发条件</th><th>CSS 实现</th><th>时长</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>消息出现</td>
+        <td>新消息添加到 DOM</td>
+        <td>fadeIn + translateY(8px→0)</td>
+        <td>0.3s · cubic-bezier(0.16, 1, 0.3, 1)</td>
+      </tr>
+      <tr>
+        <td>流式光标</td>
+        <td>message-delta 未结束</td>
+        <td>::after 伪元素 + blink 动画</td>
+        <td>0.8s · step-end</td>
+      </tr>
+      <tr>
+        <td>工具脉冲</td>
+        <td>tool-call 未收到 tool-result</td>
+        <td>圆点 scale + opacity 脉冲</td>
+        <td>1.6s · ease-in-out · infinite</td>
+      </tr>
+      <tr>
+        <td>卡片悬停</td>
+        <td>鼠标 hover AI 消息</td>
+        <td>translateY(-1px) + shadow 增强</td>
+        <td>0.15s · ease</td>
+      </tr>
+      <tr>
+        <td>按钮悬停</td>
+        <td>鼠标 hover 按钮</td>
+        <td>translateY(-1px) + shadow</td>
+        <td>0.15s · ease</td>
+      </tr>
+      <tr>
+        <td>骨架屏</td>
+        <td>工具参数加载中</td>
+        <td>background-position 位移动画</td>
+        <td>1.5s · ease-in-out · infinite</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="section-desc" style="margin-top:20px;">
+    <strong>实现要点：</strong>动画使用 CSS 完成，不依赖 JS。仅在状态变化时触发动画，避免过度炫技。
+  </p>
+
+  <pre class="spec"><code><span class="c">// React 中触发动画：给新消息添加动画类，动画结束后移除</span>
+const MessageCard = ({ event, isNew }) =&gt; (
+  &lt;div className={
+    isNew ? 'msg-ai msg-ai-animate' : 'msg-ai'
+  }&gt;
+    ...
+  &lt;/div&gt;
+);
+
+<span class="c">// CSS 中定义动画</span>
+.msg-ai-animate {
+  animation: msgAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}</span></code></pre>
+</div>
+</div>
+
+</body>
+</html>
