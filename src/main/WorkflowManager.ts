@@ -158,6 +158,7 @@ export class WorkflowManager {
       templateName: template.name,
       runName: input.runName?.trim() || undefined,
       projectPath: input.projectPath,
+      branch: safety.branch,
       initialPrompt: input.initialPrompt,
       status: 'running',
       currentStepIndex: 0,
@@ -170,6 +171,15 @@ export class WorkflowManager {
       scheduledBy: input.scheduledBy,
       steps: this.flattenTemplateSteps(template)
     }
+    if (input.useWorktree && safety.isGitRepo) {
+      try {
+        const wt = createWorktree(input.projectPath, run.id.slice(0, 8))
+        run.worktreePath = wt.path
+        run.branch = wt.branch
+      } catch {
+        run.worktreePath = undefined
+      }
+    }
     this.runs.set(run.id, run)
     this.workflowStore.saveRun(run)
     this.emitUpdate(run)
@@ -179,6 +189,11 @@ export class WorkflowManager {
 
   listRuns(): WorkflowRun[] {
     return [...this.runs.values()].sort((a, b) => b.startedAt - a.startedAt)
+  }
+
+  /** Effective execution directory: the run-level worktree when set, otherwise the original project path. */
+  private runCwd(run: WorkflowRun): string {
+    return run.worktreePath ?? run.projectPath
   }
 
   deleteRun(runId: string): void {
@@ -191,8 +206,12 @@ export class WorkflowManager {
     this.liveByRunId.delete(runId)
     for (const step of run.steps) {
       if (step.worktreePath) {
-        try { removeWorktree(run.projectPath, step.worktreePath) } catch { /* best-effort */ }
+        try { removeWorktree(this.runCwd(run), step.worktreePath) } catch { /* best-effort */ }
       }
+    }
+    if (run.worktreePath) {
+      try { cleanupOrphanedWorktrees(run.worktreePath, new Set()) } catch { /* best-effort */ }
+      try { removeWorktree(run.projectPath, run.worktreePath) } catch { /* best-effort */ }
     }
     this.runs.delete(runId)
     this.workflowStore.deleteRun(runId)
@@ -218,7 +237,7 @@ export class WorkflowManager {
 
     if (step.parallelGroupId) {
       if (step.worktreePath) {
-        try { removeWorktree(run.projectPath, step.worktreePath) } catch { /* best-effort */ }
+        try { removeWorktree(this.runCwd(run), step.worktreePath) } catch { /* best-effort */ }
         step.worktreePath = undefined
       }
       if (step.parallelGroupJoin && !this.isParallelGroupComplete(run, step.parallelGroupId)) {
@@ -309,9 +328,14 @@ export class WorkflowManager {
         step.status = 'error'
       }
       if (step.worktreePath) {
-        try { removeWorktree(run.projectPath, step.worktreePath) } catch { /* best-effort */ }
+        try { removeWorktree(this.runCwd(run), step.worktreePath) } catch { /* best-effort */ }
         step.worktreePath = undefined
       }
+    }
+    if (run.worktreePath) {
+      try { cleanupOrphanedWorktrees(run.worktreePath, new Set()) } catch { /* best-effort */ }
+      try { removeWorktree(run.projectPath, run.worktreePath) } catch { /* best-effort */ }
+      run.worktreePath = undefined
     }
     this.persistAndEmit(run)
     return run
@@ -408,7 +432,7 @@ export class WorkflowManager {
     const config: RunConfig = {
       vendor: agent.vendor,
       prompt,
-      cwd: run.projectPath,
+      cwd: this.runCwd(run),
       model,
       codexReasoningEffort: agent.codexReasoningEffort,
       codexServiceTier: agent.codexServiceTier?.trim() || undefined,
@@ -467,7 +491,7 @@ export class WorkflowManager {
 
     if (step.parallelGroupId) {
       if (step.worktreePath) {
-        try { removeWorktree(run.projectPath, step.worktreePath) } catch { /* best-effort */ }
+        try { removeWorktree(this.runCwd(run), step.worktreePath) } catch { /* best-effort */ }
         step.worktreePath = undefined
       }
       if (step.parallelGroupJoin && !this.isParallelGroupComplete(run, step.parallelGroupId)) {
@@ -571,7 +595,7 @@ export class WorkflowManager {
       return
     }
 
-    const cwd = step.worktreePath ?? run.projectPath
+    const cwd = step.worktreePath ?? this.runCwd(run)
     const config: RunConfig = {
       vendor: agent.vendor,
       prompt,
@@ -759,7 +783,7 @@ export class WorkflowManager {
         }
       } else {
         if (step.worktreePath) {
-          try { removeWorktree(run.projectPath, step.worktreePath) } catch { /* best-effort */ }
+          try { removeWorktree(this.runCwd(run), step.worktreePath) } catch { /* best-effort */ }
           step.worktreePath = undefined
         }
         if (run.steps.every((s) => s.status === 'done' || s.status === 'error' || s.status === 'stale')) {
@@ -950,7 +974,7 @@ export class WorkflowManager {
       }
       sections.push('', '# Handoff requirement', HANDOFF_HINT)
       mainPrompt = sections.join('\n')
-      return this.withMemoryContext(agent, run.projectPath, mainPrompt)
+      return this.withMemoryContext(agent, this.runCwd(run), mainPrompt)
     }
 
     // Check if predecessor is part of a join parallel group
@@ -996,7 +1020,7 @@ export class WorkflowManager {
     }
     sections.push('', '# Handoff requirement', HANDOFF_HINT)
     mainPrompt = sections.join('\n')
-    return this.withMemoryContext(agent, run.projectPath, mainPrompt)
+    return this.withMemoryContext(agent, this.runCwd(run), mainPrompt)
   }
 
   private buildPromptForJoinStep(
@@ -1038,7 +1062,7 @@ export class WorkflowManager {
     }
     sections.push('', '# Handoff requirement', HANDOFF_HINT)
     const mainPrompt = sections.join('\n')
-    return this.withMemoryContext(agent, run.projectPath, mainPrompt)
+    return this.withMemoryContext(agent, this.runCwd(run), mainPrompt)
   }
 
   private markInterruptedRunsOnStartup(runs: WorkflowRun[]): WorkflowRun[] {
@@ -1075,6 +1099,11 @@ export class WorkflowManager {
 
       // Cleanup orphaned worktrees from interrupted runs
       try { cleanupOrphanedWorktrees(run.projectPath, new Set()) } catch { /* best-effort */ }
+      if (run.worktreePath) {
+        try { cleanupOrphanedWorktrees(run.worktreePath, new Set()) } catch { /* best-effort */ }
+        try { removeWorktree(run.projectPath, run.worktreePath) } catch { /* best-effort */ }
+      }
+      interrupted.worktreePath = undefined
 
       this.workflowStore.saveRun(interrupted)
       return interrupted
@@ -1173,11 +1202,12 @@ export class WorkflowManager {
   private startParallelGroup(runId: string, stepIndices: number[]): void {
     const run = this.getRun(runId)
 
-    if (isGitRepo(run.projectPath)) {
+    const base = this.runCwd(run)
+    if (isGitRepo(base)) {
       for (const idx of stepIndices) {
         const step = run.steps[idx]
         try {
-          const wt = createWorktree(run.projectPath, `${run.id.slice(0, 8)}-step-${idx}`)
+          const wt = createWorktree(base, `${run.id.slice(0, 8)}-step-${idx}`)
           step.worktreePath = wt.path
         } catch {
           step.worktreePath = undefined
@@ -1211,7 +1241,7 @@ export class WorkflowManager {
   private cleanupGroupWorktrees(run: WorkflowRun, groupId: string): void {
     for (const step of run.steps) {
       if (step.parallelGroupId === groupId && step.worktreePath) {
-        try { removeWorktree(run.projectPath, step.worktreePath) } catch { /* best-effort */ }
+        try { removeWorktree(this.runCwd(run), step.worktreePath) } catch { /* best-effort */ }
         step.worktreePath = undefined
       }
     }
@@ -1365,7 +1395,7 @@ export class WorkflowManager {
       workflowRunId: run.id,
       stepIndex,
       agentId: execution.agentId,
-      projectPath: run.projectPath,
+      projectPath: this.runCwd(run),
       timestamp: Date.now(),
       transcript: summarizeTranscript(execution.events),
       injectedMemoryIds: execution.injectedMemoryIds,
@@ -1393,7 +1423,7 @@ export class WorkflowManager {
     execution: WorkflowStepExecution
   ): HandoffArtifact | null {
     const summary = summarizeCompletedStep(execution.events)
-    const artifacts = changedArtifacts(execution.events, run.projectPath)
+    const artifacts = changedArtifacts(execution.events, this.runCwd(run))
     if (!summary && artifacts.length === 0) return null
 
     const step = run.steps[stepIndex]

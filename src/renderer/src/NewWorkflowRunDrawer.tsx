@@ -17,7 +17,7 @@ import type {
   WorkflowTemplate
 } from '@shared/types'
 import { isParallelGroup } from '@shared/types'
-import { Check, FolderOpen, GitBranch, Play, TriangleAlert } from 'lucide-react'
+import { Check, FolderOpen, GitBranch, Laptop, Play, TriangleAlert } from 'lucide-react'
 import { readLastProjectPath, rememberProjectPath } from './projectPathMemory'
 import { Select } from './Select'
 
@@ -56,6 +56,7 @@ export function NewWorkflowRunDrawer({
   )
   const [initialPrompt, setInitialPrompt] = useState(newRunDefaults?.initialPrompt ?? '')
   const [safety, setSafety] = useState<WorkflowRunGitSafety | null>(null)
+  const [useWorktree, setUseWorktree] = useState(true)
   const [allowUnsafeSameGitRoot, setAllowUnsafeSameGitRoot] = useState(false)
   const [allowHighConcurrency, setAllowHighConcurrency] = useState(false)
 
@@ -64,8 +65,9 @@ export function NewWorkflowRunDrawer({
     [templateId, templates]
   )
   const previewSteps = selectedTemplate?.steps.slice(0, 5) ?? []
-  const gitRoot = gitRootDisplay(projectPath, safety)
-  const worktree = worktreeDisplay(projectPath, safety)
+  const folderName = folderNameDisplay(projectPath)
+  const branchLabel = branchDisplay(projectPath, safety)
+  const canUseWorktree = !!safety?.isGitRepo
   const safetyLines = useMemo(
     () => buildGitSafetyLines(safety, runningRunCount),
     [runningRunCount, safety]
@@ -93,6 +95,10 @@ export function NewWorkflowRunDrawer({
     }
   }, [onInspectGitSafety, projectPath])
 
+  useEffect(() => {
+    if (safety !== null && !safety.isGitRepo) setUseWorktree(false)
+  }, [safety])
+
   const canStart =
     !!selectedTemplate &&
     projectPath.trim() !== '' &&
@@ -107,6 +113,7 @@ export function NewWorkflowRunDrawer({
       runName: runName.trim() || selectedTemplate.name,
       projectPath: projectPath.trim(),
       initialPrompt: initialPrompt.trim(),
+      useWorktree: useWorktree && canUseWorktree,
       allowUnsafeSameGitRoot
     })
     onClose()
@@ -163,15 +170,27 @@ export function NewWorkflowRunDrawer({
           </div>
         </label>
 
-        <div className="workflow-new-run-split">
-          <label className="field">
-            <span>Git Root</span>
-            <input value={gitRoot} readOnly />
-          </label>
-          <label className="field">
-            <span>Worktree</span>
-            <input value={worktree} readOnly />
-          </label>
+        <div className={`workflow-worktree-toggle${useWorktree ? ' workflow-worktree-toggle-on' : ''}`}>
+          <span className="workflow-worktree-toggle-title">在隔离副本中运行</span>
+          <div className="workflow-worktree-crumbs">
+            <span className="workflow-worktree-crumb"><Laptop size={12} />Local</span>
+            <span className="workflow-worktree-crumb-sep">›</span>
+            <span className="workflow-worktree-crumb workflow-worktree-crumb-folder"><FolderOpen size={12} />{folderName || '—'}</span>
+            <span className="workflow-worktree-crumb-sep">›</span>
+            <span className="workflow-worktree-crumb workflow-worktree-crumb-branch"><GitBranch size={12} />{branchLabel}</span>
+            <label className="workflow-worktree-checkbox">
+              <input
+                type="checkbox"
+                checked={useWorktree}
+                disabled={!canUseWorktree}
+                onChange={(event) => setUseWorktree(event.target.checked)}
+              />
+              <span>worktree</span>
+            </label>
+          </div>
+          {safety !== null && !safety.isGitRepo && (
+            <span className="workflow-worktree-toggle-hint">当前目录不是 Git 仓库，无法使用 worktree 隔离</span>
+          )}
         </div>
 
         <div className={`workflow-git-safety-card workflow-git-safety-card-${safety?.level ?? 'checking'}`}>
@@ -267,13 +286,14 @@ function formatTemplateOption(template: WorkflowTemplate): string {
   return `${template.name} · ${template.steps.length} steps`
 }
 
-function gitRootDisplay(projectPath: string, safety: WorkflowRunGitSafety | null): string {
-  if (!projectPath.trim()) return ''
-  if (!safety) return 'Inspecting...'
-  return safety.gitRoot ?? 'No git root detected'
+function folderNameDisplay(projectPath: string): string {
+  const trimmed = projectPath.trim().replace(/\/+$/, '')
+  if (!trimmed) return ''
+  const segments = trimmed.split('/')
+  return segments[segments.length - 1] || ''
 }
 
-function worktreeDisplay(projectPath: string, safety: WorkflowRunGitSafety | null): string {
+function branchDisplay(projectPath: string, safety: WorkflowRunGitSafety | null): string {
   if (!projectPath.trim()) return ''
   if (!safety) return 'Inspecting...'
   if (!safety.isGitRepo) return 'Not a git repository'

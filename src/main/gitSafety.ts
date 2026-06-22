@@ -10,8 +10,11 @@ export function inspectWorkflowGitSafety(
   const activeRuns = runs.filter(
     (run) => run.status === 'running' || run.status === 'awaiting-confirm'
   )
+  // Effective execution directory per run: a run-level worktree if set, otherwise the original path.
+  // Two runs that both use worktrees on the same repo must not collide as "same working tree".
+  const runPath = (run: WorkflowRun): string => resolve(run.worktreePath ?? run.projectPath)
   const exactPathRunIds = activeRuns
-    .filter((run) => resolve(run.projectPath) === normalizedProjectPath)
+    .filter((run) => runPath(run) === normalizedProjectPath)
     .map((run) => run.id)
   const gitRoot = git(['-C', normalizedProjectPath, 'rev-parse', '--show-toplevel'])
 
@@ -43,17 +46,17 @@ export function inspectWorkflowGitSafety(
   const isLinkedWorktree = !!gitDir && !!commonGitDir && gitDir !== commonGitDir
 
   const sameWorkingTreeRunIds = activeRuns
-    .filter((run) => git(['-C', resolve(run.projectPath), 'rev-parse', '--show-toplevel']) === gitRoot)
+    .filter((run) => git(['-C', runPath(run), 'rev-parse', '--show-toplevel']) === gitRoot)
     .map((run) => run.id)
 
   const relatedWorktreeRunIds = activeRuns
     .filter((run) => {
-      const runPath = resolve(run.projectPath)
-      const runRoot = git(['-C', runPath, 'rev-parse', '--show-toplevel'])
+      const path = runPath(run)
+      const runRoot = git(['-C', path, 'rev-parse', '--show-toplevel'])
       if (runRoot === gitRoot) return false
       const runCommonGitDir = normalizeGitPath(
-        runPath,
-        git(['-C', runPath, 'rev-parse', '--git-common-dir'])
+        path,
+        git(['-C', path, 'rev-parse', '--git-common-dir'])
       )
       return !!commonGitDir && runCommonGitDir === commonGitDir
     })

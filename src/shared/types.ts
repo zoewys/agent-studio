@@ -484,7 +484,12 @@ export interface WorkflowRun {
   templateName: string
   /** User-facing instance name. Defaults to templateName when omitted. */
   runName?: string
+  /** Original repository path the run was launched against. Always the source git root. */
   projectPath: string
+  /** Run-level worktree path when the run executes in an isolated copy; undefined when running in place. */
+  worktreePath?: string
+  /** Branch the run is executing on (worktree branch, or the project's current branch). */
+  branch?: string
   initialPrompt: string
   status: WorkflowRunStatus
   currentStepIndex: number
@@ -509,6 +514,8 @@ export interface WorkflowStartInput {
   runName?: string
   projectPath: string
   initialPrompt: string
+  /** When true and the path is a git repo, execute the run inside a freshly-created worktree. */
+  useWorktree?: boolean
   /** True only after the user accepts a same-working-tree warning. */
   allowUnsafeSameGitRoot?: boolean
   /** Scheduled runs pass true so every valid handoff advances automatically. */

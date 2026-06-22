@@ -16,6 +16,8 @@ interface SelectProps {
   placeholder?: string
   disabled?: boolean
   ariaLabel?: string
+  triggerClassName?: string
+  contentClassName?: string
   children: React.ReactNode
 }
 
@@ -25,20 +27,31 @@ interface SelectItemProps {
   disabled?: boolean
 }
 
-export function Select({ value, onChange, placeholder, disabled, ariaLabel, children }: SelectProps) {
+export function Select({
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  ariaLabel,
+  triggerClassName,
+  contentClassName,
+  children
+}: SelectProps) {
   const internalValue = value === '' ? EMPTY_SENTINEL : value
   const handleChange = (v: string) => onChange(v === EMPTY_SENTINEL ? '' : v)
+  const triggerClass = ['select-trigger', triggerClassName].filter(Boolean).join(' ')
+  const contentClass = ['select-content', contentClassName].filter(Boolean).join(' ')
 
   return (
     <SelectPrimitive.Root value={internalValue} onValueChange={handleChange} disabled={disabled}>
-      <SelectPrimitive.Trigger className="select-trigger" aria-label={ariaLabel}>
+      <SelectPrimitive.Trigger className={triggerClass} aria-label={ariaLabel}>
         <SelectPrimitive.Value placeholder={placeholder} />
         <SelectPrimitive.Icon className="select-icon">
           <ChevronDown size={12} />
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
-        <SelectPrimitive.Content className="select-content" position="popper" sideOffset={4}>
+        <SelectPrimitive.Content className={contentClass} position="popper" sideOffset={4}>
           <SelectPrimitive.ScrollUpButton className="select-scroll-btn">
             <ChevronUp size={12} />
           </SelectPrimitive.ScrollUpButton>

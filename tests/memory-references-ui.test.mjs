@@ -43,7 +43,7 @@ test('single and workflow surfaces render the shared MemoryReferences component'
   assert.match(singleRun, /<MemoryReferences[\s\S]*agentId=\{selectedAgentId\}[\s\S]*projectPath=\{cwd\}[\s\S]*memoryIds=\{selectedSession\?\.injectedMemoryIds\}/)
 
   assert.match(workflowDetail, /import \{ MemoryReferences \}/)
-  assert.match(workflowDetail, /<MemoryReferences[\s\S]*agentId=\{selectedExecution\?\.agentId\}[\s\S]*projectPath=\{run\.projectPath\}[\s\S]*memoryIds=\{selectedExecution\?\.injectedMemoryIds\}/)
+  assert.match(workflowDetail, /<MemoryReferences[\s\S]*agentId=\{selectedExecution\?\.agentId\}[\s\S]*projectPath=\{runCwd\(run\)\}[\s\S]*memoryIds=\{selectedExecution\?\.injectedMemoryIds\}/)
 })
 
 test('MemoryReferences supports collapsed summary, detail view, and missing memory fallback', () => {

@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AgentDefinition, HandoffArtifactItem, WorkflowRun, WorkflowRunStep } from '@shared/types'
-import { AlertTriangle, ArrowRight, Check, CheckCircle, ChevronLeft, Code2, FileQuestion, MessageCircle, PanelRight, PenTool } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, CheckCircle, ChevronLeft, Code2, FileQuestion, GitBranch, MessageCircle, PanelRight, PenTool } from 'lucide-react'
 import { TranscriptViewer } from './TranscriptViewer'
 import { MarkdownPreview } from './MarkdownPreview'
 import { MemoryReferences } from './MemoryReferences'
@@ -18,6 +18,10 @@ import { workflowRunStatusLabel } from './workflowLabels'
 type WorkflowRunUiMeta = WorkflowRun & {
   displayPath?: string
   gitSafetyMessage?: string
+}
+
+function runCwd(run: WorkflowRun): string {
+  return run.worktreePath ?? run.projectPath
 }
 
 export interface WorkflowRunDetailProps {
@@ -130,7 +134,7 @@ export function WorkflowRunDetail({
     setActiveFile(artifactPath)
 
     try {
-      const absPath = `${run.projectPath}/${artifactPath}`
+      const absPath = `${runCwd(run)}/${artifactPath}`
       const content = await window.api.readFile(absPath)
       setOpenFiles(prev => prev.map(f => f.path === artifactPath ? { ...f, content, loading: false } : f))
     } catch (err) {
@@ -191,6 +195,15 @@ export function WorkflowRunDetail({
               <span className={`workflow-run-status workflow-run-status-${run.status}`}>
                 {workflowRunStatusLabel(run.status)}
               </span>
+              {run.branch && (
+                <span className="workflow-run-branch">
+                  <GitBranch size={12} />
+                  {run.branch}
+                </span>
+              )}
+              {run.worktreePath && (
+                <span className="workflow-run-isolate-tag" title={run.worktreePath}>隔离副本</span>
+              )}
               {(() => {
                 const currentTokens = selectedExecution?.status === 'running'
                   ? (selectedExecution.totalInputTokens ?? 0) + (selectedExecution.totalOutputTokens ?? 0)
@@ -330,7 +343,7 @@ export function WorkflowRunDetail({
           {showMemoryReferences && (
             <MemoryReferences
               agentId={selectedExecution?.agentId}
-              projectPath={run.projectPath}
+              projectPath={runCwd(run)}
               memoryIds={selectedExecution?.injectedMemoryIds}
             />
           )}
@@ -359,7 +372,7 @@ export function WorkflowRunDetail({
         {activeFileObj ? (
             <FilePreviewPane
               file={activeFileObj}
-              projectPath={run.projectPath}
+              projectPath={runCwd(run)}
               onClose={closeFile}
             />
         ) : (

@@ -2053,6 +2053,57 @@ button.icon-only {
   gap: 10px;
 }
 
+.schedule-time-select {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.schedule-time-select .select-trigger {
+  justify-content: center;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.schedule-time-select .select-trigger > span:first-child {
+  flex: 1;
+  text-align: center;
+}
+
+.schedule-time-separator {
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.schedule-time-select-content {
+  max-height: min(230px, var(--radix-select-content-available-height)) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 14px 38px rgba(30, 46, 40, 0.16) !important;
+}
+
+.schedule-time-select-content .select-viewport {
+  padding: 6px !important;
+}
+
+.schedule-time-select-content .select-item {
+  position: relative;
+  justify-content: center;
+  min-height: 30px;
+  padding: 6px 26px 6px 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.schedule-time-select-content .select-item-check {
+  position: absolute;
+  right: 8px;
+  margin-left: 0;
+}
+
 .schedule-weekday-chips {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -2848,6 +2899,30 @@ button.icon-only {
   color: var(--text-dim);
   padding: 2px 8px;
   background: rgba(128, 128, 128, 0.08);
+  border-radius: 10px;
+}
+
+.workflow-run-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 2px 8px;
+  background: rgba(128, 128, 128, 0.08);
+  border-radius: 10px;
+}
+
+.workflow-run-isolate-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--semantic-success);
+  padding: 2px 7px;
+  background: rgba(106, 189, 121, 0.1);
+  border: 1px solid rgba(106, 189, 121, 0.3);
   border-radius: 10px;
 }
 
@@ -11878,6 +11953,128 @@ button:disabled,
   border-color: rgba(0, 212, 170, 0.2) !important;
   background: rgba(15, 25, 45, 0.72) !important;
   color: #00d4aa !important;
+}
+
+.workflow-worktree-toggle {
+  display: grid;
+  gap: 8px;
+  padding: 4px 2px;
+  border: none !important;
+  background: transparent !important;
+}
+
+.workflow-worktree-toggle-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.workflow-worktree-toggle-title {
+  display: block;
+  margin-bottom: 8px;
+  font-family: "ZCOOL XiaoWei", "Noto Serif SC", serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--neutral-text-primary);
+}
+
+.workflow-worktree-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  color: var(--neutral-text-secondary);
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: none !important;
+  background: transparent !important;
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.workflow-worktree-toggle-on .workflow-worktree-checkbox {
+  color: var(--semantic-error);
+}
+
+.workflow-worktree-checkbox input {
+  width: 13px;
+  height: 13px;
+  accent-color: rgb(201, 79, 79);
+  cursor: pointer;
+  margin: 0;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.workflow-worktree-checkbox input:checked,
+.workflow-worktree-checkbox input:active,
+.workflow-worktree-checkbox input:focus,
+.workflow-worktree-checkbox input:focus-visible {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.workflow-worktree-checkbox input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.workflow-worktree-crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 6px;
+  font-size: 11px;
+  min-width: 0;
+}
+
+.workflow-worktree-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--neutral-text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workflow-worktree-crumb-folder {
+  flex: 1 1 auto;
+  max-width: 220px;
+}
+
+.workflow-worktree-crumb svg {
+  flex: 0 0 auto;
+  opacity: 0.7;
+}
+
+.workflow-worktree-crumb-branch {
+  color: var(--neutral-text-secondary);
+}
+
+.workflow-worktree-crumb-sep {
+  color: var(--neutral-text-secondary);
+  opacity: 0.6;
+}
+
+.workflow-worktree-toggle-hint {
+  font-size: 10px;
+  color: var(--neutral-text-secondary);
+}
+
+[data-theme="dark"] .workflow-worktree-toggle-title {
+  font-family: "JetBrains Mono", monospace;
 }
 
 .workflow-new-run-split {

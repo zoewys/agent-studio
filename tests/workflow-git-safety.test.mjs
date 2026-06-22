@@ -25,3 +25,14 @@ test('workflow manager checks git safety before start', () => {
   assert.match(manager, /allowUnsafeSameGitRoot/)
   assert.match(manager, /requires-confirmation/)
 })
+
+test('git safety compares runs by their effective worktree path', () => {
+  assert.match(gitSafety, /worktreePath \?\? run\.projectPath/)
+})
+
+test('workflow manager runs in a worktree when useWorktree is set', () => {
+  assert.match(manager, /useWorktree && safety\.isGitRepo/)
+  assert.match(manager, /createWorktree\(input\.projectPath/)
+  assert.match(manager, /run\.worktreePath = wt\.path/)
+  assert.match(manager, /private runCwd\(run: WorkflowRun\)/)
+})

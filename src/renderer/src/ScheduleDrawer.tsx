@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { CronPreview, WorkflowSchedule, WorkflowTemplate } from '@shared/types'
-import { CalendarClock, FolderOpen } from 'lucide-react'
+import { CalendarClock } from 'lucide-react'
 import { readLastProjectPath, rememberProjectPath } from './projectPathMemory'
 import {
   buildScheduleCron,
@@ -42,6 +42,8 @@ const minuteStartOptions = [0, 5, 10, 15]
 const hourEveryOptions = [1, 2, 4, 6]
 const hourMinuteOptions = [0, 15, 30, 45]
 const monthDayOptions = Array.from({ length: 31 }, (_, index) => index + 1)
+const timeHourOptions = Array.from({ length: 24 }, (_, hour) => formatTwoDigits(hour))
+const timeMinuteOptions = Array.from({ length: 60 }, (_, minute) => formatTwoDigits(minute))
 const weekdayOptions = [
   { value: 1, label: '周一' },
   { value: 2, label: '周二' },
@@ -143,11 +145,6 @@ export function ScheduleDrawer({
     cronValid &&
     !saving
 
-  const pickDir = async (): Promise<void> => {
-    const dir = await window.api.pickDir()
-    if (dir) setProjectPath(dir)
-  }
-
   const save = async (): Promise<void> => {
     if (!selectedTemplate || !canSave) return
     setSaving(true)
@@ -205,7 +202,6 @@ export function ScheduleDrawer({
           <span>Project Directory</span>
           <div className="field-row">
             <input value={projectPath} onChange={(event) => setProjectPath(event.target.value)} />
-            <button type="button" onClick={pickDir}><FolderOpen size={14} /> Browse</button>
           </div>
         </label>
 
@@ -298,10 +294,9 @@ export function ScheduleDrawer({
               <div className="schedule-picker-grid">
                 <label className="field">
                   <span>Run at</span>
-                  <input
-                    type="time"
+                  <ScheduleTimeSelect
                     value={scheduleState.dailyTime}
-                    onChange={(event) => updateScheduleState({ dailyTime: event.target.value })}
+                    onChange={(dailyTime) => updateScheduleState({ dailyTime })}
                   />
                 </label>
                 <label className="field">
@@ -329,10 +324,9 @@ export function ScheduleDrawer({
                 </div>
                 <label className="field">
                   <span>Run at</span>
-                  <input
-                    type="time"
+                  <ScheduleTimeSelect
                     value={scheduleState.weeklyTime}
-                    onChange={(event) => updateScheduleState({ weeklyTime: event.target.value })}
+                    onChange={(weeklyTime) => updateScheduleState({ weeklyTime })}
                   />
                 </label>
               </>
@@ -353,10 +347,9 @@ export function ScheduleDrawer({
                 </label>
                 <label className="field">
                   <span>Run at</span>
-                  <input
-                    type="time"
+                  <ScheduleTimeSelect
                     value={scheduleState.monthlyTime}
-                    onChange={(event) => updateScheduleState({ monthlyTime: event.target.value })}
+                    onChange={(monthlyTime) => updateScheduleState({ monthlyTime })}
                   />
                 </label>
               </div>
@@ -416,4 +409,57 @@ function formatDateTime(timestamp?: number): string {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+interface ScheduleTimeSelectProps {
+  value: string
+  onChange: (value: string) => void
+}
+
+function ScheduleTimeSelect({ value, onChange }: ScheduleTimeSelectProps): JSX.Element {
+  const { hour, minute } = splitScheduleTime(value)
+
+  return (
+    <div className="schedule-time-select" aria-label="Run time">
+      <Select
+        value={hour}
+        onChange={(nextHour) => onChange(`${nextHour}:${minute}`)}
+        ariaLabel="Select hour"
+        contentClassName="schedule-time-select-content"
+      >
+        {timeHourOptions.map((option) => (
+          <Select.Item key={option} value={option}>{option}</Select.Item>
+        ))}
+      </Select>
+      <span className="schedule-time-separator">:</span>
+      <Select
+        value={minute}
+        onChange={(nextMinute) => onChange(`${hour}:${nextMinute}`)}
+        ariaLabel="Select minute"
+        contentClassName="schedule-time-select-content"
+      >
+        {timeMinuteOptions.map((option) => (
+          <Select.Item key={option} value={option}>{option}</Select.Item>
+        ))}
+      </Select>
+    </div>
+  )
+}
+
+function splitScheduleTime(value: string): { hour: string; minute: string } {
+  const match = /^(\d{1,2}):(\d{1,2})$/.exec(value)
+  if (!match) return { hour: '09', minute: '00' }
+  return {
+    hour: formatTwoDigits(clampTimePart(Number(match[1]), 0, 23)),
+    minute: formatTwoDigits(clampTimePart(Number(match[2]), 0, 59))
+  }
+}
+
+function clampTimePart(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min
+  return Math.max(min, Math.min(max, Math.round(value)))
+}
+
+function formatTwoDigits(value: number): string {
+  return String(value).padStart(2, '0')
 }
