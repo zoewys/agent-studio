@@ -28,6 +28,8 @@ jobs:
           cache: pnpm
 
       - run: pnpm install
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       - run: pnpm run typecheck
       - run: node --test tests/app-update-release.test.mjs
       - run: pnpm run release:mac
@@ -50,6 +52,8 @@ jobs:
           cache: pnpm
 
       - run: pnpm install
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       - run: pnpm run typecheck
       - run: node --test tests/app-update-release.test.mjs
       - run: pnpm run release:win
