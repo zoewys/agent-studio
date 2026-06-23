@@ -303,6 +303,62 @@ test('ApiAdapter falls back to generateText when provider stream ends without ou
   assert.equal(calls[1].fallback, true)
 })
 
+test('ApiAdapter falls back to generateText when stream transport terminates before output', async () => {
+  const calls = []
+  const { ApiAdapter } = await importApiAdapter(mocksFor([new Error('terminated')], calls))
+  const adapter = new ApiAdapter({
+    id: 'p1',
+    name: 'OpenCode Gateway',
+    format: 'openai-compatible',
+    apiKey: 'sk-test',
+    baseUrl: 'https://opencode.example/v1',
+    models: ['kimi-k2.6'],
+    defaultModel: 'kimi-k2.6'
+  }, guard)
+
+  const events = await collect(adapter.runTurn({
+    prompt: '调整设计稿',
+    cwd: root,
+    abortSignal: new AbortController().signal
+  }))
+
+  assert.deepEqual(events[1], { kind: 'message', role: 'assistant', text: 'fallback response' })
+  assert.deepEqual(events[2], { kind: 'usage', inputTokens: 5, outputTokens: 6 })
+  assert.equal(events[3].kind, 'turn-done')
+  assert.equal(events.some((event) => event.kind === 'error'), false)
+  assert.equal(calls.length, 2)
+  assert.equal(calls[1].fallback, true)
+})
+
+test('ApiAdapter keeps stream termination as an error after partial output', async () => {
+  const calls = []
+  const { ApiAdapter } = await importApiAdapter(mocksFor([
+    { type: 'text-delta', textDelta: 'partial response' },
+    new Error('terminated')
+  ], calls))
+  const adapter = new ApiAdapter({
+    id: 'p1',
+    name: 'OpenCode Gateway',
+    format: 'openai-compatible',
+    apiKey: 'sk-test',
+    baseUrl: 'https://opencode.example/v1',
+    models: ['kimi-k2.6'],
+    defaultModel: 'kimi-k2.6'
+  }, guard)
+
+  const events = await collect(adapter.runTurn({
+    prompt: '调整设计稿',
+    cwd: root,
+    abortSignal: new AbortController().signal
+  }))
+
+  assert.deepEqual(events[1], { kind: 'message-delta', text: 'partial response' })
+  const error = events.find((event) => event.kind === 'error')
+  assert.match(error?.message ?? '', /terminated/)
+  assert.equal(events.some((event) => event.kind === 'turn-done' && event.reason === 'complete'), false)
+  assert.equal(calls.length, 1)
+})
+
 test('ApiAdapter falls back when no-output arrives as a stream error part', async () => {
   const noOutput = new Error('No output generated. The model stream ended without a finish chunk.')
   noOutput.name = 'AI_NoOutputGeneratedError'

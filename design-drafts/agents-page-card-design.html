@@ -3,281 +3,247 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agents 管理页 — 小卡片设计稿</title>
+<title>Agents 管理页 — 紧凑卡片设计稿</title>
 <style>
   :root {
     --brand-primary: #3d8e86;
     --brand-primary-hover: #2a7a72;
-    --brand-primary-strong: #1e5f58;
-    --brand-primary-light: rgba(61, 142, 134, 0.08);
     --semantic-success: #6abd79;
     --semantic-warning: #c9952c;
     --semantic-error: #c94f4f;
-    --semantic-info: #5b8ec9;
-    --neutral-border: rgba(120, 140, 130, 0.18);
-    --neutral-border-subtle: rgba(120, 140, 130, 0.10);
+    --neutral-border: rgba(120, 140, 130, 0.14);
+    --neutral-border-subtle: rgba(120, 140, 130, 0.08);
     --neutral-text-primary: #1e2e28;
     --neutral-text-secondary: #5a7268;
     --neutral-text-muted: #8a9e90;
-    --glass-bg: rgba(255, 253, 248, 0.65);
-    --glass-bg-solid: #fdfcfa;
-    --glass-border: rgba(120, 140, 130, 0.14);
-    --glass-blur: blur(16px) saturate(150%);
-    --shadow-xs: 0 1px 2px rgba(30, 46, 40, 0.04);
-    --shadow-sm: 0 2px 6px rgba(30, 46, 40, 0.06);
-    --shadow-md: 0 6px 20px rgba(30, 46, 40, 0.08);
-    --shadow-lg: 0 12px 40px rgba(30, 46, 40, 0.12);
-    --page-bg: #f4f2ee;
+    --shadow-sm: 0 1px 4px rgba(30, 46, 40, 0.05);
+    --shadow-md: 0 4px 14px rgba(30, 46, 40, 0.08);
+    --shadow-lg: 0 8px 30px rgba(30, 46, 40, 0.10);
+    --page-bg: #f0eee9;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background: var(--page-bg);
     color: var(--neutral-text-primary);
-    padding: 48px 32px;
+    padding: 40px 28px;
     line-height: 1.5;
   }
 
   /* ===== 页面头部 ===== */
   .page-header {
-    display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
-    margin-bottom: 36px; flex-wrap: wrap;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;
+    margin-bottom: 28px; flex-wrap: wrap;
   }
-  .page-title {
-    font-size: 28px; font-weight: 700; letter-spacing: -0.5px;
-  }
-  .page-subtitle {
-    color: var(--neutral-text-muted); font-size: 14px; margin-top: 4px;
-  }
-  .header-actions {
-    display: flex; align-items: center; gap: 10px;
-  }
+  .page-title { font-size: 24px; font-weight: 700; letter-spacing: -0.4px; }
+  .page-subtitle { color: var(--neutral-text-muted); font-size: 13px; margin-top: 3px; }
+  .header-actions { display: flex; align-items: center; gap: 8px; }
   .btn {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 9px; font-size: 13px; font-weight: 600;
     border: 1px solid transparent; cursor: pointer; transition: all 160ms ease;
     white-space: nowrap;
   }
   .btn-primary {
     background: var(--brand-primary); color: #fff;
-    box-shadow: 0 1px 3px rgba(61,142,134,0.25);
+    box-shadow: 0 1px 3px rgba(61,142,134,0.22);
   }
-  .btn-primary:hover {
-    background: var(--brand-primary-hover);
-    box-shadow: 0 3px 8px rgba(61,142,134,0.30);
-    transform: translateY(-1px);
-  }
+  .btn-primary:hover { background: var(--brand-primary-hover); transform: translateY(-1px); }
   .btn-ghost {
     background: #fff; color: var(--neutral-text-secondary);
-    border-color: var(--neutral-border-subtle);
-    box-shadow: var(--shadow-xs);
+    border-color: var(--neutral-border-subtle); box-shadow: var(--shadow-sm);
   }
-  .btn-ghost:hover { background: #fff; color: var(--neutral-text-primary); border-color: var(--neutral-border); }
+  .btn-ghost:hover { color: var(--neutral-text-primary); border-color: var(--neutral-border); }
 
   /* ===== 工具栏 ===== */
-  .toolbar {
-    display: flex; align-items: center; gap: 16px; margin-bottom: 32px;
-  }
-  .search-box {
-    position: relative; width: 320px;
-  }
+  .toolbar { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
+  .search-box { position: relative; width: 280px; }
   .search-box input {
-    width: 100%; padding: 9px 14px 9px 36px; border-radius: 10px;
+    width: 100%; padding: 8px 12px 8px 34px; border-radius: 9px;
     border: 1px solid var(--neutral-border-subtle); background: #fff;
     font-size: 13px; color: var(--neutral-text-primary); outline: none;
-    transition: all 160ms ease;
-    box-shadow: var(--shadow-xs);
+    transition: all 160ms ease; box-shadow: var(--shadow-sm);
   }
   .search-box input:focus {
-    border-color: rgba(61,142,134,0.35); box-shadow: 0 0 0 3px rgba(61,142,134,0.08);
+    border-color: rgba(61,142,134,0.30); box-shadow: 0 0 0 3px rgba(61,142,134,0.06);
   }
   .search-box input::placeholder { color: var(--neutral-text-muted); }
   .search-icon {
-    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
     color: var(--neutral-text-muted); pointer-events: none;
   }
-  .filter-group {
-    display: flex; align-items: center; gap: 6px;
-  }
+  .filter-group { display: flex; align-items: center; gap: 5px; }
   .filter-chip {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 11px; border-radius: 7px; font-size: 12px; font-weight: 500;
     border: 1px solid transparent; background: transparent;
     color: var(--neutral-text-secondary); cursor: pointer; transition: all 160ms ease;
   }
-  .filter-chip:hover { background: rgba(120,140,130,0.06); color: var(--neutral-text-primary); }
-  .filter-chip.active {
-    background: #fff; color: var(--brand-primary);
-    box-shadow: var(--shadow-xs); border-color: var(--neutral-border-subtle);
-  }
-  .filter-chip .dot {
-    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; opacity: 0.6;
-  }
-  .filter-chip.active .dot { opacity: 1; background: var(--brand-primary) !important; }
+  .filter-chip:hover { background: rgba(120,140,130,0.05); color: var(--neutral-text-primary); }
+  .filter-chip.active { background: #fff; color: var(--brand-primary); box-shadow: var(--shadow-sm); }
+  .filter-chip .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; opacity: 0.55; }
+  .filter-chip.active .dot { opacity: 1; }
 
   /* ===== 卡片网格 ===== */
   .cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
   }
 
   /* ===== Agent 小卡片 ===== */
   .agent-card {
     position: relative; display: flex; flex-direction: column;
-    padding: 0; border: 1px solid var(--glass-border); border-radius: 16px;
-    background: #fff;
+    border: 1px solid var(--neutral-border-subtle); border-radius: 14px;
     box-shadow: var(--shadow-sm);
-    transition: all 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: all 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
     overflow: hidden; cursor: pointer;
   }
   .agent-card:hover {
-    border-color: rgba(61, 142, 134, 0.22);
+    border-color: rgba(61, 142, 134, 0.18);
     box-shadow: var(--shadow-lg);
     transform: translateY(-3px);
   }
 
-  /* 左侧色条 */
+  /* 供应商渐变背景 */
+  .card-claude {
+    background: linear-gradient(165deg, #fff 0%, #fffaf7 40%, #fff5ee 100%);
+  }
+  .card-codex {
+    background: linear-gradient(165deg, #fff 0%, #f7fbff 40%, #eef5ff 100%);
+  }
+  .card-api {
+    background: linear-gradient(165deg, #fff 0%, #f7fcfb 40%, #eef8f5 100%);
+  }
+
+  /* 左侧 accent bar */
   .card-accent {
     position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    opacity: 0.85;
   }
-  .accent-claude { background: linear-gradient(to bottom, #cb774f, #e0926a); }
-  .accent-codex { background: linear-gradient(to bottom, #5b8ec9, #7aa8db); }
-  .accent-api { background: linear-gradient(to bottom, #3d8e86, #5aaa9f); }
+  .accent-claude { background: linear-gradient(to bottom, #d4895e, #e8a67a); }
+  .accent-codex { background: linear-gradient(to bottom, #6b9fd6, #8ab8e8); }
+  .accent-api { background: linear-gradient(to bottom, #4a9e94, #6ab8ae); }
 
-  /* 卡片内容区 */
+  /* 卡片内容 */
   .card-body {
-    padding: 20px 22px 16px 26px;
-    display: flex; flex-direction: column; gap: 14px;
+    padding: 14px 16px 12px 20px;
+    display: flex; flex-direction: column; gap: 8px;
     flex: 1;
   }
 
-  /* 卡片顶部 */
+  /* 顶部 */
   .card-top {
-    display: flex; align-items: flex-start; gap: 14px;
+    display: flex; align-items: flex-start; gap: 10px;
     min-width: 0;
   }
   .agent-avatar {
-    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+    width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    background: var(--brand-primary-light); color: var(--brand-primary);
-    border: 1px solid rgba(61,142,134,0.10);
-    transition: transform 200ms ease;
+    transition: transform 180ms ease;
   }
-  .agent-card:hover .agent-avatar { transform: scale(1.05); }
-  .agent-avatar svg {
-    width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none;
-    stroke-linecap: round; stroke-linejoin: round;
-  }
-  .avatar-claude { background: linear-gradient(135deg, rgba(203,119,79,0.10), rgba(203,119,79,0.04)); color: #b56a42; border-color: rgba(203,119,79,0.12); }
-  .avatar-codex { background: linear-gradient(135deg, rgba(91,142,201,0.10), rgba(91,142,201,0.04)); color: #4a7eb8; border-color: rgba(91,142,201,0.12); }
-  .avatar-api { background: linear-gradient(135deg, rgba(61,142,134,0.10), rgba(61,142,134,0.04)); color: #357a72; border-color: rgba(61,142,134,0.12); }
+  .agent-card:hover .agent-avatar { transform: scale(1.08) rotate(-2deg); }
+  .agent-avatar svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .avatar-claude { background: linear-gradient(135deg, rgba(203,119,79,0.12), rgba(203,119,79,0.04)); color: #b0633a; border: 1px solid rgba(203,119,79,0.10); }
+  .avatar-codex { background: linear-gradient(135deg, rgba(91,142,201,0.12), rgba(91,142,201,0.04)); color: #4a7eb8; border: 1px solid rgba(91,142,201,0.10); }
+  .avatar-api { background: linear-gradient(135deg, rgba(61,142,134,0.12), rgba(61,142,134,0.04)); color: #357a72; border: 1px solid rgba(61,142,134,0.10); }
 
   .agent-title-wrap {
-    flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;
-    padding-top: 2px;
+    flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px;
+    padding-top: 1px;
   }
   .agent-name {
-    font-size: 15px; font-weight: 700; color: var(--neutral-text-primary);
+    font-size: 14px; font-weight: 700; color: var(--neutral-text-primary);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    letter-spacing: -0.2px;
+    letter-spacing: -0.15px;
   }
   .agent-subtitle {
-    font-size: 12px; color: var(--neutral-text-muted);
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    font-size: 11px; color: var(--neutral-text-muted);
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   }
-  .agent-subtitle span {
-    display: inline-flex; align-items: center; gap: 4px;
-  }
-  .subtitle-sep {
-    width: 3px; height: 3px; border-radius: 50%; background: var(--neutral-border-subtle);
-    flex-shrink: 0;
-  }
-  .vendor-dot {
-    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
-  }
+  .agent-subtitle span { display: inline-flex; align-items: center; gap: 3px; }
+  .subtitle-sep { width: 3px; height: 3px; border-radius: 50%; background: var(--neutral-border); flex-shrink: 0; }
+  .vendor-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
   .dot-claude { background: #cb774f; }
   .dot-codex { background: #5b8ec9; }
   .dot-api { background: #3d8e86; }
 
-  /* systemPrompt 摘要 */
+  /* 描述 */
   .agent-prompt {
-    font-size: 13px; color: var(--neutral-text-secondary); line-height: 1.6;
+    font-size: 12px; color: var(--neutral-text-secondary); line-height: 1.5;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
-  /* 模型信息 */
+  /* 模型 */
   .model-bar {
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; gap: 6px;
     flex-wrap: wrap;
   }
   .model-pill {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 3px 10px; border-radius: 6px;
-    font-family: "JetBrains Mono", monospace; font-size: 11px; font-weight: 600;
-    background: rgba(120,140,130,0.05); color: var(--neutral-text-secondary);
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 7px; border-radius: 5px;
+    font-family: "JetBrains Mono", monospace; font-size: 10px; font-weight: 600;
+    background: rgba(0,0,0,0.03); color: var(--neutral-text-secondary);
     border: 1px solid var(--neutral-border-subtle);
   }
   .model-pill .key { color: var(--neutral-text-muted); font-weight: 500; }
   .model-pill .val { color: var(--neutral-text-primary); }
 
-  /* 卡片底部 */
+  /* 底部 */
   .card-footer {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 22px 14px 26px;
-    background: linear-gradient(to bottom, transparent, rgba(120,140,130,0.02));
+    padding: 8px 16px 10px 20px;
+    background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.015));
     border-top: 1px solid var(--neutral-border-subtle);
-    font-size: 12px;
+    font-size: 11px;
   }
-  .footer-stats {
-    display: flex; align-items: center; gap: 16px;
-  }
+  .footer-stats { display: flex; align-items: center; gap: 12px; }
   .footer-stat {
-    display: inline-flex; align-items: baseline; gap: 4px;
+    display: inline-flex; align-items: baseline; gap: 3px;
     color: var(--neutral-text-muted);
   }
   .footer-stat .num {
-    font-family: "JetBrains Mono", monospace; font-weight: 700; color: var(--neutral-text-primary); font-size: 13px;
+    font-family: "JetBrains Mono", monospace; font-weight: 700; color: var(--neutral-text-primary); font-size: 12px;
   }
   .card-menu {
-    width: 28px; height: 28px; border-radius: 7px;
+    width: 24px; height: 24px; border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
     border: none; background: transparent; color: var(--neutral-text-muted);
-    cursor: pointer; opacity: 0; transition: all 160ms ease;
+    cursor: pointer; opacity: 0; transition: all 150ms ease;
   }
   .agent-card:hover .card-menu { opacity: 1; }
   .card-menu:hover { background: rgba(120,140,130,0.08); color: var(--neutral-text-primary); }
-  .card-menu svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .card-menu svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
   /* ===== 新建卡片 ===== */
   .agent-card.new-agent {
     border-style: dashed; border-color: var(--neutral-border);
     background: transparent; box-shadow: none;
     align-items: center; justify-content: center; text-align: center;
-    min-height: 240px; gap: 12px;
+    min-height: 180px; gap: 8px;
     color: var(--neutral-text-muted);
   }
   .agent-card.new-agent:hover {
     border-color: var(--brand-primary); color: var(--brand-primary);
     background: rgba(61,142,134,0.02);
-    box-shadow: 0 4px 16px rgba(61,142,134,0.08);
+    box-shadow: 0 4px 14px rgba(61,142,134,0.07);
   }
   .new-icon {
-    width: 48px; height: 48px; border-radius: 14px;
+    width: 40px; height: 40px; border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(120,140,130,0.05); color: inherit;
+    background: rgba(120,140,130,0.04); color: inherit;
     border: 1.5px dashed var(--neutral-border-subtle);
-    transition: all 200ms ease;
+    transition: all 180ms ease;
   }
   .agent-card.new-agent:hover .new-icon {
-    background: var(--brand-primary-light);
+    background: rgba(61,142,134,0.06);
     border-color: var(--brand-primary);
-    transform: scale(1.08);
+    transform: scale(1.1);
   }
-  .new-icon svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-  .new-title { font-size: 15px; font-weight: 600; color: inherit; }
-  .new-desc { font-size: 13px; color: inherit; opacity: 0.7; }
+  .new-icon svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .new-title { font-size: 14px; font-weight: 600; color: inherit; }
+  .new-desc { font-size: 12px; color: inherit; opacity: 0.65; }
 
   @media (max-width: 640px) {
     .cards-grid { grid-template-columns: 1fr; }
@@ -297,11 +263,11 @@
   </div>
   <div class="header-actions">
     <button class="btn btn-ghost">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       导入
     </button>
     <button class="btn btn-primary">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       新建 Agent
     </button>
   </div>
@@ -311,7 +277,7 @@
 <div class="toolbar">
   <div class="search-box">
     <span class="search-icon">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </span>
     <input type="text" placeholder="搜索 Agent 名称或角色...">
   </div>
@@ -327,7 +293,7 @@
 <div class="cards-grid">
 
   <!-- Agent 1: Claude -->
-  <div class="agent-card">
+  <div class="agent-card card-claude">
     <div class="card-accent accent-claude"></div>
     <div class="card-body">
       <div class="card-top">
@@ -362,7 +328,7 @@
   </div>
 
   <!-- Agent 2: Codex -->
-  <div class="agent-card">
+  <div class="agent-card card-codex">
     <div class="card-accent accent-codex"></div>
     <div class="card-body">
       <div class="card-top">
@@ -380,7 +346,7 @@
           </div>
         </div>
       </div>
-      <div class="agent-prompt">你是一位严格的代码审查专家，专注于发现潜在 Bug、性能瓶颈、安全漏洞和代码风格问题。对每一行修改给出明确的通过或建议修改意见。</div>
+      <div class="agent-prompt">你是一位严格的代码审查专家，专注于发现潜在 Bug、性能瓶颈、安全漏洞和代码风格问题。</div>
       <div class="model-bar">
         <span class="model-pill"><span class="key">model</span><span class="val">codex-latest</span></span>
         <span class="model-pill"><span class="key">effort</span><span class="val">high</span></span>
@@ -398,7 +364,7 @@
   </div>
 
   <!-- Agent 3: API -->
-  <div class="agent-card">
+  <div class="agent-card card-api">
     <div class="card-accent accent-api"></div>
     <div class="card-body">
       <div class="card-top">
@@ -416,7 +382,7 @@
           </div>
         </div>
       </div>
-      <div class="agent-prompt">自动调用多个 AI 模型的 API，对比响应一致性，检测功能覆盖率和兼容性差异，生成详细的覆盖率报告和回归测试用例。</div>
+      <div class="agent-prompt">自动调用多个 AI 模型的 API，对比响应一致性，检测功能覆盖率和兼容性差异。</div>
       <div class="model-bar">
         <span class="model-pill"><span class="key">model</span><span class="val">deepseek-chat</span></span>
         <span class="model-pill"><span class="key">temp</span><span class="val">0.7</span></span>
@@ -434,7 +400,7 @@
   </div>
 
   <!-- Agent 4: Claude, 长名称 -->
-  <div class="agent-card">
+  <div class="agent-card card-claude">
     <div class="card-accent accent-claude"></div>
     <div class="card-body">
       <div class="card-top">
@@ -452,7 +418,7 @@
           </div>
         </div>
       </div>
-      <div class="agent-prompt">专注于前端架构设计评审，分析组件拆分合理性、状态管理方案选型、性能优化策略，以及可访问性（a11y）合规检查。</div>
+      <div class="agent-prompt">专注于前端架构设计评审，分析组件拆分合理性、状态管理方案选型、性能优化策略。</div>
       <div class="model-bar">
         <span class="model-pill"><span class="key">model</span><span class="val">claude-opus-4</span></span>
       </div>
@@ -468,8 +434,8 @@
     </div>
   </div>
 
-  <!-- Agent 5: API, 无 model -->
-  <div class="agent-card">
+  <!-- Agent 5: API -->
+  <div class="agent-card card-api">
     <div class="card-accent accent-api"></div>
     <div class="card-body">
       <div class="card-top">
@@ -487,7 +453,7 @@
           </div>
         </div>
       </div>
-      <div class="agent-prompt">持续监控代码库中的依赖漏洞、暴露的密钥、敏感信息泄露，并自动输出修复建议和 CVE 关联信息。</div>
+      <div class="agent-prompt">持续监控代码库中的依赖漏洞、暴露的密钥、敏感信息泄露，并自动输出修复建议。</div>
       <div class="model-bar">
         <span class="model-pill"><span class="key">model</span><span class="val">—</span></span>
       </div>

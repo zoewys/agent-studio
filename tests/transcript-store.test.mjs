@@ -85,3 +85,40 @@ test('TranscriptStore normalizes replayed tool results to AI SDK output schema',
     rmSync(userDataDir, { recursive: true, force: true })
   }
 })
+
+test('TranscriptStore truncates large replayed tool results', async () => {
+  const userDataDir = mkdtempSync(join(tmpdir(), 'agent-studio-transcript-store-'))
+  try {
+    const { TranscriptStore } = await importTranscriptStore(userDataDir)
+    const store = new TranscriptStore()
+    const sessionId = 'session-large-tool-result'
+    const transcriptDir = join(userDataDir, 'transcripts')
+    const transcriptPath = join(transcriptDir, `${sessionId}.jsonl`)
+    const largeOutput = 'x'.repeat(10000)
+
+    mkdirSync(transcriptDir, { recursive: true })
+    writeFileSync(transcriptPath, [
+      JSON.stringify({ kind: 'user', text: 'Inspect a file' }),
+      JSON.stringify({
+        kind: 'event',
+        event: { kind: 'tool-call', id: 'tool-big', name: 'file_read', input: { path: 'large.txt' } }
+      }),
+      JSON.stringify({
+        kind: 'event',
+        event: { kind: 'tool-result', id: 'tool-big', ok: true, output: { exitCode: 0, output: largeOutput } }
+      })
+    ].join('\n') + '\n', 'utf8')
+
+    const replay = store.buildReplayMessagesFromTimeline([sessionId], 'Continue')
+    const resultOutput = replay[2].content[0].output
+
+    assert.equal(resultOutput.type, 'json')
+    assert.equal(resultOutput.value.exitCode, 0)
+    assert.match(resultOutput.value.output, /\[truncated for replay\]/)
+    assert.ok(resultOutput.value.output.length < 4100)
+    assert.ok(JSON.stringify(resultOutput).length < 6200)
+    assert.deepEqual(replay.at(-1), { role: 'user', content: 'Continue' })
+  } finally {
+    rmSync(userDataDir, { recursive: true, force: true })
+  }
+})

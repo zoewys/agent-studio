@@ -9,6 +9,12 @@ export type TranscriptRecord =
   | { kind: 'event'; event: AgentEvent }
 
 const MAX_RESUME_TURNS = 10
+const MAX_REPLAY_TOOL_TEXT_CHARS = 4000
+const MAX_REPLAY_TOOL_JSON_CHARS = 6000
+const MAX_REPLAY_JSON_DEPTH = 4
+const MAX_REPLAY_JSON_ARRAY_ITEMS = 20
+const MAX_REPLAY_JSON_OBJECT_KEYS = 40
+const REPLAY_TRUNCATED_MARKER = '\n[truncated for replay]'
 
 /**
  * Persists every run's normalized event stream — plus the user's own inputs,
@@ -276,9 +282,75 @@ export class TranscriptStore {
 
 // Replay messages must satisfy AI SDK ToolResultOutput schema.
 function normalizeToolResultOutput(output: unknown): Record<string, unknown> {
-  if (isToolResultOutput(output)) return output
-  if (typeof output === 'string') return { type: 'text', value: output }
-  return { type: 'json', value: output ?? null }
+  if (isToolResultOutput(output)) return compactToolResultOutput(output)
+  if (typeof output === 'string') return { type: 'text', value: truncateReplayText(output) }
+  return { type: 'json', value: compactReplayJsonValue(output ?? null) }
+}
+
+function compactToolResultOutput(output: Record<string, unknown>): Record<string, unknown> {
+  switch (output.type) {
+    case 'text':
+    case 'error-text':
+      return { ...output, value: truncateReplayText(String(output.value ?? '')) }
+    case 'json':
+    case 'error-json':
+      return { ...output, value: compactReplayJsonValue(output.value) }
+    case 'content':
+      return { ...output, value: compactReplayValue(output.value, 0) }
+    default:
+      return output
+  }
+}
+
+function compactReplayJsonValue(value: unknown): unknown {
+  const compacted = compactReplayValue(value, 0)
+  const serialized = safeStringify(compacted)
+  if (serialized.length <= MAX_REPLAY_TOOL_JSON_CHARS) return compacted
+  return {
+    truncated: true,
+    preview: truncateReplayText(serialized, MAX_REPLAY_TOOL_JSON_CHARS)
+  }
+}
+
+function compactReplayValue(value: unknown, depth: number): unknown {
+  if (typeof value === 'string') return truncateReplayText(value)
+  if (Array.isArray(value)) {
+    if (depth >= MAX_REPLAY_JSON_DEPTH) {
+      return `[array truncated for replay: ${value.length} items]`
+    }
+    const items = value
+      .slice(0, MAX_REPLAY_JSON_ARRAY_ITEMS)
+      .map((item) => compactReplayValue(item, depth + 1))
+    if (value.length > items.length) {
+      items.push(`[${value.length - items.length} items truncated for replay]`)
+    }
+    return items
+  }
+  if (isRecord(value)) {
+    if (depth >= MAX_REPLAY_JSON_DEPTH) return '[object truncated for replay]'
+    const entries = Object.entries(value)
+    const compacted: Record<string, unknown> = {}
+    for (const [key, entryValue] of entries.slice(0, MAX_REPLAY_JSON_OBJECT_KEYS)) {
+      compacted[key] = compactReplayValue(entryValue, depth + 1)
+    }
+    if (entries.length > MAX_REPLAY_JSON_OBJECT_KEYS) {
+      compacted.__truncated = `${entries.length - MAX_REPLAY_JSON_OBJECT_KEYS} fields truncated for replay`
+    }
+    return compacted
+  }
+  return value
+}
+
+function truncateReplayText(value: string, max = MAX_REPLAY_TOOL_TEXT_CHARS): string {
+  return value.length > max ? `${value.slice(0, max)}${REPLAY_TRUNCATED_MARKER}` : value
+}
+
+function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
 }
 
 function isToolResultOutput(output: unknown): output is Record<string, unknown> {

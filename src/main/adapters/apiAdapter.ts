@@ -464,6 +464,9 @@ async function executeModelTurn(
       if (part.type === 'error' && isStructuredOutputUnsupportedError(part.error ?? part)) {
         throw part.error ?? part
       }
+      if (part.type === 'error' && isTransientStreamTerminationError(part.error ?? part)) {
+        throw part.error ?? part
+      }
       mapStreamPart(part, sessionId, queue, state)
     }
 
@@ -481,7 +484,9 @@ async function executeModelTurn(
     }
     return state.usage
   } catch (err) {
-    if (!isNoOutputGeneratedError(err)) throw err
+    if (!isNoOutputGeneratedError(err) && !isTransientStreamTerminationError(err)) throw err
+    if (isAbortSignalAborted(options)) throw err
+    if (isTransientStreamTerminationError(err) && state.meaningful) throw err
     if (state.meaningful) {
       finishComplete(sessionId, queue, state)
       return state.usage
@@ -959,6 +964,16 @@ function isNoOutputGeneratedError(value: unknown): boolean {
     value.constructor.name === 'NoOutputGeneratedError' ||
     value.message.includes('No output generated')
   )
+}
+
+function isTransientStreamTerminationError(value: unknown): boolean {
+  const message = collectErrorText(value).join('\n').toLowerCase()
+  return /(^|\W)terminated(\W|$)/.test(message)
+}
+
+function isAbortSignalAborted(options: { abortSignal?: unknown }): boolean {
+  const signal = options.abortSignal
+  return isRecord(signal) && signal.aborted === true
 }
 
 function isStructuredOutputUnsupportedError(value: unknown): boolean {
