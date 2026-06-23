@@ -16,6 +16,7 @@ publish:
   provider: github
   owner: zoewys
   repo: nexture-ai
+  releaseType: release
 
 mac:
   target:
