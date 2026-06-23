@@ -65,6 +65,8 @@ test('release workflow builds and publishes macOS and Windows packages from git 
   assert.match(workflow, /macos-latest/)
   assert.match(workflow, /windows-latest/)
   assert.match(workflow, /pnpm\/action-setup@v4/)
+  assert.match(workflow, /node --test tests\/app-update-release\.test\.mjs/)
+  assert.doesNotMatch(workflow, /pnpm test/)
   assert.match(workflow, /pnpm run release:mac/)
   assert.match(workflow, /pnpm run release:win/)
   assert.match(workflow, /GH_TOKEN:\s*\$\{\{ secrets\.GITHUB_TOKEN \}\}/)
