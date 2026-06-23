@@ -21,7 +21,6 @@ export class PermissionGuard {
 
   async request(toolName: string, description: string): Promise<boolean> {
     if (this.mode === 'bypassPermissions') return true
-    if (this.mode === 'plan') return false
     if (this.mode === 'acceptEdits' && isEditTool(toolName)) return true
 
     if (this.options.headless) {

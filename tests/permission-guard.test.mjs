@@ -36,12 +36,26 @@ test('bypassPermissions allows all requests', async () => {
   assert.equal(await guard.request('file_write', '/tmp/a'), true)
 })
 
-test('plan mode rejects all requests', async () => {
+test('plan mode emits permission requests and resolves from approval', async () => {
   const { PermissionGuard } = await importPermissionGuard()
-  const guard = new PermissionGuard('plan', () => {})
+  const events = []
+  const guard = new PermissionGuard('plan', (event) => events.push(event))
 
-  assert.equal(await guard.request('bash', 'echo hi'), false)
-  assert.equal(await guard.request('file_write', '/tmp/a'), false)
+  const allowed = guard.request('bash', 'echo hi')
+  const first = JSON.parse(events[0].text)
+  assert.equal(events[0].kind, 'system')
+  assert.equal(first.type, 'permission-request')
+  assert.equal(first.toolName, 'bash')
+  assert.equal(first.description, 'echo hi')
+  guard.respond(first.requestId, true)
+  assert.equal(await allowed, true)
+
+  const denied = guard.request('file_write', '/tmp/a')
+  const second = JSON.parse(events[1].text)
+  assert.equal(second.type, 'permission-request')
+  assert.equal(second.toolName, 'file_write')
+  guard.respond(second.requestId, false)
+  assert.equal(await denied, false)
 })
 
 test('acceptEdits allows edit tools and waits for bash approval', async () => {
