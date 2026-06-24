@@ -36,7 +36,7 @@ import { Moon, Sun } from 'lucide-react'
 type UiReviewWorkflowSurface = 'workflow' | 'new-run'
 
 export function App(): JSX.Element {
-  const { agents: savedAgents, save: saveAgent, remove: removeAgent } = useAgents()
+  const { agents: savedAgents, save: saveAgent, remove: removeAgent, reload: reloadAgents } = useAgents()
   const { models: modelCatalog, loading: modelsLoading } = useCliModels()
   const savedWorkflows = useWorkflows()
   const singleSessions = useSingleSessions()
@@ -222,6 +222,8 @@ export function App(): JSX.Element {
             onAbortSession={singleSessions.abortSession}
             onDeleteSession={singleSessions.deleteSession}
             onModeAgents={() => setMode('agents')}
+            onSaveAgentDraft={saveAgent}
+            onAgentsChanged={reloadAgents}
             showMemoryReferences={appSettings.settings.showMemoryReferences}
           />
         )}
