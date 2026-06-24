@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { registerIpc } from './ipc'
 import type { AppManagers } from './ipc'
 import { AppSettingsStore } from './AppSettingsStore'
-import type { WorkflowRun, WorkflowSchedule } from '@shared/types'
+import { IPC, type WorkflowRun, type WorkflowSchedule } from '@shared/types'
 import { checkForAppUpdates, configureAppUpdater } from './appUpdater'
 
 let mainWindow: BrowserWindow | null = null
@@ -43,6 +43,8 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => mainWindow?.show())
+  mainWindow.on('maximize', () => mainWindow?.webContents.send(IPC.windowMaximizeChanged, true))
+  mainWindow.on('unmaximize', () => mainWindow?.webContents.send(IPC.windowMaximizeChanged, false))
   mainWindow.on('show', () => setScheduleBadge(false))
   mainWindow.on('focus', () => setScheduleBadge(false))
   mainWindow.on('close', (event) => {

@@ -7501,6 +7501,33 @@ body::before {
   letter-spacing: 1.5px;
 }
 
+.window-controls {
+  display: flex;
+  align-items: center;
+  -webkit-app-region: no-drag;
+}
+
+.window-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+
+.window-controls button:hover {
+  color: var(--text-strong);
+}
+
+.window-controls .wc-close:hover {
+  color: #e81123;
+}
+
 .theme-toggle {
   position: fixed;
   top: 68px;

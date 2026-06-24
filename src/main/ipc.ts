@@ -550,6 +550,29 @@ export function registerIpc(
     apiCallLogStore.openDir()
   )
 
+  ipcMain.handle(IPC.windowMinimize, (): void => {
+    const win = getWindow()
+    if (win && !win.isDestroyed()) win.minimize()
+  })
+
+  ipcMain.handle(IPC.windowToggleMaximize, (): boolean => {
+    const win = getWindow()
+    if (!win || win.isDestroyed()) return false
+    if (win.isMaximized()) win.unmaximize()
+    else win.maximize()
+    return win.isMaximized()
+  })
+
+  ipcMain.handle(IPC.windowClose, (): void => {
+    const win = getWindow()
+    if (win && !win.isDestroyed()) win.close()
+  })
+
+  ipcMain.handle(IPC.windowIsMaximized, (): boolean => {
+    const win = getWindow()
+    return win && !win.isDestroyed() ? win.isMaximized() : false
+  })
+
   ipcMain.handle(IPC.pickDir, async (): Promise<string | null> => {
     const win = getWindow()
     const result = await dialog.showOpenDialog(win ?? undefined!, {

@@ -838,7 +838,17 @@ export const IPC = {
   /** renderer → main: get current Feishu websocket status. */
   feishuStatus: 'feishu:status',
   /** main → renderer: Feishu websocket status changed. */
-  feishuStatusChanged: 'feishu:status-changed'
+  feishuStatusChanged: 'feishu:status-changed',
+  /** renderer → main: minimize the window. */
+  windowMinimize: 'window:minimize',
+  /** renderer → main: toggle maximize/restore. */
+  windowToggleMaximize: 'window:toggle-maximize',
+  /** renderer → main: close the window. */
+  windowClose: 'window:close',
+  /** renderer → main: query whether the window is maximized. */
+  windowIsMaximized: 'window:is-maximized',
+  /** main → renderer: window maximize state changed (payload: boolean). */
+  windowMaximizeChanged: 'window:maximize-changed'
 } as const
 
 export interface RunStartResult {

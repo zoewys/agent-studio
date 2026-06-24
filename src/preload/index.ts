@@ -275,6 +275,17 @@ const api = {
     const handler = (_e: Electron.IpcRendererEvent, status: FeishuConnectionStatus) => cb(status)
     ipcRenderer.on(IPC.feishuStatusChanged, handler)
     return () => ipcRenderer.removeListener(IPC.feishuStatusChanged, handler)
+  },
+
+  platform: process.platform as 'darwin' | 'win32' | 'linux',
+  windowMinimize: (): Promise<void> => ipcRenderer.invoke(IPC.windowMinimize),
+  windowToggleMaximize: (): Promise<boolean> => ipcRenderer.invoke(IPC.windowToggleMaximize),
+  windowClose: (): Promise<void> => ipcRenderer.invoke(IPC.windowClose),
+  isWindowMaximized: (): Promise<boolean> => ipcRenderer.invoke(IPC.windowIsMaximized),
+  onWindowMaximizeChanged: (cb: (maximized: boolean) => void): (() => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, maximized: boolean) => cb(maximized)
+    ipcRenderer.on(IPC.windowMaximizeChanged, handler)
+    return () => ipcRenderer.removeListener(IPC.windowMaximizeChanged, handler)
   }
 }
 

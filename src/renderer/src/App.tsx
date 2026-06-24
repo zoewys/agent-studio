@@ -25,6 +25,7 @@ import { WorkflowWorkspace } from './WorkflowWorkspace'
 import { ScheduleWorkspace } from './ScheduleWorkspace'
 import { SingleRunPanel } from './SingleRunPanel'
 import { ModeRail, type WorkspaceMode } from './ModeRail'
+import { WindowControls } from './WindowControls'
 import { useUiReviewFixture } from './uiReviewFixture'
 import { prepareWorkflowNotificationSound } from './workflowNotificationSound'
 import { useAppSettings } from './useAppSettings'
@@ -81,19 +82,6 @@ export function App(): JSX.Element {
   const isTemplates = mode === 'templates'
   const isSingle = mode === 'single'
   const isSettings = mode === 'settings'
-  const topbarChips = uiReview.enabled
-    ? uiReview.topbarChips[mode]
-    : buildTopbarChips(
-        mode,
-        workflows.runs.filter((r) => r.status === 'running').length,
-        workflows.runs.filter((r) => r.status === 'awaiting-confirm' || r.status === 'awaiting-input').length,
-        workflows.templates.length,
-        agents.length,
-        singleSessions.sessions.length,
-        !!singleSessions.selectedSession?.running,
-        appearanceTheme
-      )
-
   const subtitle = (): string => {
     switch (mode) {
       case 'agents':
@@ -139,11 +127,6 @@ export function App(): JSX.Element {
           <span className="app-subtitle">{subtitle()}</span>
         </div>
         <div className="topbar-actions">
-          <div className="topbar-chips" aria-label="Workspace summary">
-            {topbarChips.map((chip) => (
-              <span className="topbar-chip" key={chip}>{chip}</span>
-            ))}
-          </div>
           <button
             type="button"
             className="theme-toggle"
@@ -154,6 +137,7 @@ export function App(): JSX.Element {
           >
             {appearanceTheme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
           </button>
+          <WindowControls />
         </div>
       </header>
 
