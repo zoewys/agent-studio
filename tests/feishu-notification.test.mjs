@@ -294,7 +294,7 @@ test('FeishuNotifier dispatches card actions and destroys previous websocket cli
   assert.equal(notifier.getStatus(), 'disconnected')
 })
 
-test('FeishuNotifier sends deduped approval cards and ignores unrelated run states', async () => {
+test('FeishuNotifier sends deduped approval cards', async () => {
   const { FeishuNotifier } = await importFeishuNotifier()
   const fake = createFakeLark()
   const notifier = new FeishuNotifier(fake.sdk)
@@ -302,7 +302,6 @@ test('FeishuNotifier sends deduped approval cards and ignores unrelated run stat
   await notifier.configure(feishuConfig(), () => {}, () => {})
   await notifier.handleRunUpdate(workflowRun())
   await notifier.handleRunUpdate(workflowRun())
-  await notifier.handleRunUpdate(workflowRun({ status: 'running' }))
 
   assert.equal(fake.sentMessages.length, 1)
   const payload = JSON.stringify(fake.sentMessages[0])
@@ -313,6 +312,32 @@ test('FeishuNotifier sends deduped approval cards and ignores unrelated run stat
   assert.match(payload, /approve/)
   assert.match(payload, /reject/)
   assert.match(payload, /rerun/)
+})
+
+test('FeishuNotifier sends a started card once per run when it enters running', async () => {
+  const { FeishuNotifier } = await importFeishuNotifier()
+  const fake = createFakeLark()
+  const notifier = new FeishuNotifier(fake.sdk)
+
+  await notifier.configure(feishuConfig(), () => {}, () => {})
+  // First running transition fires the kickoff card.
+  await notifier.handleRunUpdate(workflowRun({ status: 'running', currentStepIndex: 0 }))
+  // Subsequent running transitions (resume / step advance) are deduped.
+  await notifier.handleRunUpdate(workflowRun({ status: 'running', currentStepIndex: 1 }))
+  await notifier.handleRunUpdate(workflowRun({ status: 'running', currentStepIndex: 2 }))
+
+  assert.equal(fake.sentMessages.length, 1)
+  const payload = JSON.stringify(fake.sentMessages[0])
+  assert.match(payload, /Workflow 已开始/)
+  assert.match(payload, /Friday release/)
+  assert.match(payload, /Ship it/)
+  assert.match(payload, /步骤数/)
+
+  // A later awaiting-confirm state still sends its own (separate) card — the
+  // started banner is not patched in place.
+  await notifier.handleRunUpdate(workflowRun({ status: 'awaiting-confirm' }))
+  assert.equal(fake.sentMessages.length, 2)
+  assert.match(JSON.stringify(fake.sentMessages[1]), /Workflow 需要审批/)
 })
 
 test('FeishuNotifier sends terminal cards, test cards, and handles send failures without throwing', async () => {

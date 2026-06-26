@@ -132,6 +132,7 @@ export class FeishuNotifier {
     if (!this.config?.enabled || !this.client) return
     if (run.status === 'running') {
       this.resetTerminalNotifications(run.id)
+      await this.notifyStarted(run)
     }
     if (run.status === 'awaiting-confirm') {
       await this.notifyAwaitingConfirm(run)
@@ -140,6 +141,13 @@ export class FeishuNotifier {
     } else if (run.status === 'error') {
       await this.notifyError(run)
     }
+  }
+
+  async notifyStarted(run: WorkflowRun): Promise<void> {
+    // Intentionally NOT pinned via setLatestCard: the started banner stands
+    // alone so the subsequent awaiting-confirm / completed / error cards form
+    // their own patch thread instead of overwriting the kickoff message.
+    await this.sendDedupedCard(`${run.id}:started`, this.buildStartedCard(run))
   }
 
   async notifyAwaitingConfirm(run: WorkflowRun): Promise<void> {
@@ -346,6 +354,14 @@ export class FeishuNotifier {
     const userId = this.config?.userId?.trim()
     if (userId) return { receive_id_type: 'open_id', receive_id: userId }
     throw new Error('No chatId or userId configured')
+  }
+
+  private buildStartedCard(run: WorkflowRun): object {
+    return this.buildBaseCard('blue', '🚀 Workflow 已开始', [
+      infoLine('工作流', run.runName || run.templateName),
+      infoLine('步骤数', String(run.steps.length)),
+      infoLine('提示词', truncate(run.initialPrompt || '-', 500))
+    ])
   }
 
   private buildAwaitingConfirmCard(
