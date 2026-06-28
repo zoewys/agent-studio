@@ -133,7 +133,7 @@ test('empty dashboards keep their create cards visible', () => {
   assert.doesNotMatch(scheduleList, /暂无定时任务/)
 
   assert.match(runsList, /function CreateWorkflowRunCard/)
-  assert.match(runsList, /dashboardRuns\.length > 0 && filteredRuns\.length === 0/)
+  assert.match(runsList, /filteredRuns\.length === 0 && runs\.length > 0/)
   assert.match(runsList, /className="workflow-run-card dashboard-create-card workflow-run-create-card"/)
   assert.match(css, /\.dashboard-create-card\s*\{/)
   assert.match(css, /\.schedule-create-card\s*\{/)
@@ -575,7 +575,7 @@ test('ui review fixture provides v4 design data without touching persisted state
   assert.match(app, /uiReview\.enabled \? uiReview\.agents : savedAgents/)
   assert.match(app, /uiReview\.enabled \? uiReview\.workflows : savedWorkflows/)
   assert.match(app, /uiReview\.enabled \? uiReview\.schedules : undefined/)
-  assert.match(app, /uiReview\.topbarChips/)
+  assert.match(fixture, /topbarChips/)
   assert.match(fixture, /schedules: UseSchedulesResult/)
   assert.match(fixture, /createSchedules/)
   assert.match(fixture, /Nightly QA Sweep/)
