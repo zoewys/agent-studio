@@ -199,7 +199,7 @@ export function ScheduleDrawer({
   }
 
   return (
-    <aside className="workflow-new-run-drawer workflow-schedule-drawer" aria-label="Schedule Run">
+    <aside className="workflow-new-run-drawer workflow-schedule-drawer" aria-label="Schedule Task">
       <div className="workflow-new-run-header">
         <div>
           <strong>{schedule ? 'Edit Schedule' : 'New Schedule'}</strong>
@@ -217,7 +217,7 @@ export function ScheduleDrawer({
         </label>
 
         <label className="field">
-          <span>Run Target</span>
+          <span>Task Target</span>
           <Select
             value={targetType}
             onChange={(value) => setTargetType(value as WorkflowScheduleTargetType)}
@@ -349,7 +349,7 @@ export function ScheduleDrawer({
             {scheduleState.mode === 'days' && (
               <div className="schedule-picker-grid">
                 <label className="field">
-                  <span>Run at</span>
+                  <span>Task at</span>
                   <ScheduleTimeSelect
                     value={scheduleState.dailyTime}
                     onChange={(dailyTime) => updateScheduleState({ dailyTime })}
@@ -379,7 +379,7 @@ export function ScheduleDrawer({
                   ))}
                 </div>
                 <label className="field">
-                  <span>Run at</span>
+                  <span>Task at</span>
                   <ScheduleTimeSelect
                     value={scheduleState.weeklyTime}
                     onChange={(weeklyTime) => updateScheduleState({ weeklyTime })}
@@ -402,7 +402,7 @@ export function ScheduleDrawer({
                   </Select>
                 </label>
                 <label className="field">
-                  <span>Run at</span>
+                    <span>Task at</span>
                   <ScheduleTimeSelect
                     value={scheduleState.monthlyTime}
                     onChange={(monthlyTime) => updateScheduleState({ monthlyTime })}
@@ -476,7 +476,7 @@ function ScheduleTimeSelect({ value, onChange }: ScheduleTimeSelectProps): JSX.E
   const { hour, minute } = splitScheduleTime(value)
 
   return (
-    <div className="schedule-time-select" aria-label="Run time">
+    <div className="schedule-time-select" aria-label="Task time">
       <Select
         value={hour}
         onChange={(nextHour) => onChange(`${nextHour}:${minute}`)}

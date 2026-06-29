@@ -106,7 +106,7 @@ export function App(): JSX.Element {
         return '模板编辑'
       case 'workflow':
         return uiReview.enabled && uiReviewWorkflowSurface === 'new-run'
-          ? '工作流 · 新建运行'
+          ? '工作流 · 新建任务'
           : '工作流'
       case 'schedules':
         return '定时任务'

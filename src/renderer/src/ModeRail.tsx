@@ -14,9 +14,9 @@ interface ModeRailProps {
 function railIcon(mode: WorkspaceMode, size = 20) {
   switch (mode) {
     case 'workflow': return <LayoutGrid size={size} />
-    case 'schedules': return <CalendarClock size={size} />
     case 'templates': return <Layers size={size} />
     case 'agents': return <Bot size={size} />
+    case 'schedules': return <CalendarClock size={size} />
     case 'single': return <MessageCircle size={size} />
     case 'settings': return <Settings size={size} />
   }
@@ -24,9 +24,9 @@ function railIcon(mode: WorkspaceMode, size = 20) {
 
 const modes: { key: WorkspaceMode; label: string }[] = [
   { key: 'workflow', label: 'Workflow' },
-  { key: 'schedules', label: 'Schedules' },
   { key: 'templates', label: 'Templates' },
   { key: 'agents', label: 'Agents' },
+  { key: 'schedules', label: 'Schedules' },
   { key: 'single', label: 'Single' }
 ]
 

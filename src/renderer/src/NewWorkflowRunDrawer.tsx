@@ -1,7 +1,7 @@
 /**
- * NewWorkflowRunDrawer.tsx — 新建工作流运行抽屉
+ * NewWorkflowRunDrawer.tsx — 新建工作流任务抽屉
  *
- * 从右侧滑出的抽屉面板，用于启动一次新的 workflow run：
+ * 从右侧滑出的抽屉面板，用于启动一次新的 workflow task：
  *  - 选择 workflow 模板
  *  - 填写项目路径（带 Browse 按钮）
  *  - 输入初始 prompt
@@ -150,10 +150,10 @@ export function NewWorkflowRunDrawer({
         </label>
 
         <label className="field">
-          <span>运行名称</span>
+          <span>任务名称</span>
           <input
             value={runName}
-            placeholder={selectedTemplate?.name ?? 'Run name'}
+            placeholder={selectedTemplate?.name ?? 'Task name'}
             onChange={(event) => setRunName(event.target.value)}
           />
         </label>
@@ -275,7 +275,7 @@ export function NewWorkflowRunDrawer({
         <button type="button" onClick={onClose}>取消</button>
         <button type="button" className="primary" disabled={!canStart} onClick={start}>
           <Play size={15} />
-          启动运行
+          启动任务
         </button>
       </div>
     </aside>

@@ -178,7 +178,7 @@ export function useUiReviewFixture(): UiReviewFixture {
           currentStepIndex: 0,
           startedAt: Date.now(),
           stepStatuses: ['running'],
-          tailEvents: [{ kind: 'system', text: 'workflow run started from UI review fixture' }]
+          tailEvents: [{ kind: 'system', text: 'workflow task started from UI review fixture' }]
         })
         applyRun(run)
         return run
