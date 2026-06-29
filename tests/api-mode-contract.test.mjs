@@ -30,6 +30,7 @@ test('shared contract exposes API vendor, provider config, run fields, agent fie
   assert.match(types, /attachments\?: RunAttachment\[\]/)
   assert.match(types, /messages\?: ApiConversationMessage\[\]/)
   assert.match(types, /apiLogSource\?: ApiLogSource/)
+  assert.match(types, /allowPermissionPrompts\?: boolean/)
   assert.match(types, /export type ApiLogSource = 'single' \| 'workflow' \| 'provider-test' \| 'model-fetch' \| 'reflection'/)
   assert.match(types, /export type ApiCallLogStatus = 'started' \| 'success' \| 'error' \| 'aborted'/)
   assert.match(types, /export interface ApiCallLogEntry/)
@@ -72,6 +73,7 @@ test('main process provider plumbing is wired through store, model catalog, fact
   assert.match(runManager, /attachments: config\.attachments/)
   assert.match(runManager, /apiTemperature: config\.apiTemperature/)
   assert.match(runManager, /apiTopP: config\.apiTopP/)
+  assert.match(runManager, /allowPermissionPrompts: config\.allowPermissionPrompts/)
 
   assert.match(ipc, /new ProviderStore\(/)
   assert.match(ipc, /new ApiCallLogStore\(/)
@@ -95,6 +97,7 @@ test('main process provider plumbing is wired through store, model catalog, fact
   assert.match(workflowManager, /apiProviderId: agent\.apiProviderId/)
   assert.match(workflowManager, /apiLogSource: 'workflow'/)
   assert.match(workflowManager, /headless: true/)
+  assert.match(workflowManager, /allowPermissionPrompts: true/)
 })
 
 test('preload exposes provider and permission methods to renderer', () => {

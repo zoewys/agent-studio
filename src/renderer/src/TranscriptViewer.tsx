@@ -35,6 +35,13 @@ import {
 } from 'lucide-react'
 import type { AgentEvent } from '@shared/types'
 import { isNearTranscriptBottom, shouldAutoFollowTranscriptEvent } from './transcriptScroll'
+import {
+  collectPermissionStatuses,
+  parsePermissionRequest,
+  parsePermissionResponse,
+  type PermissionRequestPayload,
+  type PermissionStatus
+} from './permissionRequests'
 
 // ── markdown → HTML ──────────────────────────────────────────────────────
 
@@ -285,15 +292,6 @@ type ChatBlock =
   | { kind: 'error'; message: string }
   | { kind: 'permission'; request: PermissionRequestPayload }
 
-type PermissionStatus = 'pending' | 'allowed' | 'denied'
-
-interface PermissionRequestPayload {
-  type: 'permission-request'
-  requestId: string
-  toolName: string
-  description: string
-}
-
 function groupEvents(events: AgentEvent[]): Block[] {
   const blocks: Block[] = []
   let pending = ''
@@ -388,6 +386,8 @@ function groupChatEvents(events: AgentEvent[]): ChatBlock[] {
         if (permissionRequest) {
           flushAssistant()
           blocks.push({ kind: 'permission', request: permissionRequest })
+        } else if (parsePermissionResponse(ev.text)) {
+          flushAssistant()
         } else if (ev.text.startsWith('↳')) {
           flushAssistant()
           blocks.push({ kind: 'message', role: 'user', text: ev.text.replace(/^↳\s*/, '') })
@@ -732,6 +732,7 @@ function BlockView({
               />
             )
           }
+          if (parsePermissionResponse(ev.text)) return null
           return ev.text.includes('↳') ? (
             <div className="cli-user-input" data-text={ev.text.replace(/^↳\s*/, '')} />
           ) : (
@@ -787,24 +788,6 @@ function PermissionRequestBlock({
       )}
     </div>
   )
-}
-
-function parsePermissionRequest(text: string): PermissionRequestPayload | null {
-  try {
-    const parsed: unknown = JSON.parse(text)
-    if (!parsed || typeof parsed !== 'object') return null
-    const value = parsed as Record<string, unknown>
-    if (value.type !== 'permission-request') return null
-    if (typeof value.requestId !== 'string' || typeof value.toolName !== 'string' || typeof value.description !== 'string') return null
-    return {
-      type: 'permission-request',
-      requestId: value.requestId,
-      toolName: value.toolName,
-      description: value.description
-    }
-  } catch {
-    return null
-  }
 }
 
 function turnReason(reason: string): string {
@@ -883,22 +866,41 @@ function ChatErrorLine({ message }: { message: string }): JSX.Element {
   )
 }
 
-function ChatTranscript({ events }: { events: AgentEvent[] }): JSX.Element {
+interface TranscriptPermissionControls {
+  permissionStatuses?: Map<string, PermissionStatus>
+  onPermissionResponse?: (requestId: string, allowed: boolean) => void
+}
+
+function ChatTranscript({
+  events,
+  permissionStatuses: externalPermissionStatuses,
+  onPermissionResponse
+}: {
+  events: AgentEvent[]
+} & TranscriptPermissionControls): JSX.Element {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const shouldFollowOutputRef = useRef(true)
-  const [permissionStatuses, setPermissionStatuses] = useState<Map<string, PermissionStatus>>(() => new Map())
+  const [localPermissionStatuses, setLocalPermissionStatuses] = useState<Map<string, PermissionStatus>>(() => new Map())
   const [allowAllForRun, setAllowAllForRun] = useState(false)
   const blocks = useMemo(() => groupChatEvents(events), [events])
+  const permissionStatuses = useMemo(
+    () => collectPermissionStatuses(events, externalPermissionStatuses ?? localPermissionStatuses),
+    [events, externalPermissionStatuses, localPermissionStatuses]
+  )
 
   const respondPermission = useCallback((requestId: string, allowed: boolean): void => {
-    setPermissionStatuses((prev) => {
+    if (onPermissionResponse) {
+      onPermissionResponse(requestId, allowed)
+      return
+    }
+    setLocalPermissionStatuses((prev) => {
       const next = new Map(prev)
       next.set(requestId, allowed ? 'allowed' : 'denied')
       return next
     })
     void window.api.respondPermission(requestId, allowed)
-  }, [])
+  }, [onPermissionResponse])
 
   const allowAllPermissions = useCallback((requestId: string): void => {
     setAllowAllForRun(true)
@@ -1034,23 +1036,37 @@ function parseTodoItems(output: unknown): Array<{ status: string; content: strin
   })
 }
 
-function ProcessTranscript({ events }: { events: AgentEvent[] }): JSX.Element {
+function ProcessTranscript({
+  events,
+  permissionStatuses: externalPermissionStatuses,
+  onPermissionResponse
+}: {
+  events: AgentEvent[]
+} & TranscriptPermissionControls): JSX.Element {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const shouldFollowOutputRef = useRef(true)
-  const [permissionStatuses, setPermissionStatuses] = useState<Map<string, PermissionStatus>>(() => new Map())
+  const [localPermissionStatuses, setLocalPermissionStatuses] = useState<Map<string, PermissionStatus>>(() => new Map())
   const [allowAllForRun, setAllowAllForRun] = useState(false)
   const blocks = useMemo(() => groupEvents(events), [events])
   const activity = useMemo(() => detectActivity(events), [events])
+  const permissionStatuses = useMemo(
+    () => collectPermissionStatuses(events, externalPermissionStatuses ?? localPermissionStatuses),
+    [events, externalPermissionStatuses, localPermissionStatuses]
+  )
 
   const respondPermission = useCallback((requestId: string, allowed: boolean): void => {
-    setPermissionStatuses((prev) => {
+    if (onPermissionResponse) {
+      onPermissionResponse(requestId, allowed)
+      return
+    }
+    setLocalPermissionStatuses((prev) => {
       const next = new Map(prev)
       next.set(requestId, allowed ? 'allowed' : 'denied')
       return next
     })
     void window.api.respondPermission(requestId, allowed)
-  }, [])
+  }, [onPermissionResponse])
 
   const allowAllPermissions = useCallback((requestId: string): void => {
     setAllowAllForRun(true)
@@ -1108,12 +1124,26 @@ function ProcessTranscript({ events }: { events: AgentEvent[] }): JSX.Element {
 
 export function TranscriptViewer({
   events,
-  variant = 'process'
+  variant = 'process',
+  permissionStatuses,
+  onPermissionResponse
 }: {
   events: AgentEvent[]
   variant?: 'process' | 'chat'
-}): JSX.Element {
+} & TranscriptPermissionControls): JSX.Element {
   return variant === 'chat'
-    ? <ChatTranscript events={events} />
-    : <ProcessTranscript events={events} />
+    ? (
+        <ChatTranscript
+          events={events}
+          permissionStatuses={permissionStatuses}
+          onPermissionResponse={onPermissionResponse}
+        />
+      )
+    : (
+        <ProcessTranscript
+          events={events}
+          permissionStatuses={permissionStatuses}
+          onPermissionResponse={onPermissionResponse}
+        />
+      )
 }

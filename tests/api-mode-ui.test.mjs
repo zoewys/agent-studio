@@ -145,8 +145,11 @@ test('API provider selections normalize stale provider ids before save or run co
 
 test('transcript viewer renders permission request cards and responds through preload', () => {
   const transcript = source('src/renderer/src/TranscriptViewer.tsx')
+  const permissions = source('src/renderer/src/permissionRequests.ts')
+  const app = source('src/renderer/src/App.tsx')
 
-  assert.match(transcript, /permission-request/)
+  assert.match(permissions, /permission-request/)
+  assert.match(permissions, /permission-response/)
   assert.match(transcript, /perm-block/)
   assert.match(transcript, /respondPermission\(requestId, allowed\)/)
   assert.match(transcript, /allowAllForRun/)
@@ -157,6 +160,10 @@ test('transcript viewer renders permission request cards and responds through pr
   assert.match(transcript, /chat-todo/)
   assert.match(transcript, /todo_write/)
   assert.match(transcript, /ListTodo/)
+  assert.match(permissions, /findPendingWorkflowPermission/)
+  assert.match(permissions, /collectWorkflowPermissionStatuses/)
+  assert.match(app, /WorkflowPermissionDialog/)
+  assert.match(app, /respondWorkflowPermission/)
 })
 
 test('styles define provider, vendor tab, and permission request classes', () => {
@@ -170,7 +177,9 @@ test('styles define provider, vendor tab, and permission request classes', () =>
     'vendor-tab',
     'perm-block',
     'perm-block-pending',
-    'perm-badge-allowed'
+    'perm-badge-allowed',
+    'workflow-permission-overlay',
+    'workflow-permission-dialog'
   ]) {
     assert.match(styles, new RegExp(`\\.${className}`))
   }

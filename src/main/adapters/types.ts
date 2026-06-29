@@ -32,6 +32,7 @@ export interface RunTurnInput {
   cliPath?: string
   permissionMode?: PermissionMode
   headless?: boolean
+  allowPermissionPrompts?: boolean
   abortSignal: AbortSignal
 }
 

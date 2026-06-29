@@ -14,6 +14,7 @@ import { MarkdownPreview } from './MarkdownPreview'
 import { MemoryReferences } from './MemoryReferences'
 import { ComposerBar } from './ComposerBar'
 import { workflowRunStatusLabel } from './workflowLabels'
+import type { PermissionStatus } from './permissionRequests'
 
 type WorkflowRunUiMeta = WorkflowRun & {
   displayPath?: string
@@ -51,6 +52,8 @@ export interface WorkflowRunDetailProps {
   onComposerSend: () => Promise<void>
   showMemoryReferences?: boolean
   onSkipStep?: () => Promise<void>
+  permissionStatuses?: Map<string, PermissionStatus>
+  onPermissionResponse?: (requestId: string, allowed: boolean) => void
 }
 
 interface OpenFile {
@@ -84,7 +87,9 @@ export function WorkflowRunDetail({
   onRemoveFile,
   attachedFiles = [],
   showMemoryReferences = false,
-  onSkipStep
+  onSkipStep,
+  permissionStatuses,
+  onPermissionResponse
 }: WorkflowRunDetailProps): JSX.Element {
   const [openFiles, setOpenFiles] = useState<OpenFile[]>([])
   const [activeFile, setActiveFile] = useState<string | null>(null)
@@ -307,7 +312,12 @@ export function WorkflowRunDetail({
 
         {/* transcript */}
         <div className="codex-transcript-area">
-          <TranscriptViewer events={selectedExecution?.events ?? []} variant="chat" />
+          <TranscriptViewer
+            events={selectedExecution?.events ?? []}
+            variant="chat"
+            permissionStatuses={permissionStatuses}
+            onPermissionResponse={onPermissionResponse}
+          />
 
           {/* inline artifact cards */}
           {handoff && handoff.artifacts.length > 0 && (

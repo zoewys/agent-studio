@@ -10137,6 +10137,122 @@ select:focus,
 
 .perm-badge-allowed { background: rgba(76, 175, 125, 0.15); color: var(--green); }
 .perm-badge-denied { background: rgba(219, 107, 107, 0.15); color: var(--red); }
+
+/* ── Workflow Permission Dialog ─────────────────────────────────────── */
+
+.workflow-permission-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(7, 12, 22, 0.42);
+  backdrop-filter: blur(8px);
+}
+
+.workflow-permission-dialog {
+  width: min(520px, 100%);
+  overflow: hidden;
+  border: 1px solid rgba(201, 149, 44, 0.34);
+  border-radius: 8px;
+  background: var(--neutral-surface-raised, var(--bg-panel));
+  color: var(--neutral-text-primary, var(--text-strong));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.workflow-permission-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--neutral-border-subtle, var(--border-soft));
+}
+
+.workflow-permission-icon {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 8px;
+  background: rgba(201, 149, 44, 0.12);
+  color: var(--semantic-warning, var(--yellow));
+}
+
+.workflow-permission-header h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.workflow-permission-header p {
+  margin: 0;
+  color: var(--neutral-text-muted, var(--text-dim));
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.workflow-permission-body {
+  padding: 16px 20px;
+}
+
+.workflow-permission-tool {
+  margin-bottom: 8px;
+  color: var(--neutral-text-secondary, var(--text));
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.workflow-permission-body pre {
+  max-height: 220px;
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  border: 1px solid var(--neutral-border-subtle, var(--border-soft));
+  border-radius: 6px;
+  background: var(--neutral-bg, var(--bg-surface));
+  color: var(--neutral-text-primary, var(--text-strong));
+  font-family: ui-monospace, SFMono-Regular, SFMono, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.workflow-permission-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px 18px;
+  border-top: 1px solid var(--neutral-border-subtle, var(--border-soft));
+}
+
+.workflow-permission-actions button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+@media (max-width: 560px) {
+  .workflow-permission-overlay {
+    align-items: flex-end;
+    padding: 14px;
+  }
+
+  .workflow-permission-actions {
+    flex-direction: column;
+  }
+
+  .workflow-permission-actions button {
+    width: 100%;
+  }
+}
+
 .markdown-preview {
   font-size: 13px; line-height: 1.7; color: var(--text-soft);
 }

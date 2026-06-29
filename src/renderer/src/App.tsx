@@ -12,7 +12,7 @@
  *  4. 渲染全局 UI 外壳（header、topbar chips、ModeRail 导航栏）
  */
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CliCheckResult } from '@shared/types'
 import { useAgents } from './useAgents'
 import { useCliModels } from './useCliModels'
@@ -31,7 +31,13 @@ import { prepareWorkflowNotificationSound } from './workflowNotificationSound'
 import { useAppSettings } from './useAppSettings'
 import { SettingsPanel } from './SettingsPanel'
 import { CliSetupDialog } from './CliSetupDialog'
-import { Moon, Sun } from 'lucide-react'
+import { ArrowRight, Check, LockKeyhole, Moon, Sun, X } from 'lucide-react'
+import {
+  collectWorkflowPermissionStatuses,
+  findPendingWorkflowPermission,
+  type PermissionStatus,
+  type WorkflowPermissionPrompt
+} from './permissionRequests'
 
 type UiReviewWorkflowSurface = 'workflow' | 'new-run'
 
@@ -50,7 +56,17 @@ export function App(): JSX.Element {
   const [uiReviewWorkflowSurface, setUiReviewWorkflowSurface] =
     useState<UiReviewWorkflowSurface>('workflow')
   const [workflowOpenRunId, setWorkflowOpenRunId] = useState<string | null>(null)
+  const [workflowPermissionOverrides, setWorkflowPermissionOverrides] =
+    useState<Map<string, PermissionStatus>>(() => new Map())
   const appearanceTheme = appSettings.settings.appearanceTheme
+  const workflowPermissionStatuses = useMemo(
+    () => collectWorkflowPermissionStatuses(workflows.runs, workflowPermissionOverrides),
+    [workflows.runs, workflowPermissionOverrides]
+  )
+  const pendingWorkflowPermission = useMemo(
+    () => findPendingWorkflowPermission(workflows.runs, workflowPermissionStatuses),
+    [workflows.runs, workflowPermissionStatuses]
+  )
 
   useEffect(() => {
     (async () => {
@@ -105,6 +121,21 @@ export function App(): JSX.Element {
     const nextTheme = appearanceTheme === 'dark' ? 'light' : 'dark'
     void appSettings.save({ ...appSettings.settings, appearanceTheme: nextTheme })
   }
+
+  const respondWorkflowPermission = useCallback((requestId: string, allowed: boolean): void => {
+    setWorkflowPermissionOverrides((prev) => {
+      const next = new Map(prev)
+      next.set(requestId, allowed ? 'allowed' : 'denied')
+      return next
+    })
+    void window.api.respondPermission(requestId, allowed)
+  }, [])
+
+  const openWorkflowPermissionRun = useCallback((prompt: WorkflowPermissionPrompt): void => {
+    workflows.selectRun(prompt.runId)
+    setWorkflowOpenRunId(prompt.runId)
+    setMode('workflow')
+  }, [workflows])
 
   return (
     <div className={['app', uiReview.enabled ? 'app-ui-review' : ''].filter(Boolean).join(' ')}>
@@ -185,6 +216,8 @@ export function App(): JSX.Element {
               openRunId={workflowOpenRunId}
               onOpenRunConsumed={() => setWorkflowOpenRunId(null)}
               showMemoryReferences={appSettings.settings.showMemoryReferences}
+              permissionStatuses={workflowPermissionStatuses}
+              onPermissionResponse={respondWorkflowPermission}
             />
           </main>
         ) : isSchedules ? (
@@ -230,7 +263,57 @@ export function App(): JSX.Element {
         )}
       </div>
 
+      {pendingWorkflowPermission && (
+        <WorkflowPermissionDialog
+          prompt={pendingWorkflowPermission}
+          onViewRun={() => openWorkflowPermissionRun(pendingWorkflowPermission)}
+          onAllow={() => respondWorkflowPermission(pendingWorkflowPermission.request.requestId, true)}
+          onDeny={() => respondWorkflowPermission(pendingWorkflowPermission.request.requestId, false)}
+        />
+      )}
+
       {uiReview.enabled && mode !== 'workflow' && <UiReviewMockNav active={mode} />}
+    </div>
+  )
+}
+
+function WorkflowPermissionDialog({
+  prompt,
+  onViewRun,
+  onAllow,
+  onDeny
+}: {
+  prompt: WorkflowPermissionPrompt
+  onViewRun: () => void
+  onAllow: () => void
+  onDeny: () => void
+}): JSX.Element {
+  return (
+    <div className="workflow-permission-overlay" role="dialog" aria-modal="true" aria-labelledby="workflow-permission-title">
+      <div className="workflow-permission-dialog">
+        <div className="workflow-permission-header">
+          <span className="workflow-permission-icon"><LockKeyhole size={18} /></span>
+          <div>
+            <h2 id="workflow-permission-title">需要你确认权限</h2>
+            <p>{prompt.runName} · Step {prompt.stepIndex + 1} · {prompt.stepName}</p>
+          </div>
+        </div>
+        <div className="workflow-permission-body">
+          <div className="workflow-permission-tool">{prompt.request.toolName} 请求执行</div>
+          <pre>{prompt.request.description}</pre>
+        </div>
+        <div className="workflow-permission-actions">
+          <button type="button" onClick={onViewRun}>
+            查看运行 <ArrowRight size={14} />
+          </button>
+          <button type="button" className="danger" onClick={onDeny}>
+            <X size={14} /> 拒绝
+          </button>
+          <button type="button" className="primary" onClick={onAllow}>
+            <Check size={14} /> 允许
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

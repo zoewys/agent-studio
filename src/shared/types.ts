@@ -302,8 +302,10 @@ export interface RunConfig {
   attachments?: RunAttachment[]
   /** API-only: identifies the source shown in local API call logs. */
   apiLogSource?: ApiLogSource
-  /** True for workflow/scheduled/background runs without an interactive permission UI. */
+  /** True for workflow/scheduled/background runs. */
   headless?: boolean
+  /** Allow headless runs to pause and wait for renderer permission approval. */
+  allowPermissionPrompts?: boolean
   addDirs?: string[]
   appendSystemPrompt?: string
   outputSchema?: JSONSchema

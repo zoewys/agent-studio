@@ -51,7 +51,7 @@ test('plan mode emits permission requests and resolves from approval', async () 
   assert.equal(await allowed, true)
 
   const denied = guard.request('file_write', '/tmp/a')
-  const second = JSON.parse(events[1].text)
+  const second = JSON.parse(events[2].text)
   assert.equal(second.type, 'permission-request')
   assert.equal(second.toolName, 'file_write')
   guard.respond(second.requestId, false)
@@ -87,7 +87,8 @@ test('default mode emits a permission request and resolves true or false from re
   assert.equal(await allowed, true)
 
   const denied = guard.request('file_write', '/tmp/a')
-  const second = JSON.parse(events[1].text)
+  const second = JSON.parse(events[2].text)
+  assert.equal(second.type, 'permission-request')
   guard.respond(second.requestId, false)
   assert.equal(await denied, false)
 })
@@ -115,6 +116,29 @@ test('headless default mode denies immediately with a clear system event instead
   assert.match(events[0].message, /headless|unattended|无人值守/i)
 })
 
+test('headless mode can wait for permission approval when prompts are enabled', async () => {
+  const { PermissionGuard } = await importPermissionGuard()
+  const events = []
+  const guard = new PermissionGuard('default', (event) => events.push(event), {
+    headless: true,
+    allowPermissionPrompts: true
+  })
+
+  const pending = guard.request('bash', 'pnpm test')
+  assert.equal(await Promise.race([pending.then(() => 'resolved'), delay(20).then(() => 'pending')]), 'pending')
+
+  const payload = JSON.parse(events[0].text)
+  assert.equal(events[0].kind, 'system')
+  assert.equal(payload.type, 'permission-request')
+  guard.respond(payload.requestId, true)
+
+  assert.equal(await pending, true)
+  const response = JSON.parse(events[1].text)
+  assert.equal(response.type, 'permission-response')
+  assert.equal(response.requestId, payload.requestId)
+  assert.equal(response.allowed, true)
+})
+
 test('global permission responder routes approvals to the matching guard', async () => {
   const { PermissionGuard, respondToPermissionRequest } = await importPermissionGuard()
   const events = []
@@ -125,4 +149,7 @@ test('global permission responder routes approvals to the matching guard', async
   respondToPermissionRequest(payload.requestId, true)
 
   assert.equal(await pending, true)
+  const response = JSON.parse(events[1].text)
+  assert.equal(response.type, 'permission-response')
+  assert.equal(response.allowed, true)
 })

@@ -25,6 +25,7 @@ import {
   readWorkflowNotificationSoundEnabled
 } from './workflowNotificationSound'
 import type { UseWorkflowsResult } from './useWorkflows'
+import type { PermissionStatus } from './permissionRequests'
 
 interface WorkflowWorkspaceProps {
   agents: AgentDefinition[]
@@ -35,6 +36,8 @@ interface WorkflowWorkspaceProps {
   openRunId?: string | null
   onOpenRunConsumed?: () => void
   showMemoryReferences?: boolean
+  permissionStatuses?: Map<string, PermissionStatus>
+  onPermissionResponse?: (requestId: string, allowed: boolean) => void
 }
 
 export function WorkflowWorkspace({
@@ -45,7 +48,9 @@ export function WorkflowWorkspace({
   onUiReviewSurfaceChange,
   openRunId = null,
   onOpenRunConsumed,
-  showMemoryReferences = false
+  showMemoryReferences = false,
+  permissionStatuses,
+  onPermissionResponse
 }: WorkflowWorkspaceProps): JSX.Element {
   const [workflowView, setWorkflowView] = useState<'runs' | 'run-detail'>('runs')
   const [newRunDrawerOpen, setNewRunDrawerOpen] = useState(false)
@@ -226,6 +231,8 @@ export function WorkflowWorkspace({
             onRemoveFile={handleRemoveFile}
             attachedFiles={attachedFiles}
             showMemoryReferences={showMemoryReferences}
+            permissionStatuses={permissionStatuses}
+            onPermissionResponse={onPermissionResponse}
           />
         </section>
       )}

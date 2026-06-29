@@ -60,7 +60,10 @@ export function createAdapter(vendor: AgentVendor, ctx?: AdapterContext): CliAda
       const guard = new PermissionGuard(
         ctx.runConfig.permissionMode ?? 'bypassPermissions',
         ctx.emitEvent ?? noopEmit,
-        { headless: ctx.runConfig.headless }
+        {
+          headless: ctx.runConfig.headless,
+          allowPermissionPrompts: ctx.runConfig.allowPermissionPrompts
+        }
       )
       return new ApiAdapter(providerConfig, guard, ctx.apiCallLogStore)
     }

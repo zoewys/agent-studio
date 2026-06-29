@@ -5,6 +5,7 @@ interface PendingPermission {
   resolve: (allowed: boolean) => void
   timer: NodeJS.Timeout
   clear: () => void
+  emitResponse: (allowed: boolean) => void
 }
 
 const pendingByRequestId = new Map<string, PendingPermission>()
@@ -16,14 +17,14 @@ export class PermissionGuard {
   constructor(
     private readonly mode: PermissionMode,
     private readonly emitEvent: (event: AgentEvent) => void,
-    private readonly options: { headless?: boolean } = {}
+    private readonly options: { headless?: boolean; allowPermissionPrompts?: boolean } = {}
   ) {}
 
   async request(toolName: string, description: string): Promise<boolean> {
     if (this.mode === 'bypassPermissions') return true
     if (this.mode === 'acceptEdits' && isEditTool(toolName)) return true
 
-    if (this.options.headless) {
+    if (this.options.headless && !this.options.allowPermissionPrompts) {
       this.emitEvent({
         kind: 'error',
         recoverable: false,
@@ -45,12 +46,19 @@ export class PermissionGuard {
     })
 
     return new Promise((resolve) => {
+      let pending: PendingPermission
       const timer = setTimeout(() => {
         this.pending.delete(requestId)
         pendingByRequestId.delete(requestId)
+        pending.emitResponse(false)
         resolve(false)
       }, this.timeoutMs)
-      const pending = { resolve, timer, clear: () => this.pending.delete(requestId) }
+      pending = {
+        resolve,
+        timer,
+        clear: () => this.pending.delete(requestId),
+        emitResponse: (allowed: boolean) => this.emitPermissionResponse(requestId, allowed)
+      }
       this.pending.set(requestId, pending)
       pendingByRequestId.set(requestId, pending)
     })
@@ -62,7 +70,19 @@ export class PermissionGuard {
     clearTimeout(pending.timer)
     this.pending.delete(requestId)
     pendingByRequestId.delete(requestId)
+    pending.emitResponse(allowed)
     pending.resolve(allowed)
+  }
+
+  private emitPermissionResponse(requestId: string, allowed: boolean): void {
+    this.emitEvent({
+      kind: 'system',
+      text: JSON.stringify({
+        type: 'permission-response',
+        requestId,
+        allowed
+      })
+    })
   }
 }
 
@@ -76,5 +96,6 @@ export function respondToPermissionRequest(requestId: string, allowed: boolean):
   clearTimeout(pending.timer)
   pendingByRequestId.delete(requestId)
   pending.clear()
+  pending.emitResponse(allowed)
   pending.resolve(allowed)
 }
