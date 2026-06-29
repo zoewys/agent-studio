@@ -1,5 +1,5 @@
 /**
- * workflowRunView.ts — Workflow Run 视图层工具函数
+ * workflowRunView.ts — Workflow Task 视图层工具函数
  *
  * 提供 run 列表排序、步骤状态变化时的音效类型判定等辅助逻辑，
  * 被 useWorkflows hook 和 WorkflowWorkspace 使用。

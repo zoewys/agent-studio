@@ -1,8 +1,8 @@
 /**
  * WorkflowRunsList.tsx — 工作流运行列表侧栏
  *
- * 展示所有 workflow run 实例的列表（按时间倒序），每项显示：
- * 运行名称、模板名、状态徽标、开始时间。支持选中高亮和删除操作。
+ * 展示所有 workflow task 实例的列表（按时间倒序），每项显示：
+ * 任务名称、模板名、状态徽标、开始时间。支持选中高亮和删除操作。
  */
 
 import { useMemo, useState } from 'react'
@@ -71,17 +71,17 @@ export function WorkflowRunsList({
     <section className="workflow-runs-list workflow-dashboard-page">
       <div className="page-header workflow-runs-header">
         <div className="page-title-block">
-          <h2 className="page-title">全部运行记录</h2>
+          <h2 className="page-title">全部任务</h2>
         </div>
         <div className="page-actions workflow-runs-actions">
           {onRefresh && (
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void onRefresh()} title="刷新运行记录">
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void onRefresh()} title="刷新任务列表">
               <RefreshCw size={14} />
               刷新
             </button>
           )}
           <button type="button" className="new-run-btn" onClick={onNewRun}>
-            <Plus size={14} /> 新建运行
+            <Plus size={14} /> 新建任务
           </button>
         </div>
       </div>
@@ -92,10 +92,10 @@ export function WorkflowRunsList({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="搜索运行名称、模板..."
+            placeholder="搜索任务名称、模板..."
           />
         </label>
-        <div className="filter-chips" role="group" aria-label="Run filters">
+        <div className="filter-chips" role="group" aria-label="Task filters">
           {runFilterOptions.map((option) => (
             <button
               key={option.key}
@@ -116,7 +116,7 @@ export function WorkflowRunsList({
           <Select
             value={sortMode}
             onChange={(value) => setSortMode(value as SortMode)}
-            ariaLabel="运行排序"
+            ariaLabel="任务排序"
           >
             <Select.Item value="newest">按时间倒序</Select.Item>
             <Select.Item value="oldest">按时间正序</Select.Item>
@@ -129,7 +129,7 @@ export function WorkflowRunsList({
         {filteredRuns.length === 0 && runs.length > 0 && (
           <div className="workflow-dashboard-empty">
             <Activity size={18} />
-            <span>暂无匹配的运行记录</span>
+            <span>暂无匹配的任务</span>
           </div>
         )}
         {filteredRuns.map((run, index) => (
@@ -169,8 +169,8 @@ function CreateWorkflowRunCard({
       <div className="dashboard-create-card-icon">
         <Plus size={20} />
       </div>
-      <div className="dashboard-create-card-title">新建运行</div>
-      <div className="dashboard-create-card-desc">从模板启动一个 workflow run</div>
+      <div className="dashboard-create-card-title">新建任务</div>
+      <div className="dashboard-create-card-desc">从模板启动一个 workflow task</div>
     </button>
   )
 }
@@ -231,11 +231,11 @@ function WorkflowRunCard({
           <button
             type="button"
             className="workflow-run-card-delete icon-only"
-            title="删除此运行"
-            aria-label="删除此运行"
+            title="删除此任务"
+            aria-label="删除此任务"
             onClick={(e) => {
               e.stopPropagation()
-              if (window.confirm(`Delete run "${displayName}"?`)) {
+              if (window.confirm(`Delete task "${displayName}"?`)) {
                 onDeleteRun(run.id)
               }
             }}

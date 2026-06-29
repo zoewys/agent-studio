@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AgentDefinition, HandoffArtifactItem, WorkflowRun, WorkflowRunStep } from '@shared/types'
-import { AlertTriangle, ArrowRight, Check, CheckCircle, ChevronLeft, Code2, FileQuestion, GitBranch, MessageCircle, PanelRight, PenTool } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, CheckCircle, ChevronLeft, Code2, Copy, FileQuestion, GitBranch, MessageCircle, PanelRight, PenTool } from 'lucide-react'
 import { TranscriptViewer } from './TranscriptViewer'
 import { MarkdownPreview } from './MarkdownPreview'
 import { MemoryReferences } from './MemoryReferences'
@@ -92,6 +92,10 @@ export function WorkflowRunDetail({
   const [rightTab, setRightTab] = useState<'task' | 'files' | 'output'>('task')
   const resizing = useRef(false)
   const bodyRef = useRef<HTMLDivElement>(null)
+  const copyRunId = useCallback(() => {
+    if (!run || !navigator.clipboard) return
+    void navigator.clipboard.writeText(run.id)
+  }, [run])
 
   const onResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -153,7 +157,7 @@ export function WorkflowRunDetail({
   if (!run) {
     return (
       <main className="workflow-run-detail workflow-run-detail-empty">
-        <strong>暂无工作流运行</strong>
+        <strong>暂无工作流任务</strong>
         <span>点击左侧 New Task 从模板启动一个 workflow。</span>
       </main>
     )
@@ -190,6 +194,16 @@ export function WorkflowRunDetail({
             )}
             <div className="workflow-detail-title">
               <h2>{run.runName || run.templateName}</h2>
+              <button
+                type="button"
+                className="workflow-run-id-chip"
+                onClick={copyRunId}
+                title={`复制任务 ID: ${run.id}`}
+                aria-label={`复制任务 ID ${run.id}`}
+              >
+                <span>{run.id}</span>
+                <Copy size={12} />
+              </button>
               <span className={`workflow-run-status workflow-run-status-${run.status}`}>
                 {workflowRunStatusLabel(run.status)}
               </span>
@@ -519,10 +533,12 @@ function WorkflowSidePanel({
   onTabChange: (tab: 'task' | 'files' | 'output') => void
   onOpenFile: (path: string) => void
 }): JSX.Element {
+  const currentRunDirectory = runCwd(run)
   const artifacts = handoff?.artifacts ?? []
   const outputLines = [
-    `Run: ${run.runName || run.templateName}`,
+    `Task: ${run.runName || run.templateName}`,
     `Status: ${workflowRunStatusLabel(run.status)}`,
+    `Current directory: ${currentRunDirectory}`,
     `Step: ${selectedStep?.displayName || selectedStep?.role || selectedAgent?.name || 'No step selected'}`,
     `Agent: ${workflowStepRouteLabel(selectedAgent)}`,
     selectedExecution?.status ? `Execution: ${selectedExecution.status}` : '',
@@ -566,6 +582,12 @@ function WorkflowSidePanel({
             </div>
             <div className="workflow-prompt-display workflow-side-task-display">
               <span className="workflow-prompt-text">{run.initialPrompt}</span>
+            </div>
+            <div className="workflow-side-task-meta">
+              <span className="workflow-prompt-label">当前运行目录</span>
+              <span className="workflow-side-task-path" title={currentRunDirectory}>
+                {currentRunDirectory}
+              </span>
             </div>
           </div>
         ) : activeTab === 'files' ? (

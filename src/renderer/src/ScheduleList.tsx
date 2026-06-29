@@ -45,7 +45,7 @@ export function ScheduleList({
       <div className="page-header workflow-runs-header">
         <div className="page-title-block">
           <h2 className="page-title">定时任务</h2>
-          <p>自动启动 workflow run，按设定时间后台执行。</p>
+          <p>自动启动 workflow task，按设定时间后台执行。</p>
         </div>
         <div className="page-actions workflow-runs-actions">
           <button type="button" className="primary" onClick={onNewSchedule}>

@@ -6,7 +6,7 @@ interface UiReviewMockNavProps {
 
 const items: { id: UiReviewMockNavActive; label: string }[] = [
   { id: 'workflow', label: 'Workflow' },
-  { id: 'new-run', label: 'New Run Drawer' },
+  { id: 'new-run', label: 'New Task Drawer' },
   { id: 'schedules', label: 'Schedules' },
   { id: 'templates', label: 'Templates' },
   { id: 'agents', label: 'Agents' },

@@ -4,7 +4,7 @@
  * 对应 "Workflow" 模式的完整面板，组合了：
  *  - WorkflowRunsList：左侧运行列表（历史 + 进行中）
  *  - WorkflowRunDetail：中央运行详情（步骤导航、Transcript、Handoff、Composer）
- *  - NewWorkflowRunDrawer：新建运行抽屉（选择模板、填写 prompt、启动）
+ *  - NewWorkflowRunDrawer：新建任务抽屉（选择模板、填写 prompt、启动）
  *
  * 管理选中 run/step 的状态，以及 workflow composer 的输入与发送逻辑。
  */
