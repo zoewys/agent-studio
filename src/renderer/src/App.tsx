@@ -31,7 +31,7 @@ import { prepareWorkflowNotificationSound } from './workflowNotificationSound'
 import { useAppSettings } from './useAppSettings'
 import { SettingsPanel } from './SettingsPanel'
 import { CliSetupDialog } from './CliSetupDialog'
-import { ArrowRight, Check, LockKeyhole, Moon, Sun, X } from 'lucide-react'
+import { ArrowRight, Check, CheckCheck, LockKeyhole, Moon, Sun, X } from 'lucide-react'
 import {
   collectWorkflowPermissionStatuses,
   findPendingWorkflowPermission,
@@ -58,6 +58,8 @@ export function App(): JSX.Element {
   const [workflowOpenRunId, setWorkflowOpenRunId] = useState<string | null>(null)
   const [workflowPermissionOverrides, setWorkflowPermissionOverrides] =
     useState<Map<string, PermissionStatus>>(() => new Map())
+  const [trustedWorkflowRunIds, setTrustedWorkflowRunIds] =
+    useState<Set<string>>(() => new Set())
   const appearanceTheme = appSettings.settings.appearanceTheme
   const workflowPermissionStatuses = useMemo(
     () => collectWorkflowPermissionStatuses(workflows.runs, workflowPermissionOverrides),
@@ -130,6 +132,21 @@ export function App(): JSX.Element {
     })
     void window.api.respondPermission(requestId, allowed)
   }, [])
+
+  useEffect(() => {
+    if (!pendingWorkflowPermission) return
+    if (!trustedWorkflowRunIds.has(pendingWorkflowPermission.runId)) return
+    respondWorkflowPermission(pendingWorkflowPermission.request.requestId, true)
+  }, [pendingWorkflowPermission, respondWorkflowPermission, trustedWorkflowRunIds])
+
+  const trustWorkflowPermissions = useCallback((prompt: WorkflowPermissionPrompt): void => {
+    setTrustedWorkflowRunIds((prev) => {
+      const next = new Set(prev)
+      next.add(prompt.runId)
+      return next
+    })
+    respondWorkflowPermission(prompt.request.requestId, true)
+  }, [respondWorkflowPermission])
 
   const openWorkflowPermissionRun = useCallback((prompt: WorkflowPermissionPrompt): void => {
     workflows.selectRun(prompt.runId)
@@ -268,6 +285,7 @@ export function App(): JSX.Element {
           prompt={pendingWorkflowPermission}
           onViewRun={() => openWorkflowPermissionRun(pendingWorkflowPermission)}
           onAllow={() => respondWorkflowPermission(pendingWorkflowPermission.request.requestId, true)}
+          onAllowWorkflow={() => trustWorkflowPermissions(pendingWorkflowPermission)}
           onDeny={() => respondWorkflowPermission(pendingWorkflowPermission.request.requestId, false)}
         />
       )}
@@ -281,11 +299,13 @@ function WorkflowPermissionDialog({
   prompt,
   onViewRun,
   onAllow,
+  onAllowWorkflow,
   onDeny
 }: {
   prompt: WorkflowPermissionPrompt
   onViewRun: () => void
   onAllow: () => void
+  onAllowWorkflow: () => void
   onDeny: () => void
 }): JSX.Element {
   return (
@@ -295,10 +315,16 @@ function WorkflowPermissionDialog({
           <span className="workflow-permission-icon"><LockKeyhole size={18} /></span>
           <div>
             <h2 id="workflow-permission-title">需要你确认权限</h2>
-            <p>{prompt.runName} · Step {prompt.stepIndex + 1} · {prompt.stepName}</p>
+            <p>这个 workflow 正在请求执行工具。</p>
           </div>
         </div>
         <div className="workflow-permission-body">
+          <div className="workflow-permission-detail-grid">
+            <span>运行</span>
+            <strong>{prompt.runName}</strong>
+            <span>步骤</span>
+            <strong>Step {prompt.stepIndex + 1} · {prompt.stepName}</strong>
+          </div>
           <div className="workflow-permission-tool">{prompt.request.toolName} 请求执行</div>
           <pre>{prompt.request.description}</pre>
         </div>
@@ -311,6 +337,9 @@ function WorkflowPermissionDialog({
           </button>
           <button type="button" className="primary" onClick={onAllow}>
             <Check size={14} /> 允许
+          </button>
+          <button type="button" className="primary" onClick={onAllowWorkflow}>
+            <CheckCheck size={14} /> 本 workflow 始终允许
           </button>
         </div>
       </div>

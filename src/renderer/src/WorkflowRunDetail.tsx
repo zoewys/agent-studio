@@ -199,16 +199,6 @@ export function WorkflowRunDetail({
             )}
             <div className="workflow-detail-title">
               <h2>{run.runName || run.templateName}</h2>
-              <button
-                type="button"
-                className="workflow-run-id-chip"
-                onClick={copyRunId}
-                title={`复制任务 ID: ${run.id}`}
-                aria-label={`复制任务 ID ${run.id}`}
-              >
-                <span>{run.id}</span>
-                <Copy size={12} />
-              </button>
               <span className={`workflow-run-status workflow-run-status-${run.status}`}>
                 {workflowRunStatusLabel(run.status)}
               </span>
@@ -395,6 +385,7 @@ export function WorkflowRunDetail({
             activeTab={rightTab}
             onTabChange={setRightTab}
             onOpenFile={(path) => void openFile(path)}
+            onCopyRunId={copyRunId}
           />
         )}
       </div>
@@ -532,7 +523,8 @@ function WorkflowSidePanel({
   handoff,
   activeTab,
   onTabChange,
-  onOpenFile
+  onOpenFile,
+  onCopyRunId
 }: {
   run: WorkflowRun
   selectedStep: WorkflowRunStep | undefined
@@ -542,6 +534,7 @@ function WorkflowSidePanel({
   activeTab: 'task' | 'files' | 'output'
   onTabChange: (tab: 'task' | 'files' | 'output') => void
   onOpenFile: (path: string) => void
+  onCopyRunId: () => void
 }): JSX.Element {
   const currentRunDirectory = runCwd(run)
   const artifacts = handoff?.artifacts ?? []
@@ -592,6 +585,19 @@ function WorkflowSidePanel({
             </div>
             <div className="workflow-prompt-display workflow-side-task-display">
               <span className="workflow-prompt-text">{run.initialPrompt}</span>
+            </div>
+            <div className="workflow-side-task-meta">
+              <span className="workflow-prompt-label">任务 ID</span>
+              <button
+                type="button"
+                className="workflow-run-id-chip workflow-run-id-chip-detail"
+                onClick={onCopyRunId}
+                title={`复制任务 ID: ${run.id}`}
+                aria-label={`复制任务 ID ${run.id}`}
+              >
+                <span>{run.id}</span>
+                <Copy size={12} />
+              </button>
             </div>
             <div className="workflow-side-task-meta">
               <span className="workflow-prompt-label">当前运行目录</span>

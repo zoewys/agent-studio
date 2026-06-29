@@ -164,6 +164,10 @@ test('transcript viewer renders permission request cards and responds through pr
   assert.match(permissions, /collectWorkflowPermissionStatuses/)
   assert.match(app, /WorkflowPermissionDialog/)
   assert.match(app, /respondWorkflowPermission/)
+  assert.match(app, /trustedWorkflowRunIds/)
+  assert.match(app, /trustWorkflowPermissions/)
+  assert.match(app, /本 workflow 始终允许/)
+  assert.match(app, /CheckCheck/)
 })
 
 test('styles define provider, vendor tab, and permission request classes', () => {
@@ -179,7 +183,8 @@ test('styles define provider, vendor tab, and permission request classes', () =>
     'perm-block-pending',
     'perm-badge-allowed',
     'workflow-permission-overlay',
-    'workflow-permission-dialog'
+    'workflow-permission-dialog',
+    'workflow-permission-detail-grid'
   ]) {
     assert.match(styles, new RegExp(`\\.${className}`))
   }

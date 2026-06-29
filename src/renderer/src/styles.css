@@ -3127,6 +3127,15 @@ button.icon-only {
   background: rgba(61, 142, 134, 0.1);
 }
 
+.workflow-run-id-chip-detail {
+  width: 100%;
+  max-width: 100%;
+  justify-content: space-between;
+  border-radius: 7px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.48);
+}
+
 .workflow-run-isolate-tag {
   display: inline-flex;
   align-items: center;
@@ -10255,6 +10264,30 @@ select:focus,
   padding: 16px 20px;
 }
 
+.workflow-permission-detail-grid {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 6px 10px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--neutral-border-subtle, var(--border-soft));
+  border-radius: 6px;
+  background: rgba(61, 142, 134, 0.04);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.workflow-permission-detail-grid span {
+  color: var(--neutral-text-muted, var(--text-dim));
+}
+
+.workflow-permission-detail-grid strong {
+  min-width: 0;
+  color: var(--neutral-text-primary, var(--text-strong));
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
 .workflow-permission-tool {
   margin-bottom: 8px;
   color: var(--neutral-text-secondary, var(--text));
@@ -10292,6 +10325,7 @@ select:focus,
   align-items: center;
   justify-content: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 @media (max-width: 560px) {
