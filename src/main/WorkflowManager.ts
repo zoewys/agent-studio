@@ -77,6 +77,10 @@ const HANDOFF_HINT = [
   'Use null for routeSuggestion unless you believe the workflow should deviate from the default next step.'
 ].join('\n')
 
+const TODO_CONTINUATION_LIMIT = 3
+const TODO_CONTINUATION_MARKER = 'workflow:auto-continue-unfinished-todos'
+const TODO_UNFINISHED_NOTE = 'workflow:unfinished-todos-detected'
+
 const INTERACTIVE_HINT = [
   'This step runs in interactive mode — you are communicating directly with the user.',
   '',
@@ -758,6 +762,12 @@ export class WorkflowManager {
     const unfinishedTodos = findUnfinishedTodoItems(execution.events)
     if (unfinishedTodos.length > 0) {
       const message = formatUnfinishedTodoError(unfinishedTodos)
+      if (
+        templateStep?.interactive !== true &&
+        this.continueUnfinishedTodos(run, stepIndex, execution, unfinishedTodos, message)
+      ) {
+        return
+      }
       this.collectMemorySignal('format-error', 'handoff-failed', run, stepIndex, execution, { error: message })
       this.finishStepWithError(run, stepIndex, execution, message)
       return
@@ -852,6 +862,94 @@ export class WorkflowManager {
       this.collectMemorySignal('completion', 'workflow-done', run, stepIndex, execution, { handoff })
     }
     this.persistAndEmit(run)
+  }
+
+  private continueUnfinishedTodos(
+    run: WorkflowRun,
+    stepIndex: number,
+    previous: WorkflowStepExecution,
+    unfinishedTodos: TodoSnapshotItem[],
+    errorMessage: string
+  ): boolean {
+    const step = run.steps[stepIndex]
+    const attempts = countTodoContinuations(step.executions)
+    if (attempts >= TODO_CONTINUATION_LIMIT) return false
+
+    const agent = this.agentStore.list().find((candidate) => candidate.id === step.agentId)
+    if (!agent) return false
+
+    this.completeLiveStep(run.id, previous.id, false)
+    this.aggregateStepCost(run, previous)
+    previous.status = 'done'
+    previous.finishedAt = previous.finishedAt ?? Date.now()
+    previous.events.push({ kind: 'system', text: `${TODO_UNFINISHED_NOTE}: ${errorMessage}` })
+    previous.conversation = ensureWorkflowConversation(previous.conversation, undefined)
+    previous.conversation.events.push({ kind: 'system', text: `${TODO_UNFINISHED_NOTE}: ${errorMessage}` })
+
+    const model = agent.model?.trim() || undefined
+    const prompt = buildTodoContinuationPrompt(unfinishedTodos, attempts + 1)
+    const execution: WorkflowStepExecution = {
+      id: randomUUID(),
+      stepIndex,
+      agentId: agent.id,
+      vendor: agent.vendor,
+      model,
+      apiProviderId: agent.apiProviderId,
+      status: 'running',
+      startedAt: Date.now(),
+      injectedMemoryIds: [],
+      conversation: createWorkflowConversation(agent, previous.sessionId ? 'native-resume' : 'logic-replay'),
+      events: [{ kind: 'system', text: `${TODO_CONTINUATION_MARKER}: attempt ${attempts + 1}` }],
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      totalCostUsd: 0
+    }
+    execution.conversation!.events.push({ kind: 'system', text: `↳ ${prompt}` })
+    step.executions.push(execution)
+    step.status = 'running'
+    run.currentStepIndex = stepIndex
+    run.status = 'running'
+    run.finishedAt = undefined
+    this.persistAndEmit(run)
+
+    const config: RunConfig = {
+      vendor: agent.vendor,
+      prompt,
+      cwd: step.worktreePath ?? this.runCwd(run),
+      model,
+      codexReasoningEffort: agent.codexReasoningEffort,
+      codexServiceTier: agent.codexServiceTier?.trim() || undefined,
+      apiProviderId: agent.apiProviderId,
+      apiTemperature: agent.apiTemperature,
+      apiTopP: agent.apiTopP,
+      apiLogSource: 'workflow',
+      headless: true,
+      allowPermissionPrompts: true,
+      appendSystemPrompt: agent.systemPrompt,
+      outputSchema: HANDOFF_OUTPUT_SCHEMA,
+      permissionMode: agent.permissionMode,
+      resumeFrom: previous.sessionId
+        ? {
+            sessionId: previous.sessionId,
+            vendor: agent.vendor,
+            transcriptPath: this.transcripts.getTranscriptPath(previous.sessionId)
+          }
+        : undefined
+    }
+
+    const childRunId = this.runManager.start(config, (_childRunId, event) => {
+      this.handleAgentEvent(run.id, stepIndex, execution.id, event)
+    })
+    execution.runId = childRunId
+    this.transcripts.recordUserInput(childRunId, prompt)
+    this.addLiveStep(run.id, {
+      workflowRunId: run.id,
+      childRunId,
+      stepIndex,
+      executionId: execution.id
+    })
+    this.persistAndEmit(run)
+    return true
   }
 
   private enterAwaitingInput(run: WorkflowRun, stepIndex: number): void {
@@ -1556,6 +1654,33 @@ function findUnfinishedTodoItems(events: AgentEvent[]): TodoSnapshotItem[] {
     return todos.filter((todo) => todo.status.toLowerCase() !== 'completed')
   }
   return []
+}
+
+function countTodoContinuations(executions: WorkflowStepExecution[]): number {
+  return executions.filter((execution) =>
+    execution.events.some(
+      (event) => event.kind === 'system' && event.text.startsWith(TODO_CONTINUATION_MARKER)
+    )
+  ).length
+}
+
+function buildTodoContinuationPrompt(items: TodoSnapshotItem[], attempt: number): string {
+  const todoLines = items
+    .map((item, index) => `${index + 1}. ${item.status}: ${item.content}`)
+    .join('\n')
+  return [
+    `Previous workflow turn ended with unfinished todo items. Continue the same step now. Attempt ${attempt}/${TODO_CONTINUATION_LIMIT}.`,
+    '',
+    'Do not restart from scratch. Reuse files already created in the project directory.',
+    'Finish the unfinished work, run the required script or checks, generate the requested result files, and verify they exist.',
+    'Before final handoff, call todo_write again and mark every todo as completed.',
+    '',
+    'Unfinished todo items:',
+    todoLines,
+    '',
+    '# Handoff requirement',
+    HANDOFF_HINT
+  ].join('\n')
 }
 
 function readTodoWriteItems(input: unknown): TodoSnapshotItem[] | null {

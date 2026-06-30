@@ -207,7 +207,7 @@ test('workflow synthesizes a step result when a non-interactive step completes w
   ])
 })
 
-test('workflow does not advance when the latest todo list is unfinished', async () => {
+test('workflow auto-continues when the latest todo list is unfinished', async () => {
   const { savedRuns, started } = await createWorkflowHarness()
 
   started[0].onEvent(started[0].id, {
@@ -234,7 +234,47 @@ test('workflow does not advance when the latest todo list is unfinished', async 
   })
 
   const latestRun = savedRuns.at(-1)
-  assert.equal(started.length, 1)
+  assert.equal(started.length, 2)
+  assert.equal(latestRun.status, 'running')
+  assert.equal(latestRun.currentStepIndex, 0)
+  assert.equal(latestRun.steps[0].status, 'running')
+  assert.equal(latestRun.steps[0].executions[0].status, 'done')
+  assert.equal(latestRun.steps[0].executions[1].status, 'running')
+  assert.match(started[1].config.prompt, /Continue the same step now/)
+  assert.match(started[1].config.prompt, /Write analysis script/)
+  assert.match(started[1].config.prompt, /Generate analysis Excel output file/)
+  assert.match(started[1].config.prompt, /mark every todo as completed/)
+})
+
+test('workflow fails unfinished todos after auto-continuation limit', async () => {
+  const { savedRuns, started } = await createWorkflowHarness()
+
+  for (let i = 0; i < 4; i += 1) {
+    started[i].onEvent(started[i].id, {
+      kind: 'tool-call',
+      id: `todo-${i + 1}`,
+      name: 'todo_write',
+      input: {
+        todos: [
+          { content: 'Write analysis script', status: 'in_progress' },
+          { content: 'Generate analysis Excel output file', status: 'pending' }
+        ]
+      }
+    })
+    started[i].onEvent(started[i].id, {
+      kind: 'message',
+      role: 'assistant',
+      text: '{"summary":"still incomplete","artifacts":[]}'
+    })
+    started[i].onEvent(started[i].id, {
+      kind: 'turn-done',
+      sessionId: `codex-product-${i + 1}`,
+      reason: 'complete'
+    })
+  }
+
+  const latestRun = savedRuns.at(-1)
+  assert.equal(started.length, 4)
   assert.equal(latestRun.status, 'error')
   assert.equal(latestRun.steps[0].status, 'error')
   assert.match(latestRun.steps[0].executions.at(-1).error, /unfinished todo items/)
